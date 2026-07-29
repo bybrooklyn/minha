@@ -1,0 +1,9 @@
+/target/
+/.minha/state/
+/.minha/worktrees/
+/.minha/recovery/
+/.minha/*.sqlite3
+/.minha/*.sqlite3-*
+*.db-shm
+*.db-wal
+.DS_Store

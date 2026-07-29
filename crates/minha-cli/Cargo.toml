@@ -1,0 +1,22 @@
+[package]
+name = "minha"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description.workspace = true
+readme.workspace = true
+publish = false
+
+[[bin]]
+name = "minha"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+minha-core = { path = "../minha-core", version = "0.1.0" }
+minha-tui = { path = "../minha-tui", version = "0.1.0" }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true

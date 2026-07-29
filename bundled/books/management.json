@@ -1,0 +1,1597 @@
+{
+  "schema_version": 2,
+  "pack_id": "management",
+  "title": "Engineering Management",
+  "books": [
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "management-01",
+        "version": "1.0.0",
+        "title": "Planning: Engineering Management",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "management"
+        ],
+        "tags": [
+          "planning",
+          "management",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/management.json",
+        "abstract_text": "Planning in Engineering Management: A plan is a current model of goals, decisions, dependencies, and evidence. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Planning - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "management-01-chapter-model",
+          "title": "Model and scope",
+          "summary": "A plan is a current model of goals, decisions, dependencies, and evidence. This chapter fixes the vocabulary and boundary needed to reason about planning.",
+          "sections": [
+            {
+              "id": "management-01-section-model",
+              "title": "Core model",
+              "summary": "A plan is a current model of goals, decisions, dependencies, and evidence.",
+              "key_facts": [
+                "management-01-fact-model"
+              ]
+            },
+            {
+              "id": "management-01-section-check",
+              "title": "Practical check",
+              "summary": "Mark assumptions, owners, checkpoints, and what would change the plan. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "management-01-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "management-01-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "management-01-section-failure",
+              "title": "Common failure",
+              "summary": "A date-shaped list can hide the dependency that actually determines delivery. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "management-01-fact-caution"
+              ]
+            },
+            {
+              "id": "management-01-section-pattern",
+              "title": "Working pattern",
+              "summary": "Mark assumptions, owners, checkpoints, and what would change the plan. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "management-01-fact-model",
+                "management-01-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "management-01-fact-model",
+          "statement": "A plan is a current model of goals, decisions, dependencies, and evidence.",
+          "tags": [
+            "planning",
+            "management"
+          ],
+          "citation_ids": [
+            "management-01-cite-editorial",
+            "management-01-cite-reference"
+          ]
+        },
+        {
+          "id": "management-01-fact-practice",
+          "statement": "Mark assumptions, owners, checkpoints, and what would change the plan.",
+          "tags": [
+            "practice",
+            "management"
+          ],
+          "citation_ids": [
+            "management-01-cite-editorial"
+          ]
+        },
+        {
+          "id": "management-01-fact-caution",
+          "statement": "A date-shaped list can hide the dependency that actually determines delivery.",
+          "tags": [
+            "failure-mode",
+            "management"
+          ],
+          "citation_ids": [
+            "management-01-cite-editorial",
+            "management-01-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "management-01-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Planning - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-01-cite-reference",
+          "locator": "reference landing page",
+          "source": "Team Playbook",
+          "note": "Starting point for planning; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.atlassian.com/team-playbook",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-01-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "management-02",
+        "version": "1.0.0",
+        "title": "Delegation: Engineering Management",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "management"
+        ],
+        "tags": [
+          "delegation",
+          "management",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/management.json",
+        "abstract_text": "Delegation in Engineering Management: Delegation transfers an outcome with context, authority, and an escalation boundary. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Delegation - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "management-02-chapter-model",
+          "title": "Model and scope",
+          "summary": "Delegation transfers an outcome with context, authority, and an escalation boundary. This chapter fixes the vocabulary and boundary needed to reason about delegation.",
+          "sections": [
+            {
+              "id": "management-02-section-model",
+              "title": "Core model",
+              "summary": "Delegation transfers an outcome with context, authority, and an escalation boundary.",
+              "key_facts": [
+                "management-02-fact-model"
+              ]
+            },
+            {
+              "id": "management-02-section-check",
+              "title": "Practical check",
+              "summary": "Explain why, constraints, definition of done, and access needed to act. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "management-02-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "management-02-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "management-02-section-failure",
+              "title": "Common failure",
+              "summary": "Assigning a task while retaining every decision creates an invisible approval queue. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "management-02-fact-caution"
+              ]
+            },
+            {
+              "id": "management-02-section-pattern",
+              "title": "Working pattern",
+              "summary": "Explain why, constraints, definition of done, and access needed to act. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "management-02-fact-model",
+                "management-02-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "management-02-fact-model",
+          "statement": "Delegation transfers an outcome with context, authority, and an escalation boundary.",
+          "tags": [
+            "delegation",
+            "management"
+          ],
+          "citation_ids": [
+            "management-02-cite-editorial",
+            "management-02-cite-reference"
+          ]
+        },
+        {
+          "id": "management-02-fact-practice",
+          "statement": "Explain why, constraints, definition of done, and access needed to act.",
+          "tags": [
+            "practice",
+            "management"
+          ],
+          "citation_ids": [
+            "management-02-cite-editorial"
+          ]
+        },
+        {
+          "id": "management-02-fact-caution",
+          "statement": "Assigning a task while retaining every decision creates an invisible approval queue.",
+          "tags": [
+            "failure-mode",
+            "management"
+          ],
+          "citation_ids": [
+            "management-02-cite-editorial",
+            "management-02-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "management-02-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Delegation - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-02-cite-reference",
+          "locator": "reference landing page",
+          "source": "Team Playbook",
+          "note": "Starting point for delegation; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.atlassian.com/team-playbook",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-02-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "management-03",
+        "version": "1.0.0",
+        "title": "Decision Records: Engineering Management",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "management"
+        ],
+        "tags": [
+          "decision-records",
+          "management",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/management.json",
+        "abstract_text": "Decision Records in Engineering Management: Important choices need options, criteria, consequences, and review triggers. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Decision Records - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "management-03-chapter-model",
+          "title": "Model and scope",
+          "summary": "Important choices need options, criteria, consequences, and review triggers. This chapter fixes the vocabulary and boundary needed to reason about decision records.",
+          "sections": [
+            {
+              "id": "management-03-section-model",
+              "title": "Core model",
+              "summary": "Important choices need options, criteria, consequences, and review triggers.",
+              "key_facts": [
+                "management-03-fact-model"
+              ]
+            },
+            {
+              "id": "management-03-section-check",
+              "title": "Practical check",
+              "summary": "Record enough context for a future reader to revisit the decision responsibly. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "management-03-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "management-03-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "management-03-section-failure",
+              "title": "Common failure",
+              "summary": "A conclusion without rationale turns deliberate tradeoffs into unexplained defaults. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "management-03-fact-caution"
+              ]
+            },
+            {
+              "id": "management-03-section-pattern",
+              "title": "Working pattern",
+              "summary": "Record enough context for a future reader to revisit the decision responsibly. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "management-03-fact-model",
+                "management-03-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "management-03-fact-model",
+          "statement": "Important choices need options, criteria, consequences, and review triggers.",
+          "tags": [
+            "decision-records",
+            "management"
+          ],
+          "citation_ids": [
+            "management-03-cite-editorial",
+            "management-03-cite-reference"
+          ]
+        },
+        {
+          "id": "management-03-fact-practice",
+          "statement": "Record enough context for a future reader to revisit the decision responsibly.",
+          "tags": [
+            "practice",
+            "management"
+          ],
+          "citation_ids": [
+            "management-03-cite-editorial"
+          ]
+        },
+        {
+          "id": "management-03-fact-caution",
+          "statement": "A conclusion without rationale turns deliberate tradeoffs into unexplained defaults.",
+          "tags": [
+            "failure-mode",
+            "management"
+          ],
+          "citation_ids": [
+            "management-03-cite-editorial",
+            "management-03-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "management-03-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Decision Records - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-03-cite-reference",
+          "locator": "reference landing page",
+          "source": "Team Playbook",
+          "note": "Starting point for decision records; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.atlassian.com/team-playbook",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-03-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "management-04",
+        "version": "1.0.0",
+        "title": "Risk Management: Engineering Management",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "management"
+        ],
+        "tags": [
+          "risk-management",
+          "management",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/management.json",
+        "abstract_text": "Risk Management in Engineering Management: A risk becomes actionable when likelihood, impact, trigger, owner, and response are named. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Risk Management - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "management-04-chapter-model",
+          "title": "Model and scope",
+          "summary": "A risk becomes actionable when likelihood, impact, trigger, owner, and response are named. This chapter fixes the vocabulary and boundary needed to reason about risk management.",
+          "sections": [
+            {
+              "id": "management-04-section-model",
+              "title": "Core model",
+              "summary": "A risk becomes actionable when likelihood, impact, trigger, owner, and response are named.",
+              "key_facts": [
+                "management-04-fact-model"
+              ]
+            },
+            {
+              "id": "management-04-section-check",
+              "title": "Practical check",
+              "summary": "Prioritize risks that can invalidate the goal or remove recovery options. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "management-04-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "management-04-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "management-04-section-failure",
+              "title": "Common failure",
+              "summary": "A risk list without owners or actions is an anxiety archive. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "management-04-fact-caution"
+              ]
+            },
+            {
+              "id": "management-04-section-pattern",
+              "title": "Working pattern",
+              "summary": "Prioritize risks that can invalidate the goal or remove recovery options. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "management-04-fact-model",
+                "management-04-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "management-04-fact-model",
+          "statement": "A risk becomes actionable when likelihood, impact, trigger, owner, and response are named.",
+          "tags": [
+            "risk-management",
+            "management"
+          ],
+          "citation_ids": [
+            "management-04-cite-editorial",
+            "management-04-cite-reference"
+          ]
+        },
+        {
+          "id": "management-04-fact-practice",
+          "statement": "Prioritize risks that can invalidate the goal or remove recovery options.",
+          "tags": [
+            "practice",
+            "management"
+          ],
+          "citation_ids": [
+            "management-04-cite-editorial"
+          ]
+        },
+        {
+          "id": "management-04-fact-caution",
+          "statement": "A risk list without owners or actions is an anxiety archive.",
+          "tags": [
+            "failure-mode",
+            "management"
+          ],
+          "citation_ids": [
+            "management-04-cite-editorial",
+            "management-04-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "management-04-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Risk Management - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-04-cite-reference",
+          "locator": "reference landing page",
+          "source": "Team Playbook",
+          "note": "Starting point for risk management; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.atlassian.com/team-playbook",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-04-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "management-05",
+        "version": "1.0.0",
+        "title": "Meetings: Engineering Management",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "management"
+        ],
+        "tags": [
+          "meetings",
+          "management",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/management.json",
+        "abstract_text": "Meetings in Engineering Management: Synchronous time is best for decisions, conflict, and context documents cannot carry. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Meetings - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "management-05-chapter-model",
+          "title": "Model and scope",
+          "summary": "Synchronous time is best for decisions, conflict, and context documents cannot carry. This chapter fixes the vocabulary and boundary needed to reason about meetings.",
+          "sections": [
+            {
+              "id": "management-05-section-model",
+              "title": "Core model",
+              "summary": "Synchronous time is best for decisions, conflict, and context documents cannot carry.",
+              "key_facts": [
+                "management-05-fact-model"
+              ]
+            },
+            {
+              "id": "management-05-section-check",
+              "title": "Practical check",
+              "summary": "Prepare inputs, required decision-makers, and durable outcomes before attendance. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "management-05-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "management-05-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "management-05-section-failure",
+              "title": "Common failure",
+              "summary": "Status meetings that only transmit information leave decisions implicit. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "management-05-fact-caution"
+              ]
+            },
+            {
+              "id": "management-05-section-pattern",
+              "title": "Working pattern",
+              "summary": "Prepare inputs, required decision-makers, and durable outcomes before attendance. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "management-05-fact-model",
+                "management-05-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "management-05-fact-model",
+          "statement": "Synchronous time is best for decisions, conflict, and context documents cannot carry.",
+          "tags": [
+            "meetings",
+            "management"
+          ],
+          "citation_ids": [
+            "management-05-cite-editorial",
+            "management-05-cite-reference"
+          ]
+        },
+        {
+          "id": "management-05-fact-practice",
+          "statement": "Prepare inputs, required decision-makers, and durable outcomes before attendance.",
+          "tags": [
+            "practice",
+            "management"
+          ],
+          "citation_ids": [
+            "management-05-cite-editorial"
+          ]
+        },
+        {
+          "id": "management-05-fact-caution",
+          "statement": "Status meetings that only transmit information leave decisions implicit.",
+          "tags": [
+            "failure-mode",
+            "management"
+          ],
+          "citation_ids": [
+            "management-05-cite-editorial",
+            "management-05-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "management-05-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Meetings - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-05-cite-reference",
+          "locator": "reference landing page",
+          "source": "Team Playbook",
+          "note": "Starting point for meetings; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.atlassian.com/team-playbook",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-05-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "management-06",
+        "version": "1.0.0",
+        "title": "Async Collaboration: Engineering Management",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "management"
+        ],
+        "tags": [
+          "async-collaboration",
+          "management",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/management.json",
+        "abstract_text": "Async Collaboration in Engineering Management: Async work needs enough context for a reader to act without private oral history. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Async Collaboration - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "management-06-chapter-model",
+          "title": "Model and scope",
+          "summary": "Async work needs enough context for a reader to act without private oral history. This chapter fixes the vocabulary and boundary needed to reason about async collaboration.",
+          "sections": [
+            {
+              "id": "management-06-section-model",
+              "title": "Core model",
+              "summary": "Async work needs enough context for a reader to act without private oral history.",
+              "key_facts": [
+                "management-06-fact-model"
+              ]
+            },
+            {
+              "id": "management-06-section-check",
+              "title": "Practical check",
+              "summary": "Put request, decision needed, deadline, and evidence in one canonical place. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "management-06-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "management-06-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "management-06-section-failure",
+              "title": "Common failure",
+              "summary": "Scattering state across chat fragments makes coordination depend on memory. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "management-06-fact-caution"
+              ]
+            },
+            {
+              "id": "management-06-section-pattern",
+              "title": "Working pattern",
+              "summary": "Put request, decision needed, deadline, and evidence in one canonical place. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "management-06-fact-model",
+                "management-06-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "management-06-fact-model",
+          "statement": "Async work needs enough context for a reader to act without private oral history.",
+          "tags": [
+            "async-collaboration",
+            "management"
+          ],
+          "citation_ids": [
+            "management-06-cite-editorial",
+            "management-06-cite-reference"
+          ]
+        },
+        {
+          "id": "management-06-fact-practice",
+          "statement": "Put request, decision needed, deadline, and evidence in one canonical place.",
+          "tags": [
+            "practice",
+            "management"
+          ],
+          "citation_ids": [
+            "management-06-cite-editorial"
+          ]
+        },
+        {
+          "id": "management-06-fact-caution",
+          "statement": "Scattering state across chat fragments makes coordination depend on memory.",
+          "tags": [
+            "failure-mode",
+            "management"
+          ],
+          "citation_ids": [
+            "management-06-cite-editorial",
+            "management-06-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "management-06-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Async Collaboration - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-06-cite-reference",
+          "locator": "reference landing page",
+          "source": "Team Playbook",
+          "note": "Starting point for async collaboration; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.atlassian.com/team-playbook",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-06-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "management-07",
+        "version": "1.0.0",
+        "title": "Feedback: Engineering Management",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "management"
+        ],
+        "tags": [
+          "feedback",
+          "management",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/management.json",
+        "abstract_text": "Feedback in Engineering Management: Useful feedback is timely, behavior-specific, grounded in effect, and open to context. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Feedback - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "management-07-chapter-model",
+          "title": "Model and scope",
+          "summary": "Useful feedback is timely, behavior-specific, grounded in effect, and open to context. This chapter fixes the vocabulary and boundary needed to reason about feedback.",
+          "sections": [
+            {
+              "id": "management-07-section-model",
+              "title": "Core model",
+              "summary": "Useful feedback is timely, behavior-specific, grounded in effect, and open to context.",
+              "key_facts": [
+                "management-07-fact-model"
+              ]
+            },
+            {
+              "id": "management-07-section-check",
+              "title": "Practical check",
+              "summary": "Separate coaching, recognition, and formal performance decisions. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "management-07-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "management-07-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "management-07-section-failure",
+              "title": "Common failure",
+              "summary": "Saving every concern for a vague summary makes the next action impossible to choose. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "management-07-fact-caution"
+              ]
+            },
+            {
+              "id": "management-07-section-pattern",
+              "title": "Working pattern",
+              "summary": "Separate coaching, recognition, and formal performance decisions. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "management-07-fact-model",
+                "management-07-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "management-07-fact-model",
+          "statement": "Useful feedback is timely, behavior-specific, grounded in effect, and open to context.",
+          "tags": [
+            "feedback",
+            "management"
+          ],
+          "citation_ids": [
+            "management-07-cite-editorial",
+            "management-07-cite-reference"
+          ]
+        },
+        {
+          "id": "management-07-fact-practice",
+          "statement": "Separate coaching, recognition, and formal performance decisions.",
+          "tags": [
+            "practice",
+            "management"
+          ],
+          "citation_ids": [
+            "management-07-cite-editorial"
+          ]
+        },
+        {
+          "id": "management-07-fact-caution",
+          "statement": "Saving every concern for a vague summary makes the next action impossible to choose.",
+          "tags": [
+            "failure-mode",
+            "management"
+          ],
+          "citation_ids": [
+            "management-07-cite-editorial",
+            "management-07-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "management-07-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Feedback - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-07-cite-reference",
+          "locator": "reference landing page",
+          "source": "Team Playbook",
+          "note": "Starting point for feedback; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.atlassian.com/team-playbook",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-07-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "management-08",
+        "version": "1.0.0",
+        "title": "Team Health: Engineering Management",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "management"
+        ],
+        "tags": [
+          "team-health",
+          "management",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/management.json",
+        "abstract_text": "Team Health in Engineering Management: Trust, clarity, workload, inclusion, and interruption patterns are operational signals. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Team Health - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "management-08-chapter-model",
+          "title": "Model and scope",
+          "summary": "Trust, clarity, workload, inclusion, and interruption patterns are operational signals. This chapter fixes the vocabulary and boundary needed to reason about team health.",
+          "sections": [
+            {
+              "id": "management-08-section-model",
+              "title": "Core model",
+              "summary": "Trust, clarity, workload, inclusion, and interruption patterns are operational signals.",
+              "key_facts": [
+                "management-08-fact-model"
+              ]
+            },
+            {
+              "id": "management-08-section-check",
+              "title": "Practical check",
+              "summary": "Measure lightly, interpret with the team, and give the team power to change causes. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "management-08-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "management-08-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "management-08-section-failure",
+              "title": "Common failure",
+              "summary": "A sentiment score without an owned response turns listening into theater. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "management-08-fact-caution"
+              ]
+            },
+            {
+              "id": "management-08-section-pattern",
+              "title": "Working pattern",
+              "summary": "Measure lightly, interpret with the team, and give the team power to change causes. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "management-08-fact-model",
+                "management-08-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "management-08-fact-model",
+          "statement": "Trust, clarity, workload, inclusion, and interruption patterns are operational signals.",
+          "tags": [
+            "team-health",
+            "management"
+          ],
+          "citation_ids": [
+            "management-08-cite-editorial",
+            "management-08-cite-reference"
+          ]
+        },
+        {
+          "id": "management-08-fact-practice",
+          "statement": "Measure lightly, interpret with the team, and give the team power to change causes.",
+          "tags": [
+            "practice",
+            "management"
+          ],
+          "citation_ids": [
+            "management-08-cite-editorial"
+          ]
+        },
+        {
+          "id": "management-08-fact-caution",
+          "statement": "A sentiment score without an owned response turns listening into theater.",
+          "tags": [
+            "failure-mode",
+            "management"
+          ],
+          "citation_ids": [
+            "management-08-cite-editorial",
+            "management-08-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "management-08-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Team Health - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-08-cite-reference",
+          "locator": "reference landing page",
+          "source": "Team Playbook",
+          "note": "Starting point for team health; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.atlassian.com/team-playbook",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-08-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "management-09",
+        "version": "1.0.0",
+        "title": "Retrospectives: Engineering Management",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "management"
+        ],
+        "tags": [
+          "retrospectives",
+          "management",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/management.json",
+        "abstract_text": "Retrospectives in Engineering Management: A retrospective improves the system of work rather than assigning blame. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Retrospectives - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "management-09-chapter-model",
+          "title": "Model and scope",
+          "summary": "A retrospective improves the system of work rather than assigning blame. This chapter fixes the vocabulary and boundary needed to reason about retrospectives.",
+          "sections": [
+            {
+              "id": "management-09-section-model",
+              "title": "Core model",
+              "summary": "A retrospective improves the system of work rather than assigning blame.",
+              "key_facts": [
+                "management-09-fact-model"
+              ]
+            },
+            {
+              "id": "management-09-section-check",
+              "title": "Practical check",
+              "summary": "Use evidence, a causal hypothesis, one reversible action, and a review signal. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "management-09-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "management-09-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "management-09-section-failure",
+              "title": "Common failure",
+              "summary": "A long wish list with no owner or check date creates no learning. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "management-09-fact-caution"
+              ]
+            },
+            {
+              "id": "management-09-section-pattern",
+              "title": "Working pattern",
+              "summary": "Use evidence, a causal hypothesis, one reversible action, and a review signal. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "management-09-fact-model",
+                "management-09-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "management-09-fact-model",
+          "statement": "A retrospective improves the system of work rather than assigning blame.",
+          "tags": [
+            "retrospectives",
+            "management"
+          ],
+          "citation_ids": [
+            "management-09-cite-editorial",
+            "management-09-cite-reference"
+          ]
+        },
+        {
+          "id": "management-09-fact-practice",
+          "statement": "Use evidence, a causal hypothesis, one reversible action, and a review signal.",
+          "tags": [
+            "practice",
+            "management"
+          ],
+          "citation_ids": [
+            "management-09-cite-editorial"
+          ]
+        },
+        {
+          "id": "management-09-fact-caution",
+          "statement": "A long wish list with no owner or check date creates no learning.",
+          "tags": [
+            "failure-mode",
+            "management"
+          ],
+          "citation_ids": [
+            "management-09-cite-editorial",
+            "management-09-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "management-09-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Retrospectives - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-09-cite-reference",
+          "locator": "reference landing page",
+          "source": "Team Playbook",
+          "note": "Starting point for retrospectives; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.atlassian.com/team-playbook",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-09-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "management-10",
+        "version": "1.0.0",
+        "title": "Change Leadership: Engineering Management",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "management"
+        ],
+        "tags": [
+          "change-leadership",
+          "management",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/management.json",
+        "abstract_text": "Change Leadership in Engineering Management: Change needs clear reasons, acknowledged uncertainty, participation, and visible adaptation. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Change Leadership - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "management-10-chapter-model",
+          "title": "Model and scope",
+          "summary": "Change needs clear reasons, acknowledged uncertainty, participation, and visible adaptation. This chapter fixes the vocabulary and boundary needed to reason about change leadership.",
+          "sections": [
+            {
+              "id": "management-10-section-model",
+              "title": "Core model",
+              "summary": "Change needs clear reasons, acknowledged uncertainty, participation, and visible adaptation.",
+              "key_facts": [
+                "management-10-fact-model"
+              ]
+            },
+            {
+              "id": "management-10-section-check",
+              "title": "Practical check",
+              "summary": "Name what is known, unknown, decided, and still open. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "management-10-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "management-10-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "management-10-section-failure",
+              "title": "Common failure",
+              "summary": "Announcing a finished answer while asking for participation erodes trust. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "management-10-fact-caution"
+              ]
+            },
+            {
+              "id": "management-10-section-pattern",
+              "title": "Working pattern",
+              "summary": "Name what is known, unknown, decided, and still open. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "management-10-fact-model",
+                "management-10-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "management-10-fact-model",
+          "statement": "Change needs clear reasons, acknowledged uncertainty, participation, and visible adaptation.",
+          "tags": [
+            "change-leadership",
+            "management"
+          ],
+          "citation_ids": [
+            "management-10-cite-editorial",
+            "management-10-cite-reference"
+          ]
+        },
+        {
+          "id": "management-10-fact-practice",
+          "statement": "Name what is known, unknown, decided, and still open.",
+          "tags": [
+            "practice",
+            "management"
+          ],
+          "citation_ids": [
+            "management-10-cite-editorial"
+          ]
+        },
+        {
+          "id": "management-10-fact-caution",
+          "statement": "Announcing a finished answer while asking for participation erodes trust.",
+          "tags": [
+            "failure-mode",
+            "management"
+          ],
+          "citation_ids": [
+            "management-10-cite-editorial",
+            "management-10-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "management-10-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Change Leadership - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-10-cite-reference",
+          "locator": "reference landing page",
+          "source": "Team Playbook",
+          "note": "Starting point for change leadership; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.atlassian.com/team-playbook",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-10-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    }
+  ]
+}

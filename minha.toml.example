@@ -1,0 +1,45 @@
+[models]
+planner = "gpt-5.6-luna"
+worker_fast = "gpt-5.3-codex-spark"
+lead = "gpt-5.6-luna"
+complex_lead = "gpt-5.6-terra"
+manager = "gpt-5.4-mini"
+worker_medium = "gpt-5.4-mini"
+worker_deep = "gpt-5.6-luna"
+consult_ambiguous = "gpt-5.6-terra"
+consult_high_risk = "gpt-5.6-sol"
+reasoning_effort = "medium"
+
+[scheduler]
+min_agents = 2
+max_agents = 8
+hard_max_agents = 16
+usage_reserve_percent = 12.0
+question_policy = "only_blocking"
+
+[context]
+compact_at_percent = 72.0
+context_limit = 128000
+reserve_tokens = 16384
+fact_limit = 24
+recent_turns = 8
+
+[permissions]
+remote_writes = "ask"
+destructive = "ask"
+
+[cache]
+enabled = true
+max_bytes = 536870912
+max_age_days = 30
+hot_entries = 128
+
+[budgets]
+default = "balanced"
+
+[books]
+enabled = true
+
+[tui]
+mouse = true
+tool_detail = "compact"

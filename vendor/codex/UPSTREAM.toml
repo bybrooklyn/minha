@@ -1,0 +1,15 @@
+repository = "https://github.com/openai/codex"
+license = "Apache-2.0"
+integration = "audited-subset"
+
+# Set to the reviewed upstream commit when the first auth transport subset is
+# imported. Builds must not fetch or execute an installed Codex binary.
+revision = "28f3f1f9ef4e9578a5f023f6b6eba018914a5342"
+
+included_surfaces = [
+  "login-pkce",
+  "chatgpt-token-refresh",
+  "model-catalog-protocol",
+  "rate-limit-protocol",
+  "responses-stream-types",
+]

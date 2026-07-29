@@ -1,0 +1,1597 @@
+{
+  "schema_version": 2,
+  "pack_id": "systems",
+  "title": "Systems Craft",
+  "books": [
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "systems-01",
+        "version": "1.0.0",
+        "title": "Process Isolation: Systems Craft",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "systems"
+        ],
+        "tags": [
+          "process-isolation",
+          "systems",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/systems.json",
+        "abstract_text": "Process Isolation in Systems Craft: A process boundary is also a resource, failure, and ownership boundary. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Process Isolation - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "systems-01-chapter-model",
+          "title": "Model and scope",
+          "summary": "A process boundary is also a resource, failure, and ownership boundary. This chapter fixes the vocabulary and boundary needed to reason about process isolation.",
+          "sections": [
+            {
+              "id": "systems-01-section-model",
+              "title": "Core model",
+              "summary": "A process boundary is also a resource, failure, and ownership boundary.",
+              "key_facts": [
+                "systems-01-fact-model"
+              ]
+            },
+            {
+              "id": "systems-01-section-check",
+              "title": "Practical check",
+              "summary": "Define restart behavior, durable state, signals, and what must survive replacement. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "systems-01-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systems-01-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "systems-01-section-failure",
+              "title": "Common failure",
+              "summary": "In-memory state cannot be assumed to survive when the design permits process replacement. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "systems-01-fact-caution"
+              ]
+            },
+            {
+              "id": "systems-01-section-pattern",
+              "title": "Working pattern",
+              "summary": "Define restart behavior, durable state, signals, and what must survive replacement. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "systems-01-fact-model",
+                "systems-01-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "systems-01-fact-model",
+          "statement": "A process boundary is also a resource, failure, and ownership boundary.",
+          "tags": [
+            "process-isolation",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-01-cite-editorial",
+            "systems-01-cite-reference"
+          ]
+        },
+        {
+          "id": "systems-01-fact-practice",
+          "statement": "Define restart behavior, durable state, signals, and what must survive replacement.",
+          "tags": [
+            "practice",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-01-cite-editorial"
+          ]
+        },
+        {
+          "id": "systems-01-fact-caution",
+          "statement": "In-memory state cannot be assumed to survive when the design permits process replacement.",
+          "tags": [
+            "failure-mode",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-01-cite-editorial",
+            "systems-01-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "systems-01-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Process Isolation - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-01-cite-reference",
+          "locator": "reference landing page",
+          "source": "Site Reliability Engineering",
+          "note": "Starting point for process isolation; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://sre.google/sre-book/table-of-contents/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-01-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "systems-02",
+        "version": "1.0.0",
+        "title": "Concurrency Control: Systems Craft",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "systems"
+        ],
+        "tags": [
+          "concurrency-control",
+          "systems",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/systems.json",
+        "abstract_text": "Concurrency Control in Systems Craft: Concurrency correctness depends on ownership, ordering, cancellation, and shared-state scope. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Concurrency Control - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "systems-02-chapter-model",
+          "title": "Model and scope",
+          "summary": "Concurrency correctness depends on ownership, ordering, cancellation, and shared-state scope. This chapter fixes the vocabulary and boundary needed to reason about concurrency control.",
+          "sections": [
+            {
+              "id": "systems-02-section-model",
+              "title": "Core model",
+              "summary": "Concurrency correctness depends on ownership, ordering, cancellation, and shared-state scope.",
+              "key_facts": [
+                "systems-02-fact-model"
+              ]
+            },
+            {
+              "id": "systems-02-section-check",
+              "title": "Practical check",
+              "summary": "Prove the serial invariant first, then add bounded independent work. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "systems-02-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systems-02-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "systems-02-section-failure",
+              "title": "Common failure",
+              "summary": "Parallelizing before defining ordering and cancellation creates races that tests rarely cover. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "systems-02-fact-caution"
+              ]
+            },
+            {
+              "id": "systems-02-section-pattern",
+              "title": "Working pattern",
+              "summary": "Prove the serial invariant first, then add bounded independent work. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "systems-02-fact-model",
+                "systems-02-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "systems-02-fact-model",
+          "statement": "Concurrency correctness depends on ownership, ordering, cancellation, and shared-state scope.",
+          "tags": [
+            "concurrency-control",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-02-cite-editorial",
+            "systems-02-cite-reference"
+          ]
+        },
+        {
+          "id": "systems-02-fact-practice",
+          "statement": "Prove the serial invariant first, then add bounded independent work.",
+          "tags": [
+            "practice",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-02-cite-editorial"
+          ]
+        },
+        {
+          "id": "systems-02-fact-caution",
+          "statement": "Parallelizing before defining ordering and cancellation creates races that tests rarely cover.",
+          "tags": [
+            "failure-mode",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-02-cite-editorial",
+            "systems-02-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "systems-02-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Concurrency Control - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-02-cite-reference",
+          "locator": "reference landing page",
+          "source": "Site Reliability Engineering",
+          "note": "Starting point for concurrency control; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://sre.google/sre-book/table-of-contents/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-02-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "systems-03",
+        "version": "1.0.0",
+        "title": "Memory Pressure: Systems Craft",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "systems"
+        ],
+        "tags": [
+          "memory-pressure",
+          "systems",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/systems.json",
+        "abstract_text": "Memory Pressure in Systems Craft: Memory is a workload budget shaped by allocation, retention, representation, and concurrency. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Memory Pressure - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "systems-03-chapter-model",
+          "title": "Model and scope",
+          "summary": "Memory is a workload budget shaped by allocation, retention, representation, and concurrency. This chapter fixes the vocabulary and boundary needed to reason about memory pressure.",
+          "sections": [
+            {
+              "id": "systems-03-section-model",
+              "title": "Core model",
+              "summary": "Memory is a workload budget shaped by allocation, retention, representation, and concurrency.",
+              "key_facts": [
+                "systems-03-fact-model"
+              ]
+            },
+            {
+              "id": "systems-03-section-check",
+              "title": "Practical check",
+              "summary": "Measure peak structures and decide where streaming or backpressure begins. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "systems-03-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systems-03-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "systems-03-section-failure",
+              "title": "Common failure",
+              "summary": "Optimizing one allocation does not help when an unbounded queue controls the peak. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "systems-03-fact-caution"
+              ]
+            },
+            {
+              "id": "systems-03-section-pattern",
+              "title": "Working pattern",
+              "summary": "Measure peak structures and decide where streaming or backpressure begins. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "systems-03-fact-model",
+                "systems-03-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "systems-03-fact-model",
+          "statement": "Memory is a workload budget shaped by allocation, retention, representation, and concurrency.",
+          "tags": [
+            "memory-pressure",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-03-cite-editorial",
+            "systems-03-cite-reference"
+          ]
+        },
+        {
+          "id": "systems-03-fact-practice",
+          "statement": "Measure peak structures and decide where streaming or backpressure begins.",
+          "tags": [
+            "practice",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-03-cite-editorial"
+          ]
+        },
+        {
+          "id": "systems-03-fact-caution",
+          "statement": "Optimizing one allocation does not help when an unbounded queue controls the peak.",
+          "tags": [
+            "failure-mode",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-03-cite-editorial",
+            "systems-03-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "systems-03-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Memory Pressure - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-03-cite-reference",
+          "locator": "reference landing page",
+          "source": "Site Reliability Engineering",
+          "note": "Starting point for memory pressure; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://sre.google/sre-book/table-of-contents/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-03-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "systems-04",
+        "version": "1.0.0",
+        "title": "Filesystem Semantics: Systems Craft",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "systems"
+        ],
+        "tags": [
+          "filesystem-semantics",
+          "systems",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/systems.json",
+        "abstract_text": "Filesystem Semantics in Systems Craft: File safety involves names, bytes, permissions, atomicity, and persistence. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Filesystem Semantics - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "systems-04-chapter-model",
+          "title": "Model and scope",
+          "summary": "File safety involves names, bytes, permissions, atomicity, and persistence. This chapter fixes the vocabulary and boundary needed to reason about filesystem semantics.",
+          "sections": [
+            {
+              "id": "systems-04-section-model",
+              "title": "Core model",
+              "summary": "File safety involves names, bytes, permissions, atomicity, and persistence.",
+              "key_facts": [
+                "systems-04-fact-model"
+              ]
+            },
+            {
+              "id": "systems-04-section-check",
+              "title": "Practical check",
+              "summary": "State whether partial data can be observed and use a recoverable write sequence. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "systems-04-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systems-04-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "systems-04-section-failure",
+              "title": "Common failure",
+              "summary": "Overwriting a live file directly can destroy the last known-good version after interruption. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "systems-04-fact-caution"
+              ]
+            },
+            {
+              "id": "systems-04-section-pattern",
+              "title": "Working pattern",
+              "summary": "State whether partial data can be observed and use a recoverable write sequence. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "systems-04-fact-model",
+                "systems-04-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "systems-04-fact-model",
+          "statement": "File safety involves names, bytes, permissions, atomicity, and persistence.",
+          "tags": [
+            "filesystem-semantics",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-04-cite-editorial",
+            "systems-04-cite-reference"
+          ]
+        },
+        {
+          "id": "systems-04-fact-practice",
+          "statement": "State whether partial data can be observed and use a recoverable write sequence.",
+          "tags": [
+            "practice",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-04-cite-editorial"
+          ]
+        },
+        {
+          "id": "systems-04-fact-caution",
+          "statement": "Overwriting a live file directly can destroy the last known-good version after interruption.",
+          "tags": [
+            "failure-mode",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-04-cite-editorial",
+            "systems-04-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "systems-04-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Filesystem Semantics - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-04-cite-reference",
+          "locator": "reference landing page",
+          "source": "Site Reliability Engineering",
+          "note": "Starting point for filesystem semantics; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://sre.google/sre-book/table-of-contents/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-04-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "systems-05",
+        "version": "1.0.0",
+        "title": "Network Boundaries: Systems Craft",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "systems"
+        ],
+        "tags": [
+          "network-boundaries",
+          "systems",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/systems.json",
+        "abstract_text": "Network Boundaries in Systems Craft: Remote calls need deadlines, response contracts, idempotency, and retry policy. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Network Boundaries - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "systems-05-chapter-model",
+          "title": "Model and scope",
+          "summary": "Remote calls need deadlines, response contracts, idempotency, and retry policy. This chapter fixes the vocabulary and boundary needed to reason about network boundaries.",
+          "sections": [
+            {
+              "id": "systems-05-section-model",
+              "title": "Core model",
+              "summary": "Remote calls need deadlines, response contracts, idempotency, and retry policy.",
+              "key_facts": [
+                "systems-05-fact-model"
+              ]
+            },
+            {
+              "id": "systems-05-section-check",
+              "title": "Practical check",
+              "summary": "Classify errors and set finite timeouts before choosing retries. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "systems-05-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systems-05-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "systems-05-section-failure",
+              "title": "Common failure",
+              "summary": "Retrying non-idempotent work or allowing one slow peer to consume all workers amplifies failure. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "systems-05-fact-caution"
+              ]
+            },
+            {
+              "id": "systems-05-section-pattern",
+              "title": "Working pattern",
+              "summary": "Classify errors and set finite timeouts before choosing retries. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "systems-05-fact-model",
+                "systems-05-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "systems-05-fact-model",
+          "statement": "Remote calls need deadlines, response contracts, idempotency, and retry policy.",
+          "tags": [
+            "network-boundaries",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-05-cite-editorial",
+            "systems-05-cite-reference"
+          ]
+        },
+        {
+          "id": "systems-05-fact-practice",
+          "statement": "Classify errors and set finite timeouts before choosing retries.",
+          "tags": [
+            "practice",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-05-cite-editorial"
+          ]
+        },
+        {
+          "id": "systems-05-fact-caution",
+          "statement": "Retrying non-idempotent work or allowing one slow peer to consume all workers amplifies failure.",
+          "tags": [
+            "failure-mode",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-05-cite-editorial",
+            "systems-05-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "systems-05-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Network Boundaries - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-05-cite-reference",
+          "locator": "reference landing page",
+          "source": "Site Reliability Engineering",
+          "note": "Starting point for network boundaries; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://sre.google/sre-book/table-of-contents/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-05-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "systems-06",
+        "version": "1.0.0",
+        "title": "Queue Discipline: Systems Craft",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "systems"
+        ],
+        "tags": [
+          "queue-discipline",
+          "systems",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/systems.json",
+        "abstract_text": "Queue Discipline in Systems Craft: Queues absorb bounded variation; they do not remove capacity limits. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Queue Discipline - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "systems-06-chapter-model",
+          "title": "Model and scope",
+          "summary": "Queues absorb bounded variation; they do not remove capacity limits. This chapter fixes the vocabulary and boundary needed to reason about queue discipline.",
+          "sections": [
+            {
+              "id": "systems-06-section-model",
+              "title": "Core model",
+              "summary": "Queues absorb bounded variation; they do not remove capacity limits.",
+              "key_facts": [
+                "systems-06-fact-model"
+              ]
+            },
+            {
+              "id": "systems-06-section-check",
+              "title": "Practical check",
+              "summary": "Define capacity, admission, item lifetime, shutdown, and depth/age telemetry. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "systems-06-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systems-06-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "systems-06-section-failure",
+              "title": "Common failure",
+              "summary": "An unbounded queue converts overload into memory exhaustion and long latency. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "systems-06-fact-caution"
+              ]
+            },
+            {
+              "id": "systems-06-section-pattern",
+              "title": "Working pattern",
+              "summary": "Define capacity, admission, item lifetime, shutdown, and depth/age telemetry. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "systems-06-fact-model",
+                "systems-06-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "systems-06-fact-model",
+          "statement": "Queues absorb bounded variation; they do not remove capacity limits.",
+          "tags": [
+            "queue-discipline",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-06-cite-editorial",
+            "systems-06-cite-reference"
+          ]
+        },
+        {
+          "id": "systems-06-fact-practice",
+          "statement": "Define capacity, admission, item lifetime, shutdown, and depth/age telemetry.",
+          "tags": [
+            "practice",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-06-cite-editorial"
+          ]
+        },
+        {
+          "id": "systems-06-fact-caution",
+          "statement": "An unbounded queue converts overload into memory exhaustion and long latency.",
+          "tags": [
+            "failure-mode",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-06-cite-editorial",
+            "systems-06-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "systems-06-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Queue Discipline - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-06-cite-reference",
+          "locator": "reference landing page",
+          "source": "Site Reliability Engineering",
+          "note": "Starting point for queue discipline; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://sre.google/sre-book/table-of-contents/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-06-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "systems-07",
+        "version": "1.0.0",
+        "title": "Time and Clocks: Systems Craft",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "systems"
+        ],
+        "tags": [
+          "time-and-clocks",
+          "systems",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/systems.json",
+        "abstract_text": "Time and Clocks in Systems Craft: Elapsed time and human calendar time answer different questions. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Time and Clocks - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "systems-07-chapter-model",
+          "title": "Model and scope",
+          "summary": "Elapsed time and human calendar time answer different questions. This chapter fixes the vocabulary and boundary needed to reason about time and clocks.",
+          "sections": [
+            {
+              "id": "systems-07-section-model",
+              "title": "Core model",
+              "summary": "Elapsed time and human calendar time answer different questions.",
+              "key_facts": [
+                "systems-07-fact-model"
+              ]
+            },
+            {
+              "id": "systems-07-section-check",
+              "title": "Practical check",
+              "summary": "Use monotonic deadlines for control flow and timezone-aware wall time for records. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "systems-07-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systems-07-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "systems-07-section-failure",
+              "title": "Common failure",
+              "summary": "Comparing timestamps from different clocks produces expiry and ordering bugs. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "systems-07-fact-caution"
+              ]
+            },
+            {
+              "id": "systems-07-section-pattern",
+              "title": "Working pattern",
+              "summary": "Use monotonic deadlines for control flow and timezone-aware wall time for records. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "systems-07-fact-model",
+                "systems-07-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "systems-07-fact-model",
+          "statement": "Elapsed time and human calendar time answer different questions.",
+          "tags": [
+            "time-and-clocks",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-07-cite-editorial",
+            "systems-07-cite-reference"
+          ]
+        },
+        {
+          "id": "systems-07-fact-practice",
+          "statement": "Use monotonic deadlines for control flow and timezone-aware wall time for records.",
+          "tags": [
+            "practice",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-07-cite-editorial"
+          ]
+        },
+        {
+          "id": "systems-07-fact-caution",
+          "statement": "Comparing timestamps from different clocks produces expiry and ordering bugs.",
+          "tags": [
+            "failure-mode",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-07-cite-editorial",
+            "systems-07-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "systems-07-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Time and Clocks - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-07-cite-reference",
+          "locator": "reference landing page",
+          "source": "Site Reliability Engineering",
+          "note": "Starting point for time and clocks; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://sre.google/sre-book/table-of-contents/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-07-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "systems-08",
+        "version": "1.0.0",
+        "title": "Resilience Budget: Systems Craft",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "systems"
+        ],
+        "tags": [
+          "resilience-budget",
+          "systems",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/systems.json",
+        "abstract_text": "Resilience Budget in Systems Craft: Retries, fallbacks, and degraded modes spend an explicit correctness and freshness budget. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Resilience Budget - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "systems-08-chapter-model",
+          "title": "Model and scope",
+          "summary": "Retries, fallbacks, and degraded modes spend an explicit correctness and freshness budget. This chapter fixes the vocabulary and boundary needed to reason about resilience budget.",
+          "sections": [
+            {
+              "id": "systems-08-section-model",
+              "title": "Core model",
+              "summary": "Retries, fallbacks, and degraded modes spend an explicit correctness and freshness budget.",
+              "key_facts": [
+                "systems-08-fact-model"
+              ]
+            },
+            {
+              "id": "systems-08-section-check",
+              "title": "Practical check",
+              "summary": "Define what may be stale, dropped, duplicated, or delayed before failure occurs. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "systems-08-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systems-08-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "systems-08-section-failure",
+              "title": "Common failure",
+              "summary": "Stacked retries across layers can amplify one outage into a larger incident. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "systems-08-fact-caution"
+              ]
+            },
+            {
+              "id": "systems-08-section-pattern",
+              "title": "Working pattern",
+              "summary": "Define what may be stale, dropped, duplicated, or delayed before failure occurs. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "systems-08-fact-model",
+                "systems-08-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "systems-08-fact-model",
+          "statement": "Retries, fallbacks, and degraded modes spend an explicit correctness and freshness budget.",
+          "tags": [
+            "resilience-budget",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-08-cite-editorial",
+            "systems-08-cite-reference"
+          ]
+        },
+        {
+          "id": "systems-08-fact-practice",
+          "statement": "Define what may be stale, dropped, duplicated, or delayed before failure occurs.",
+          "tags": [
+            "practice",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-08-cite-editorial"
+          ]
+        },
+        {
+          "id": "systems-08-fact-caution",
+          "statement": "Stacked retries across layers can amplify one outage into a larger incident.",
+          "tags": [
+            "failure-mode",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-08-cite-editorial",
+            "systems-08-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "systems-08-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Resilience Budget - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-08-cite-reference",
+          "locator": "reference landing page",
+          "source": "Site Reliability Engineering",
+          "note": "Starting point for resilience budget; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://sre.google/sre-book/table-of-contents/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-08-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "systems-09",
+        "version": "1.0.0",
+        "title": "Performance Evidence: Systems Craft",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "systems"
+        ],
+        "tags": [
+          "performance-evidence",
+          "systems",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/systems.json",
+        "abstract_text": "Performance Evidence in Systems Craft: Optimize the bottleneck demonstrated under a representative workload. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Performance Evidence - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "systems-09-chapter-model",
+          "title": "Model and scope",
+          "summary": "Optimize the bottleneck demonstrated under a representative workload. This chapter fixes the vocabulary and boundary needed to reason about performance evidence.",
+          "sections": [
+            {
+              "id": "systems-09-section-model",
+              "title": "Core model",
+              "summary": "Optimize the bottleneck demonstrated under a representative workload.",
+              "key_facts": [
+                "systems-09-fact-model"
+              ]
+            },
+            {
+              "id": "systems-09-section-check",
+              "title": "Practical check",
+              "summary": "Record workload, warm-up, variance, resource context, and a user-relevant threshold. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "systems-09-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systems-09-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "systems-09-section-failure",
+              "title": "Common failure",
+              "summary": "A faster microbenchmark is not evidence if end-to-end latency worsened. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "systems-09-fact-caution"
+              ]
+            },
+            {
+              "id": "systems-09-section-pattern",
+              "title": "Working pattern",
+              "summary": "Record workload, warm-up, variance, resource context, and a user-relevant threshold. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "systems-09-fact-model",
+                "systems-09-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "systems-09-fact-model",
+          "statement": "Optimize the bottleneck demonstrated under a representative workload.",
+          "tags": [
+            "performance-evidence",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-09-cite-editorial",
+            "systems-09-cite-reference"
+          ]
+        },
+        {
+          "id": "systems-09-fact-practice",
+          "statement": "Record workload, warm-up, variance, resource context, and a user-relevant threshold.",
+          "tags": [
+            "practice",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-09-cite-editorial"
+          ]
+        },
+        {
+          "id": "systems-09-fact-caution",
+          "statement": "A faster microbenchmark is not evidence if end-to-end latency worsened.",
+          "tags": [
+            "failure-mode",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-09-cite-editorial",
+            "systems-09-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "systems-09-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Performance Evidence - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-09-cite-reference",
+          "locator": "reference landing page",
+          "source": "Site Reliability Engineering",
+          "note": "Starting point for performance evidence; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://sre.google/sre-book/table-of-contents/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-09-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "systems-10",
+        "version": "1.0.0",
+        "title": "Consistency Choices: Systems Craft",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "systems"
+        ],
+        "tags": [
+          "consistency-choices",
+          "systems",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/systems.json",
+        "abstract_text": "Consistency Choices in Systems Craft: Consistency is a user-visible tradeoff in latency, coordination, and recovery. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Consistency Choices - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "systems-10-chapter-model",
+          "title": "Model and scope",
+          "summary": "Consistency is a user-visible tradeoff in latency, coordination, and recovery. This chapter fixes the vocabulary and boundary needed to reason about consistency choices.",
+          "sections": [
+            {
+              "id": "systems-10-section-model",
+              "title": "Core model",
+              "summary": "Consistency is a user-visible tradeoff in latency, coordination, and recovery.",
+              "key_facts": [
+                "systems-10-fact-model"
+              ]
+            },
+            {
+              "id": "systems-10-section-check",
+              "title": "Practical check",
+              "summary": "State which reads may lag and which transitions must be serialized. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "systems-10-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systems-10-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "systems-10-section-failure",
+              "title": "Common failure",
+              "summary": "Mixing strong and eventual paths without labeling the view creates false expectations. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "systems-10-fact-caution"
+              ]
+            },
+            {
+              "id": "systems-10-section-pattern",
+              "title": "Working pattern",
+              "summary": "State which reads may lag and which transitions must be serialized. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "systems-10-fact-model",
+                "systems-10-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "systems-10-fact-model",
+          "statement": "Consistency is a user-visible tradeoff in latency, coordination, and recovery.",
+          "tags": [
+            "consistency-choices",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-10-cite-editorial",
+            "systems-10-cite-reference"
+          ]
+        },
+        {
+          "id": "systems-10-fact-practice",
+          "statement": "State which reads may lag and which transitions must be serialized.",
+          "tags": [
+            "practice",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-10-cite-editorial"
+          ]
+        },
+        {
+          "id": "systems-10-fact-caution",
+          "statement": "Mixing strong and eventual paths without labeling the view creates false expectations.",
+          "tags": [
+            "failure-mode",
+            "systems"
+          ],
+          "citation_ids": [
+            "systems-10-cite-editorial",
+            "systems-10-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "systems-10-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Consistency Choices - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-10-cite-reference",
+          "locator": "reference landing page",
+          "source": "Site Reliability Engineering",
+          "note": "Starting point for consistency choices; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://sre.google/sre-book/table-of-contents/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-10-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+[package]
+name = "minha-tui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description.workspace = true
+readme.workspace = true
+publish = false
+
+[dependencies]
+anyhow.workspace = true
+crossterm.workspace = true
+minha-core = { path = "../minha-core", version = "0.1.0" }
+ratatui.workspace = true
+serde_json.workspace = true
+tokio.workspace = true

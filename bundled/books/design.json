@@ -1,0 +1,1597 @@
+{
+  "schema_version": 2,
+  "pack_id": "design",
+  "title": "Interaction Design",
+  "books": [
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "design-01",
+        "version": "1.0.0",
+        "title": "Design Principles: Interaction Design",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "design"
+        ],
+        "tags": [
+          "design-principles",
+          "design",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/design.json",
+        "abstract_text": "Design Principles in Interaction Design: A principle is useful when it predicts a concrete choice and can be challenged by evidence. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Design Principles - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "design-01-chapter-model",
+          "title": "Model and scope",
+          "summary": "A principle is useful when it predicts a concrete choice and can be challenged by evidence. This chapter fixes the vocabulary and boundary needed to reason about design principles.",
+          "sections": [
+            {
+              "id": "design-01-section-model",
+              "title": "Core model",
+              "summary": "A principle is useful when it predicts a concrete choice and can be challenged by evidence.",
+              "key_facts": [
+                "design-01-fact-model"
+              ]
+            },
+            {
+              "id": "design-01-section-check",
+              "title": "Practical check",
+              "summary": "State what it protects, what it does not promise, and show counterexamples. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "design-01-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "design-01-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "design-01-section-failure",
+              "title": "Common failure",
+              "summary": "Decorative language that cannot guide a decision is not a working principle. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "design-01-fact-caution"
+              ]
+            },
+            {
+              "id": "design-01-section-pattern",
+              "title": "Working pattern",
+              "summary": "State what it protects, what it does not promise, and show counterexamples. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "design-01-fact-model",
+                "design-01-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "design-01-fact-model",
+          "statement": "A principle is useful when it predicts a concrete choice and can be challenged by evidence.",
+          "tags": [
+            "design-principles",
+            "design"
+          ],
+          "citation_ids": [
+            "design-01-cite-editorial",
+            "design-01-cite-reference"
+          ]
+        },
+        {
+          "id": "design-01-fact-practice",
+          "statement": "State what it protects, what it does not promise, and show counterexamples.",
+          "tags": [
+            "practice",
+            "design"
+          ],
+          "citation_ids": [
+            "design-01-cite-editorial"
+          ]
+        },
+        {
+          "id": "design-01-fact-caution",
+          "statement": "Decorative language that cannot guide a decision is not a working principle.",
+          "tags": [
+            "failure-mode",
+            "design"
+          ],
+          "citation_ids": [
+            "design-01-cite-editorial",
+            "design-01-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "design-01-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Design Principles - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-01-cite-reference",
+          "locator": "reference landing page",
+          "source": "Web Content Accessibility Guidelines",
+          "note": "Starting point for design principles; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-01-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "design-02",
+        "version": "1.0.0",
+        "title": "Information Architecture: Interaction Design",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "design"
+        ],
+        "tags": [
+          "information-architecture",
+          "design",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/design.json",
+        "abstract_text": "Information Architecture in Interaction Design: Good structure follows user tasks, labels, hierarchy, and retrieval paths. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Information Architecture - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "design-02-chapter-model",
+          "title": "Model and scope",
+          "summary": "Good structure follows user tasks, labels, hierarchy, and retrieval paths. This chapter fixes the vocabulary and boundary needed to reason about information architecture.",
+          "sections": [
+            {
+              "id": "design-02-section-model",
+              "title": "Core model",
+              "summary": "Good structure follows user tasks, labels, hierarchy, and retrieval paths.",
+              "key_facts": [
+                "design-02-fact-model"
+              ]
+            },
+            {
+              "id": "design-02-section-check",
+              "title": "Practical check",
+              "summary": "Test labels with the words users bring instead of only internal vocabulary. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "design-02-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "design-02-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "design-02-section-failure",
+              "title": "Common failure",
+              "summary": "Mirroring organizational ownership in navigation makes user intent harder to predict. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "design-02-fact-caution"
+              ]
+            },
+            {
+              "id": "design-02-section-pattern",
+              "title": "Working pattern",
+              "summary": "Test labels with the words users bring instead of only internal vocabulary. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "design-02-fact-model",
+                "design-02-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "design-02-fact-model",
+          "statement": "Good structure follows user tasks, labels, hierarchy, and retrieval paths.",
+          "tags": [
+            "information-architecture",
+            "design"
+          ],
+          "citation_ids": [
+            "design-02-cite-editorial",
+            "design-02-cite-reference"
+          ]
+        },
+        {
+          "id": "design-02-fact-practice",
+          "statement": "Test labels with the words users bring instead of only internal vocabulary.",
+          "tags": [
+            "practice",
+            "design"
+          ],
+          "citation_ids": [
+            "design-02-cite-editorial"
+          ]
+        },
+        {
+          "id": "design-02-fact-caution",
+          "statement": "Mirroring organizational ownership in navigation makes user intent harder to predict.",
+          "tags": [
+            "failure-mode",
+            "design"
+          ],
+          "citation_ids": [
+            "design-02-cite-editorial",
+            "design-02-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "design-02-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Information Architecture - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-02-cite-reference",
+          "locator": "reference landing page",
+          "source": "Web Content Accessibility Guidelines",
+          "note": "Starting point for information architecture; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-02-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "design-03",
+        "version": "1.0.0",
+        "title": "Interaction States: Interaction Design",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "design"
+        ],
+        "tags": [
+          "interaction-states",
+          "design",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/design.json",
+        "abstract_text": "Interaction States in Interaction Design: A complete interaction includes waiting, empty, error, success, and recovery states. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Interaction States - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "design-03-chapter-model",
+          "title": "Model and scope",
+          "summary": "A complete interaction includes waiting, empty, error, success, and recovery states. This chapter fixes the vocabulary and boundary needed to reason about interaction states.",
+          "sections": [
+            {
+              "id": "design-03-section-model",
+              "title": "Core model",
+              "summary": "A complete interaction includes waiting, empty, error, success, and recovery states.",
+              "key_facts": [
+                "design-03-fact-model"
+              ]
+            },
+            {
+              "id": "design-03-section-check",
+              "title": "Practical check",
+              "summary": "Name every state and transition, including accessible feedback. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "design-03-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "design-03-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "design-03-section-failure",
+              "title": "Common failure",
+              "summary": "A spinner that hides whether work is pending or blocked leaves users without agency. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "design-03-fact-caution"
+              ]
+            },
+            {
+              "id": "design-03-section-pattern",
+              "title": "Working pattern",
+              "summary": "Name every state and transition, including accessible feedback. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "design-03-fact-model",
+                "design-03-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "design-03-fact-model",
+          "statement": "A complete interaction includes waiting, empty, error, success, and recovery states.",
+          "tags": [
+            "interaction-states",
+            "design"
+          ],
+          "citation_ids": [
+            "design-03-cite-editorial",
+            "design-03-cite-reference"
+          ]
+        },
+        {
+          "id": "design-03-fact-practice",
+          "statement": "Name every state and transition, including accessible feedback.",
+          "tags": [
+            "practice",
+            "design"
+          ],
+          "citation_ids": [
+            "design-03-cite-editorial"
+          ]
+        },
+        {
+          "id": "design-03-fact-caution",
+          "statement": "A spinner that hides whether work is pending or blocked leaves users without agency.",
+          "tags": [
+            "failure-mode",
+            "design"
+          ],
+          "citation_ids": [
+            "design-03-cite-editorial",
+            "design-03-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "design-03-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Interaction States - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-03-cite-reference",
+          "locator": "reference landing page",
+          "source": "Web Content Accessibility Guidelines",
+          "note": "Starting point for interaction states; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-03-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "design-04",
+        "version": "1.0.0",
+        "title": "Visual Hierarchy: Interaction Design",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "design"
+        ],
+        "tags": [
+          "visual-hierarchy",
+          "design",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/design.json",
+        "abstract_text": "Visual Hierarchy in Interaction Design: Contrast, grouping, spacing, and order should show what matters first. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Visual Hierarchy - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "design-04-chapter-model",
+          "title": "Model and scope",
+          "summary": "Contrast, grouping, spacing, and order should show what matters first. This chapter fixes the vocabulary and boundary needed to reason about visual hierarchy.",
+          "sections": [
+            {
+              "id": "design-04-section-model",
+              "title": "Core model",
+              "summary": "Contrast, grouping, spacing, and order should show what matters first.",
+              "key_facts": [
+                "design-04-fact-model"
+              ]
+            },
+            {
+              "id": "design-04-section-check",
+              "title": "Practical check",
+              "summary": "Check hierarchy at small sizes, low contrast, keyboard focus, and content extremes. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "design-04-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "design-04-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "design-04-section-failure",
+              "title": "Common failure",
+              "summary": "Color or size alone is a fragile way to communicate importance. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "design-04-fact-caution"
+              ]
+            },
+            {
+              "id": "design-04-section-pattern",
+              "title": "Working pattern",
+              "summary": "Check hierarchy at small sizes, low contrast, keyboard focus, and content extremes. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "design-04-fact-model",
+                "design-04-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "design-04-fact-model",
+          "statement": "Contrast, grouping, spacing, and order should show what matters first.",
+          "tags": [
+            "visual-hierarchy",
+            "design"
+          ],
+          "citation_ids": [
+            "design-04-cite-editorial",
+            "design-04-cite-reference"
+          ]
+        },
+        {
+          "id": "design-04-fact-practice",
+          "statement": "Check hierarchy at small sizes, low contrast, keyboard focus, and content extremes.",
+          "tags": [
+            "practice",
+            "design"
+          ],
+          "citation_ids": [
+            "design-04-cite-editorial"
+          ]
+        },
+        {
+          "id": "design-04-fact-caution",
+          "statement": "Color or size alone is a fragile way to communicate importance.",
+          "tags": [
+            "failure-mode",
+            "design"
+          ],
+          "citation_ids": [
+            "design-04-cite-editorial",
+            "design-04-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "design-04-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Visual Hierarchy - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-04-cite-reference",
+          "locator": "reference landing page",
+          "source": "Web Content Accessibility Guidelines",
+          "note": "Starting point for visual hierarchy; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-04-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "design-05",
+        "version": "1.0.0",
+        "title": "Forms: Interaction Design",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "design"
+        ],
+        "tags": [
+          "forms",
+          "design",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/design.json",
+        "abstract_text": "Forms in Interaction Design: Forms should be predictable, forgiving, and explicit about purpose and requiredness. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Forms - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "design-05-chapter-model",
+          "title": "Model and scope",
+          "summary": "Forms should be predictable, forgiving, and explicit about purpose and requiredness. This chapter fixes the vocabulary and boundary needed to reason about forms.",
+          "sections": [
+            {
+              "id": "design-05-section-model",
+              "title": "Core model",
+              "summary": "Forms should be predictable, forgiving, and explicit about purpose and requiredness.",
+              "key_facts": [
+                "design-05-fact-model"
+              ]
+            },
+            {
+              "id": "design-05-section-check",
+              "title": "Practical check",
+              "summary": "Preserve valid input and associate actionable errors with their fields. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "design-05-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "design-05-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "design-05-section-failure",
+              "title": "Common failure",
+              "summary": "Clearing all input after a generic rejection turns a recoverable mistake into rework. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "design-05-fact-caution"
+              ]
+            },
+            {
+              "id": "design-05-section-pattern",
+              "title": "Working pattern",
+              "summary": "Preserve valid input and associate actionable errors with their fields. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "design-05-fact-model",
+                "design-05-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "design-05-fact-model",
+          "statement": "Forms should be predictable, forgiving, and explicit about purpose and requiredness.",
+          "tags": [
+            "forms",
+            "design"
+          ],
+          "citation_ids": [
+            "design-05-cite-editorial",
+            "design-05-cite-reference"
+          ]
+        },
+        {
+          "id": "design-05-fact-practice",
+          "statement": "Preserve valid input and associate actionable errors with their fields.",
+          "tags": [
+            "practice",
+            "design"
+          ],
+          "citation_ids": [
+            "design-05-cite-editorial"
+          ]
+        },
+        {
+          "id": "design-05-fact-caution",
+          "statement": "Clearing all input after a generic rejection turns a recoverable mistake into rework.",
+          "tags": [
+            "failure-mode",
+            "design"
+          ],
+          "citation_ids": [
+            "design-05-cite-editorial",
+            "design-05-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "design-05-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Forms - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-05-cite-reference",
+          "locator": "reference landing page",
+          "source": "Web Content Accessibility Guidelines",
+          "note": "Starting point for forms; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-05-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "design-06",
+        "version": "1.0.0",
+        "title": "Error Experience: Interaction Design",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "design"
+        ],
+        "tags": [
+          "error-experience",
+          "design",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/design.json",
+        "abstract_text": "Error Experience in Interaction Design: An error should explain what failed and offer a safe next step without blame. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Error Experience - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "design-06-chapter-model",
+          "title": "Model and scope",
+          "summary": "An error should explain what failed and offer a safe next step without blame. This chapter fixes the vocabulary and boundary needed to reason about error experience.",
+          "sections": [
+            {
+              "id": "design-06-section-model",
+              "title": "Core model",
+              "summary": "An error should explain what failed and offer a safe next step without blame.",
+              "key_facts": [
+                "design-06-fact-model"
+              ]
+            },
+            {
+              "id": "design-06-section-check",
+              "title": "Practical check",
+              "summary": "Distinguish validation, permission, availability, and irreversible failure. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "design-06-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "design-06-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "design-06-section-failure",
+              "title": "Common failure",
+              "summary": "Internal exception text or “something went wrong” is neither actionable nor safe. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "design-06-fact-caution"
+              ]
+            },
+            {
+              "id": "design-06-section-pattern",
+              "title": "Working pattern",
+              "summary": "Distinguish validation, permission, availability, and irreversible failure. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "design-06-fact-model",
+                "design-06-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "design-06-fact-model",
+          "statement": "An error should explain what failed and offer a safe next step without blame.",
+          "tags": [
+            "error-experience",
+            "design"
+          ],
+          "citation_ids": [
+            "design-06-cite-editorial",
+            "design-06-cite-reference"
+          ]
+        },
+        {
+          "id": "design-06-fact-practice",
+          "statement": "Distinguish validation, permission, availability, and irreversible failure.",
+          "tags": [
+            "practice",
+            "design"
+          ],
+          "citation_ids": [
+            "design-06-cite-editorial"
+          ]
+        },
+        {
+          "id": "design-06-fact-caution",
+          "statement": "Internal exception text or “something went wrong” is neither actionable nor safe.",
+          "tags": [
+            "failure-mode",
+            "design"
+          ],
+          "citation_ids": [
+            "design-06-cite-editorial",
+            "design-06-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "design-06-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Error Experience - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-06-cite-reference",
+          "locator": "reference landing page",
+          "source": "Web Content Accessibility Guidelines",
+          "note": "Starting point for error experience; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-06-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "design-07",
+        "version": "1.0.0",
+        "title": "Accessible Interaction: Interaction Design",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "design"
+        ],
+        "tags": [
+          "accessible-interaction",
+          "design",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/design.json",
+        "abstract_text": "Accessible Interaction in Interaction Design: Semantics, focus, input methods, and feedback must work beyond a pointing device. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Accessible Interaction - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "design-07-chapter-model",
+          "title": "Model and scope",
+          "summary": "Semantics, focus, input methods, and feedback must work beyond a pointing device. This chapter fixes the vocabulary and boundary needed to reason about accessible interaction.",
+          "sections": [
+            {
+              "id": "design-07-section-model",
+              "title": "Core model",
+              "summary": "Semantics, focus, input methods, and feedback must work beyond a pointing device.",
+              "key_facts": [
+                "design-07-fact-model"
+              ]
+            },
+            {
+              "id": "design-07-section-check",
+              "title": "Practical check",
+              "summary": "Test keyboard, screen reader, zoom, motion preferences, and touch targets. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "design-07-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "design-07-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "design-07-section-failure",
+              "title": "Common failure",
+              "summary": "ARIA labels cannot repair incoherent focus order or state changes. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "design-07-fact-caution"
+              ]
+            },
+            {
+              "id": "design-07-section-pattern",
+              "title": "Working pattern",
+              "summary": "Test keyboard, screen reader, zoom, motion preferences, and touch targets. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "design-07-fact-model",
+                "design-07-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "design-07-fact-model",
+          "statement": "Semantics, focus, input methods, and feedback must work beyond a pointing device.",
+          "tags": [
+            "accessible-interaction",
+            "design"
+          ],
+          "citation_ids": [
+            "design-07-cite-editorial",
+            "design-07-cite-reference"
+          ]
+        },
+        {
+          "id": "design-07-fact-practice",
+          "statement": "Test keyboard, screen reader, zoom, motion preferences, and touch targets.",
+          "tags": [
+            "practice",
+            "design"
+          ],
+          "citation_ids": [
+            "design-07-cite-editorial"
+          ]
+        },
+        {
+          "id": "design-07-fact-caution",
+          "statement": "ARIA labels cannot repair incoherent focus order or state changes.",
+          "tags": [
+            "failure-mode",
+            "design"
+          ],
+          "citation_ids": [
+            "design-07-cite-editorial",
+            "design-07-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "design-07-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Accessible Interaction - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-07-cite-reference",
+          "locator": "reference landing page",
+          "source": "Web Content Accessibility Guidelines",
+          "note": "Starting point for accessible interaction; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-07-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "design-08",
+        "version": "1.0.0",
+        "title": "Design Systems: Interaction Design",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "design"
+        ],
+        "tags": [
+          "design-systems",
+          "design",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/design.json",
+        "abstract_text": "Design Systems in Interaction Design: A design system shares components, tokens, states, and usage guidance. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Design Systems - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "design-08-chapter-model",
+          "title": "Model and scope",
+          "summary": "A design system shares components, tokens, states, and usage guidance. This chapter fixes the vocabulary and boundary needed to reason about design systems.",
+          "sections": [
+            {
+              "id": "design-08-section-model",
+              "title": "Core model",
+              "summary": "A design system shares components, tokens, states, and usage guidance.",
+              "key_facts": [
+                "design-08-fact-model"
+              ]
+            },
+            {
+              "id": "design-08-section-check",
+              "title": "Practical check",
+              "summary": "Version changes and document when a component should not be used. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "design-08-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "design-08-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "design-08-section-failure",
+              "title": "Common failure",
+              "summary": "Forcing every problem into one component creates brittle and confusing interactions. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "design-08-fact-caution"
+              ]
+            },
+            {
+              "id": "design-08-section-pattern",
+              "title": "Working pattern",
+              "summary": "Version changes and document when a component should not be used. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "design-08-fact-model",
+                "design-08-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "design-08-fact-model",
+          "statement": "A design system shares components, tokens, states, and usage guidance.",
+          "tags": [
+            "design-systems",
+            "design"
+          ],
+          "citation_ids": [
+            "design-08-cite-editorial",
+            "design-08-cite-reference"
+          ]
+        },
+        {
+          "id": "design-08-fact-practice",
+          "statement": "Version changes and document when a component should not be used.",
+          "tags": [
+            "practice",
+            "design"
+          ],
+          "citation_ids": [
+            "design-08-cite-editorial"
+          ]
+        },
+        {
+          "id": "design-08-fact-caution",
+          "statement": "Forcing every problem into one component creates brittle and confusing interactions.",
+          "tags": [
+            "failure-mode",
+            "design"
+          ],
+          "citation_ids": [
+            "design-08-cite-editorial",
+            "design-08-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "design-08-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Design Systems - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-08-cite-reference",
+          "locator": "reference landing page",
+          "source": "Web Content Accessibility Guidelines",
+          "note": "Starting point for design systems; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-08-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "design-09",
+        "version": "1.0.0",
+        "title": "Content Design: Interaction Design",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "design"
+        ],
+        "tags": [
+          "content-design",
+          "design",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/design.json",
+        "abstract_text": "Content Design in Interaction Design: Language reduces uncertainty when it uses concrete verbs and honest limits. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Content Design - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "design-09-chapter-model",
+          "title": "Model and scope",
+          "summary": "Language reduces uncertainty when it uses concrete verbs and honest limits. This chapter fixes the vocabulary and boundary needed to reason about content design.",
+          "sections": [
+            {
+              "id": "design-09-section-model",
+              "title": "Core model",
+              "summary": "Language reduces uncertainty when it uses concrete verbs and honest limits.",
+              "key_facts": [
+                "design-09-fact-model"
+              ]
+            },
+            {
+              "id": "design-09-section-check",
+              "title": "Practical check",
+              "summary": "Design labels, instructions, status, errors, and recovery as one flow. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "design-09-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "design-09-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "design-09-section-failure",
+              "title": "Common failure",
+              "summary": "Clever marketing language in a task flow hides the action a user needs. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "design-09-fact-caution"
+              ]
+            },
+            {
+              "id": "design-09-section-pattern",
+              "title": "Working pattern",
+              "summary": "Design labels, instructions, status, errors, and recovery as one flow. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "design-09-fact-model",
+                "design-09-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "design-09-fact-model",
+          "statement": "Language reduces uncertainty when it uses concrete verbs and honest limits.",
+          "tags": [
+            "content-design",
+            "design"
+          ],
+          "citation_ids": [
+            "design-09-cite-editorial",
+            "design-09-cite-reference"
+          ]
+        },
+        {
+          "id": "design-09-fact-practice",
+          "statement": "Design labels, instructions, status, errors, and recovery as one flow.",
+          "tags": [
+            "practice",
+            "design"
+          ],
+          "citation_ids": [
+            "design-09-cite-editorial"
+          ]
+        },
+        {
+          "id": "design-09-fact-caution",
+          "statement": "Clever marketing language in a task flow hides the action a user needs.",
+          "tags": [
+            "failure-mode",
+            "design"
+          ],
+          "citation_ids": [
+            "design-09-cite-editorial",
+            "design-09-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "design-09-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Content Design - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-09-cite-reference",
+          "locator": "reference landing page",
+          "source": "Web Content Accessibility Guidelines",
+          "note": "Starting point for content design; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-09-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "design-10",
+        "version": "1.0.0",
+        "title": "Evaluation: Interaction Design",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "design"
+        ],
+        "tags": [
+          "evaluation",
+          "design",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/design.json",
+        "abstract_text": "Evaluation in Interaction Design: Evaluate task completion and consequences, not only visual appeal. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Evaluation - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "design-10-chapter-model",
+          "title": "Model and scope",
+          "summary": "Evaluate task completion and consequences, not only visual appeal. This chapter fixes the vocabulary and boundary needed to reason about evaluation.",
+          "sections": [
+            {
+              "id": "design-10-section-model",
+              "title": "Core model",
+              "summary": "Evaluate task completion and consequences, not only visual appeal.",
+              "key_facts": [
+                "design-10-fact-model"
+              ]
+            },
+            {
+              "id": "design-10-section-check",
+              "title": "Practical check",
+              "summary": "Define success, failure, severity, and evidence before sessions or comparisons. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "design-10-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "design-10-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "design-10-section-failure",
+              "title": "Common failure",
+              "summary": "Asking whether someone likes a screen does not show whether they can use it. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "design-10-fact-caution"
+              ]
+            },
+            {
+              "id": "design-10-section-pattern",
+              "title": "Working pattern",
+              "summary": "Define success, failure, severity, and evidence before sessions or comparisons. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "design-10-fact-model",
+                "design-10-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "design-10-fact-model",
+          "statement": "Evaluate task completion and consequences, not only visual appeal.",
+          "tags": [
+            "evaluation",
+            "design"
+          ],
+          "citation_ids": [
+            "design-10-cite-editorial",
+            "design-10-cite-reference"
+          ]
+        },
+        {
+          "id": "design-10-fact-practice",
+          "statement": "Define success, failure, severity, and evidence before sessions or comparisons.",
+          "tags": [
+            "practice",
+            "design"
+          ],
+          "citation_ids": [
+            "design-10-cite-editorial"
+          ]
+        },
+        {
+          "id": "design-10-fact-caution",
+          "statement": "Asking whether someone likes a screen does not show whether they can use it.",
+          "tags": [
+            "failure-mode",
+            "design"
+          ],
+          "citation_ids": [
+            "design-10-cite-editorial",
+            "design-10-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "design-10-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Evaluation - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-10-cite-reference",
+          "locator": "reference landing page",
+          "source": "Web Content Accessibility Guidelines",
+          "note": "Starting point for evaluation; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-10-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    }
+  ]
+}

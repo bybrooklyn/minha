@@ -1,0 +1,1597 @@
+{
+  "schema_version": 2,
+  "pack_id": "foundations",
+  "title": "Software Foundations",
+  "books": [
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "foundations-01",
+        "version": "1.0.0",
+        "title": "Boundary Design: Software Foundations",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "programming"
+        ],
+        "tags": [
+          "boundary-design",
+          "programming",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/foundations.json",
+        "abstract_text": "Boundary Design in Software Foundations: Contracts should expose behavior, ownership, and failure without exposing representation. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Boundary Design - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "foundations-01-chapter-model",
+          "title": "Model and scope",
+          "summary": "Contracts should expose behavior, ownership, and failure without exposing representation. This chapter fixes the vocabulary and boundary needed to reason about boundary design.",
+          "sections": [
+            {
+              "id": "foundations-01-section-model",
+              "title": "Core model",
+              "summary": "Contracts should expose behavior, ownership, and failure without exposing representation.",
+              "key_facts": [
+                "foundations-01-fact-model"
+              ]
+            },
+            {
+              "id": "foundations-01-section-check",
+              "title": "Practical check",
+              "summary": "Write the smallest interface that can be tested with normal and adversarial inputs. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "foundations-01-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "foundations-01-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "foundations-01-section-failure",
+              "title": "Common failure",
+              "summary": "A renamed dependency is not a boundary if its state and errors still leak through. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "foundations-01-fact-caution"
+              ]
+            },
+            {
+              "id": "foundations-01-section-pattern",
+              "title": "Working pattern",
+              "summary": "Write the smallest interface that can be tested with normal and adversarial inputs. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "foundations-01-fact-model",
+                "foundations-01-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "foundations-01-fact-model",
+          "statement": "Contracts should expose behavior, ownership, and failure without exposing representation.",
+          "tags": [
+            "boundary-design",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-01-cite-editorial",
+            "foundations-01-cite-reference"
+          ]
+        },
+        {
+          "id": "foundations-01-fact-practice",
+          "statement": "Write the smallest interface that can be tested with normal and adversarial inputs.",
+          "tags": [
+            "practice",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-01-cite-editorial"
+          ]
+        },
+        {
+          "id": "foundations-01-fact-caution",
+          "statement": "A renamed dependency is not a boundary if its state and errors still leak through.",
+          "tags": [
+            "failure-mode",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-01-cite-editorial",
+            "foundations-01-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "foundations-01-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Boundary Design - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-01-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Rust Programming Language",
+          "note": "Starting point for boundary design; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://doc.rust-lang.org/book/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-01-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "foundations-02",
+        "version": "1.0.0",
+        "title": "Feedback Loops: Software Foundations",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "programming"
+        ],
+        "tags": [
+          "feedback-loops",
+          "programming",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/foundations.json",
+        "abstract_text": "Feedback Loops in Software Foundations: A useful loop has an action, observable result, and decision rule. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Feedback Loops - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "foundations-02-chapter-model",
+          "title": "Model and scope",
+          "summary": "A useful loop has an action, observable result, and decision rule. This chapter fixes the vocabulary and boundary needed to reason about feedback loops.",
+          "sections": [
+            {
+              "id": "foundations-02-section-model",
+              "title": "Core model",
+              "summary": "A useful loop has an action, observable result, and decision rule.",
+              "key_facts": [
+                "foundations-02-fact-model"
+              ]
+            },
+            {
+              "id": "foundations-02-section-check",
+              "title": "Practical check",
+              "summary": "Start with the cheapest check that can falsify the current assumption, then widen validation. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "foundations-02-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "foundations-02-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "foundations-02-section-failure",
+              "title": "Common failure",
+              "summary": "Green checks that never exercise the changed path are reassuring but weak evidence. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "foundations-02-fact-caution"
+              ]
+            },
+            {
+              "id": "foundations-02-section-pattern",
+              "title": "Working pattern",
+              "summary": "Start with the cheapest check that can falsify the current assumption, then widen validation. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "foundations-02-fact-model",
+                "foundations-02-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "foundations-02-fact-model",
+          "statement": "A useful loop has an action, observable result, and decision rule.",
+          "tags": [
+            "feedback-loops",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-02-cite-editorial",
+            "foundations-02-cite-reference"
+          ]
+        },
+        {
+          "id": "foundations-02-fact-practice",
+          "statement": "Start with the cheapest check that can falsify the current assumption, then widen validation.",
+          "tags": [
+            "practice",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-02-cite-editorial"
+          ]
+        },
+        {
+          "id": "foundations-02-fact-caution",
+          "statement": "Green checks that never exercise the changed path are reassuring but weak evidence.",
+          "tags": [
+            "failure-mode",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-02-cite-editorial",
+            "foundations-02-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "foundations-02-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Feedback Loops - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-02-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Rust Programming Language",
+          "note": "Starting point for feedback loops; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://doc.rust-lang.org/book/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-02-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "foundations-03",
+        "version": "1.0.0",
+        "title": "Error Modeling: Software Foundations",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "programming"
+        ],
+        "tags": [
+          "error-modeling",
+          "programming",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/foundations.json",
+        "abstract_text": "Error Modeling in Software Foundations: Expected failures are part of an API and should preserve recovery-relevant distinctions. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Error Modeling - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "foundations-03-chapter-model",
+          "title": "Model and scope",
+          "summary": "Expected failures are part of an API and should preserve recovery-relevant distinctions. This chapter fixes the vocabulary and boundary needed to reason about error modeling.",
+          "sections": [
+            {
+              "id": "foundations-03-section-model",
+              "title": "Core model",
+              "summary": "Expected failures are part of an API and should preserve recovery-relevant distinctions.",
+              "key_facts": [
+                "foundations-03-fact-model"
+              ]
+            },
+            {
+              "id": "foundations-03-section-check",
+              "title": "Practical check",
+              "summary": "Separate invalid input, unavailable state, and internal defects before choosing error types. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "foundations-03-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "foundations-03-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "foundations-03-section-failure",
+              "title": "Common failure",
+              "summary": "Converting every failure to a string loses the information needed for safe recovery. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "foundations-03-fact-caution"
+              ]
+            },
+            {
+              "id": "foundations-03-section-pattern",
+              "title": "Working pattern",
+              "summary": "Separate invalid input, unavailable state, and internal defects before choosing error types. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "foundations-03-fact-model",
+                "foundations-03-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "foundations-03-fact-model",
+          "statement": "Expected failures are part of an API and should preserve recovery-relevant distinctions.",
+          "tags": [
+            "error-modeling",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-03-cite-editorial",
+            "foundations-03-cite-reference"
+          ]
+        },
+        {
+          "id": "foundations-03-fact-practice",
+          "statement": "Separate invalid input, unavailable state, and internal defects before choosing error types.",
+          "tags": [
+            "practice",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-03-cite-editorial"
+          ]
+        },
+        {
+          "id": "foundations-03-fact-caution",
+          "statement": "Converting every failure to a string loses the information needed for safe recovery.",
+          "tags": [
+            "failure-mode",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-03-cite-editorial",
+            "foundations-03-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "foundations-03-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Error Modeling - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-03-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Rust Programming Language",
+          "note": "Starting point for error modeling; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://doc.rust-lang.org/book/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-03-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "foundations-04",
+        "version": "1.0.0",
+        "title": "Data Ownership: Software Foundations",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "programming"
+        ],
+        "tags": [
+          "data-ownership",
+          "programming",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/foundations.json",
+        "abstract_text": "Data Ownership in Software Foundations: Ownership decisions explain who may mutate a value, how long it lives, and what synchronization is needed. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Data Ownership - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "foundations-04-chapter-model",
+          "title": "Model and scope",
+          "summary": "Ownership decisions explain who may mutate a value, how long it lives, and what synchronization is needed. This chapter fixes the vocabulary and boundary needed to reason about data ownership.",
+          "sections": [
+            {
+              "id": "foundations-04-section-model",
+              "title": "Core model",
+              "summary": "Ownership decisions explain who may mutate a value, how long it lives, and what synchronization is needed.",
+              "key_facts": [
+                "foundations-04-fact-model"
+              ]
+            },
+            {
+              "id": "foundations-04-section-check",
+              "title": "Practical check",
+              "summary": "Prefer one clear owner and pass borrowed views until a transfer is necessary. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "foundations-04-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "foundations-04-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "foundations-04-section-failure",
+              "title": "Common failure",
+              "summary": "Cloning to silence a compiler can hide a lifetime or ownership decision that still matters. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "foundations-04-fact-caution"
+              ]
+            },
+            {
+              "id": "foundations-04-section-pattern",
+              "title": "Working pattern",
+              "summary": "Prefer one clear owner and pass borrowed views until a transfer is necessary. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "foundations-04-fact-model",
+                "foundations-04-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "foundations-04-fact-model",
+          "statement": "Ownership decisions explain who may mutate a value, how long it lives, and what synchronization is needed.",
+          "tags": [
+            "data-ownership",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-04-cite-editorial",
+            "foundations-04-cite-reference"
+          ]
+        },
+        {
+          "id": "foundations-04-fact-practice",
+          "statement": "Prefer one clear owner and pass borrowed views until a transfer is necessary.",
+          "tags": [
+            "practice",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-04-cite-editorial"
+          ]
+        },
+        {
+          "id": "foundations-04-fact-caution",
+          "statement": "Cloning to silence a compiler can hide a lifetime or ownership decision that still matters.",
+          "tags": [
+            "failure-mode",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-04-cite-editorial",
+            "foundations-04-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "foundations-04-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Data Ownership - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-04-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Rust Programming Language",
+          "note": "Starting point for data ownership; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://doc.rust-lang.org/book/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-04-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "foundations-05",
+        "version": "1.0.0",
+        "title": "Reviewable Change: Software Foundations",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "programming"
+        ],
+        "tags": [
+          "reviewable-change",
+          "programming",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/foundations.json",
+        "abstract_text": "Reviewable Change in Software Foundations: A reviewable diff makes its purpose, invariant, and evidence visible. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Reviewable Change - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "foundations-05-chapter-model",
+          "title": "Model and scope",
+          "summary": "A reviewable diff makes its purpose, invariant, and evidence visible. This chapter fixes the vocabulary and boundary needed to reason about reviewable change.",
+          "sections": [
+            {
+              "id": "foundations-05-section-model",
+              "title": "Core model",
+              "summary": "A reviewable diff makes its purpose, invariant, and evidence visible.",
+              "key_facts": [
+                "foundations-05-fact-model"
+              ]
+            },
+            {
+              "id": "foundations-05-section-check",
+              "title": "Practical check",
+              "summary": "Separate mechanical movement from semantic edits and name the risk covered by each test. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "foundations-05-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "foundations-05-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "foundations-05-section-failure",
+              "title": "Common failure",
+              "summary": "Formatting, refactoring, and behavior changes in one large diff obscure what was actually proved. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "foundations-05-fact-caution"
+              ]
+            },
+            {
+              "id": "foundations-05-section-pattern",
+              "title": "Working pattern",
+              "summary": "Separate mechanical movement from semantic edits and name the risk covered by each test. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "foundations-05-fact-model",
+                "foundations-05-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "foundations-05-fact-model",
+          "statement": "A reviewable diff makes its purpose, invariant, and evidence visible.",
+          "tags": [
+            "reviewable-change",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-05-cite-editorial",
+            "foundations-05-cite-reference"
+          ]
+        },
+        {
+          "id": "foundations-05-fact-practice",
+          "statement": "Separate mechanical movement from semantic edits and name the risk covered by each test.",
+          "tags": [
+            "practice",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-05-cite-editorial"
+          ]
+        },
+        {
+          "id": "foundations-05-fact-caution",
+          "statement": "Formatting, refactoring, and behavior changes in one large diff obscure what was actually proved.",
+          "tags": [
+            "failure-mode",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-05-cite-editorial",
+            "foundations-05-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "foundations-05-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Reviewable Change - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-05-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Rust Programming Language",
+          "note": "Starting point for reviewable change; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://doc.rust-lang.org/book/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-05-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "foundations-06",
+        "version": "1.0.0",
+        "title": "Refactoring Safely: Software Foundations",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "programming"
+        ],
+        "tags": [
+          "refactoring-safely",
+          "programming",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/foundations.json",
+        "abstract_text": "Refactoring Safely in Software Foundations: Refactoring changes structure while preserving an explicit set of observable behaviors. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Refactoring Safely - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "foundations-06-chapter-model",
+          "title": "Model and scope",
+          "summary": "Refactoring changes structure while preserving an explicit set of observable behaviors. This chapter fixes the vocabulary and boundary needed to reason about refactoring safely.",
+          "sections": [
+            {
+              "id": "foundations-06-section-model",
+              "title": "Core model",
+              "summary": "Refactoring changes structure while preserving an explicit set of observable behaviors.",
+              "key_facts": [
+                "foundations-06-fact-model"
+              ]
+            },
+            {
+              "id": "foundations-06-section-check",
+              "title": "Practical check",
+              "summary": "Characterize current boundary behavior before moving implementation pieces. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "foundations-06-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "foundations-06-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "foundations-06-section-failure",
+              "title": "Common failure",
+              "summary": "Passing unit tests does not prove integration behavior that was never specified. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "foundations-06-fact-caution"
+              ]
+            },
+            {
+              "id": "foundations-06-section-pattern",
+              "title": "Working pattern",
+              "summary": "Characterize current boundary behavior before moving implementation pieces. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "foundations-06-fact-model",
+                "foundations-06-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "foundations-06-fact-model",
+          "statement": "Refactoring changes structure while preserving an explicit set of observable behaviors.",
+          "tags": [
+            "refactoring-safely",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-06-cite-editorial",
+            "foundations-06-cite-reference"
+          ]
+        },
+        {
+          "id": "foundations-06-fact-practice",
+          "statement": "Characterize current boundary behavior before moving implementation pieces.",
+          "tags": [
+            "practice",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-06-cite-editorial"
+          ]
+        },
+        {
+          "id": "foundations-06-fact-caution",
+          "statement": "Passing unit tests does not prove integration behavior that was never specified.",
+          "tags": [
+            "failure-mode",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-06-cite-editorial",
+            "foundations-06-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "foundations-06-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Refactoring Safely - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-06-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Rust Programming Language",
+          "note": "Starting point for refactoring safely; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://doc.rust-lang.org/book/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-06-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "foundations-07",
+        "version": "1.0.0",
+        "title": "Dependency Seams: Software Foundations",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "programming"
+        ],
+        "tags": [
+          "dependency-seams",
+          "programming",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/foundations.json",
+        "abstract_text": "Dependency Seams in Software Foundations: External services belong behind seams that make policy and failure testable. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Dependency Seams - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "foundations-07-chapter-model",
+          "title": "Model and scope",
+          "summary": "External services belong behind seams that make policy and failure testable. This chapter fixes the vocabulary and boundary needed to reason about dependency seams.",
+          "sections": [
+            {
+              "id": "foundations-07-section-model",
+              "title": "Core model",
+              "summary": "External services belong behind seams that make policy and failure testable.",
+              "key_facts": [
+                "foundations-07-fact-model"
+              ]
+            },
+            {
+              "id": "foundations-07-section-check",
+              "title": "Practical check",
+              "summary": "Inject the smallest capability a caller needs and keep provider types at the edge. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "foundations-07-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "foundations-07-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "foundations-07-section-failure",
+              "title": "Common failure",
+              "summary": "A vendor client spread through domain code turns a provider swap into a rewrite. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "foundations-07-fact-caution"
+              ]
+            },
+            {
+              "id": "foundations-07-section-pattern",
+              "title": "Working pattern",
+              "summary": "Inject the smallest capability a caller needs and keep provider types at the edge. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "foundations-07-fact-model",
+                "foundations-07-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "foundations-07-fact-model",
+          "statement": "External services belong behind seams that make policy and failure testable.",
+          "tags": [
+            "dependency-seams",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-07-cite-editorial",
+            "foundations-07-cite-reference"
+          ]
+        },
+        {
+          "id": "foundations-07-fact-practice",
+          "statement": "Inject the smallest capability a caller needs and keep provider types at the edge.",
+          "tags": [
+            "practice",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-07-cite-editorial"
+          ]
+        },
+        {
+          "id": "foundations-07-fact-caution",
+          "statement": "A vendor client spread through domain code turns a provider swap into a rewrite.",
+          "tags": [
+            "failure-mode",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-07-cite-editorial",
+            "foundations-07-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "foundations-07-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Dependency Seams - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-07-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Rust Programming Language",
+          "note": "Starting point for dependency seams; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://doc.rust-lang.org/book/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-07-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "foundations-08",
+        "version": "1.0.0",
+        "title": "Observable State: Software Foundations",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "programming"
+        ],
+        "tags": [
+          "observable-state",
+          "programming",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/foundations.json",
+        "abstract_text": "Observable State in Software Foundations: Useful observability starts with meaningful state transitions and bounded evidence. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Observable State - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "foundations-08-chapter-model",
+          "title": "Model and scope",
+          "summary": "Useful observability starts with meaningful state transitions and bounded evidence. This chapter fixes the vocabulary and boundary needed to reason about observable state.",
+          "sections": [
+            {
+              "id": "foundations-08-section-model",
+              "title": "Core model",
+              "summary": "Useful observability starts with meaningful state transitions and bounded evidence.",
+              "key_facts": [
+                "foundations-08-fact-model"
+              ]
+            },
+            {
+              "id": "foundations-08-section-check",
+              "title": "Practical check",
+              "summary": "Emit identity, outcome, timing, and safe context at important boundaries. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "foundations-08-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "foundations-08-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "foundations-08-section-failure",
+              "title": "Common failure",
+              "summary": "Logging every payload while omitting outcome and correlation makes diagnosis harder and riskier. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "foundations-08-fact-caution"
+              ]
+            },
+            {
+              "id": "foundations-08-section-pattern",
+              "title": "Working pattern",
+              "summary": "Emit identity, outcome, timing, and safe context at important boundaries. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "foundations-08-fact-model",
+                "foundations-08-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "foundations-08-fact-model",
+          "statement": "Useful observability starts with meaningful state transitions and bounded evidence.",
+          "tags": [
+            "observable-state",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-08-cite-editorial",
+            "foundations-08-cite-reference"
+          ]
+        },
+        {
+          "id": "foundations-08-fact-practice",
+          "statement": "Emit identity, outcome, timing, and safe context at important boundaries.",
+          "tags": [
+            "practice",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-08-cite-editorial"
+          ]
+        },
+        {
+          "id": "foundations-08-fact-caution",
+          "statement": "Logging every payload while omitting outcome and correlation makes diagnosis harder and riskier.",
+          "tags": [
+            "failure-mode",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-08-cite-editorial",
+            "foundations-08-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "foundations-08-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Observable State - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-08-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Rust Programming Language",
+          "note": "Starting point for observable state; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://doc.rust-lang.org/book/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-08-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "foundations-09",
+        "version": "1.0.0",
+        "title": "Documentation as Contract: Software Foundations",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "programming"
+        ],
+        "tags": [
+          "documentation-as-contract",
+          "programming",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/foundations.json",
+        "abstract_text": "Documentation as Contract in Software Foundations: Documentation prevents misuse when it states scope, assumptions, examples, and failure modes. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Documentation as Contract - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "foundations-09-chapter-model",
+          "title": "Model and scope",
+          "summary": "Documentation prevents misuse when it states scope, assumptions, examples, and failure modes. This chapter fixes the vocabulary and boundary needed to reason about documentation as contract.",
+          "sections": [
+            {
+              "id": "foundations-09-section-model",
+              "title": "Core model",
+              "summary": "Documentation prevents misuse when it states scope, assumptions, examples, and failure modes.",
+              "key_facts": [
+                "foundations-09-fact-model"
+              ]
+            },
+            {
+              "id": "foundations-09-section-check",
+              "title": "Practical check",
+              "summary": "Document the decision a reader must make, close to the API that requires it. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "foundations-09-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "foundations-09-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "foundations-09-section-failure",
+              "title": "Common failure",
+              "summary": "A polished overview that omits operational edge cases is not a reliable contract. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "foundations-09-fact-caution"
+              ]
+            },
+            {
+              "id": "foundations-09-section-pattern",
+              "title": "Working pattern",
+              "summary": "Document the decision a reader must make, close to the API that requires it. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "foundations-09-fact-model",
+                "foundations-09-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "foundations-09-fact-model",
+          "statement": "Documentation prevents misuse when it states scope, assumptions, examples, and failure modes.",
+          "tags": [
+            "documentation-as-contract",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-09-cite-editorial",
+            "foundations-09-cite-reference"
+          ]
+        },
+        {
+          "id": "foundations-09-fact-practice",
+          "statement": "Document the decision a reader must make, close to the API that requires it.",
+          "tags": [
+            "practice",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-09-cite-editorial"
+          ]
+        },
+        {
+          "id": "foundations-09-fact-caution",
+          "statement": "A polished overview that omits operational edge cases is not a reliable contract.",
+          "tags": [
+            "failure-mode",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-09-cite-editorial",
+            "foundations-09-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "foundations-09-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Documentation as Contract - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-09-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Rust Programming Language",
+          "note": "Starting point for documentation as contract; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://doc.rust-lang.org/book/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-09-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "foundations-10",
+        "version": "1.0.0",
+        "title": "Maintenance Shape: Software Foundations",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "programming"
+        ],
+        "tags": [
+          "maintenance-shape",
+          "programming",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/foundations.json",
+        "abstract_text": "Maintenance Shape in Software Foundations: Maintainability is the cost of locating an invariant, changing it, and proving dependent behavior. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Maintenance Shape - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "foundations-10-chapter-model",
+          "title": "Model and scope",
+          "summary": "Maintainability is the cost of locating an invariant, changing it, and proving dependent behavior. This chapter fixes the vocabulary and boundary needed to reason about maintenance shape.",
+          "sections": [
+            {
+              "id": "foundations-10-section-model",
+              "title": "Core model",
+              "summary": "Maintainability is the cost of locating an invariant, changing it, and proving dependent behavior.",
+              "key_facts": [
+                "foundations-10-fact-model"
+              ]
+            },
+            {
+              "id": "foundations-10-section-check",
+              "title": "Practical check",
+              "summary": "Keep policy, mechanism, and compatibility shims visibly separate. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "foundations-10-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "foundations-10-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "foundations-10-section-failure",
+              "title": "Common failure",
+              "summary": "Optimizing only for the first implementation makes the next diagnosis unnecessarily expensive. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "foundations-10-fact-caution"
+              ]
+            },
+            {
+              "id": "foundations-10-section-pattern",
+              "title": "Working pattern",
+              "summary": "Keep policy, mechanism, and compatibility shims visibly separate. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "foundations-10-fact-model",
+                "foundations-10-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "foundations-10-fact-model",
+          "statement": "Maintainability is the cost of locating an invariant, changing it, and proving dependent behavior.",
+          "tags": [
+            "maintenance-shape",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-10-cite-editorial",
+            "foundations-10-cite-reference"
+          ]
+        },
+        {
+          "id": "foundations-10-fact-practice",
+          "statement": "Keep policy, mechanism, and compatibility shims visibly separate.",
+          "tags": [
+            "practice",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-10-cite-editorial"
+          ]
+        },
+        {
+          "id": "foundations-10-fact-caution",
+          "statement": "Optimizing only for the first implementation makes the next diagnosis unnecessarily expensive.",
+          "tags": [
+            "failure-mode",
+            "programming"
+          ],
+          "citation_ids": [
+            "foundations-10-cite-editorial",
+            "foundations-10-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "foundations-10-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Maintenance Shape - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-10-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Rust Programming Language",
+          "note": "Starting point for maintenance shape; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://doc.rust-lang.org/book/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "foundations-10-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    }
+  ]
+}

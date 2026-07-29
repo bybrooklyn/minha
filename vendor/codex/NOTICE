@@ -1,0 +1,7 @@
+Minha may incorporate portions of OpenAI Codex.
+
+OpenAI Codex is Copyright OpenAI and licensed under Apache License 2.0.
+Upstream: https://github.com/openai/codex
+
+Any imported source must retain upstream notices. Local modifications must be
+listed in PATCHES.md with the pinned upstream commit.

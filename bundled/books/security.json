@@ -1,0 +1,1597 @@
+{
+  "schema_version": 2,
+  "pack_id": "security",
+  "title": "Security Engineering",
+  "books": [
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "security-01",
+        "version": "1.0.0",
+        "title": "Threat Modeling: Security Engineering",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "security"
+        ],
+        "tags": [
+          "threat-modeling",
+          "security",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/security.json",
+        "abstract_text": "Threat Modeling in Security Engineering: A threat model connects assets, boundaries, attacker capabilities, and abuse paths. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Threat Modeling - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "security-01-chapter-model",
+          "title": "Model and scope",
+          "summary": "A threat model connects assets, boundaries, attacker capabilities, and abuse paths. This chapter fixes the vocabulary and boundary needed to reason about threat modeling.",
+          "sections": [
+            {
+              "id": "security-01-section-model",
+              "title": "Core model",
+              "summary": "A threat model connects assets, boundaries, attacker capabilities, and abuse paths.",
+              "key_facts": [
+                "security-01-fact-model"
+              ]
+            },
+            {
+              "id": "security-01-section-check",
+              "title": "Practical check",
+              "summary": "Start with the highest-value asset and the cheapest credible attack path. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "security-01-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "security-01-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "security-01-section-failure",
+              "title": "Common failure",
+              "summary": "Generic threat lists without a concrete flow rarely identify an owner or useful control. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "security-01-fact-caution"
+              ]
+            },
+            {
+              "id": "security-01-section-pattern",
+              "title": "Working pattern",
+              "summary": "Start with the highest-value asset and the cheapest credible attack path. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "security-01-fact-model",
+                "security-01-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "security-01-fact-model",
+          "statement": "A threat model connects assets, boundaries, attacker capabilities, and abuse paths.",
+          "tags": [
+            "threat-modeling",
+            "security"
+          ],
+          "citation_ids": [
+            "security-01-cite-editorial",
+            "security-01-cite-reference"
+          ]
+        },
+        {
+          "id": "security-01-fact-practice",
+          "statement": "Start with the highest-value asset and the cheapest credible attack path.",
+          "tags": [
+            "practice",
+            "security"
+          ],
+          "citation_ids": [
+            "security-01-cite-editorial"
+          ]
+        },
+        {
+          "id": "security-01-fact-caution",
+          "statement": "Generic threat lists without a concrete flow rarely identify an owner or useful control.",
+          "tags": [
+            "failure-mode",
+            "security"
+          ],
+          "citation_ids": [
+            "security-01-cite-editorial",
+            "security-01-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "security-01-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Threat Modeling - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-01-cite-reference",
+          "locator": "reference landing page",
+          "source": "Cybersecurity Framework",
+          "note": "Starting point for threat modeling; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nist.gov/cyberframework",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-01-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "security-02",
+        "version": "1.0.0",
+        "title": "Authentication: Security Engineering",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "security"
+        ],
+        "tags": [
+          "authentication",
+          "security",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/security.json",
+        "abstract_text": "Authentication in Security Engineering: Authentication includes enrollment, verification, recovery, rotation, and invalidation. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Authentication - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "security-02-chapter-model",
+          "title": "Model and scope",
+          "summary": "Authentication includes enrollment, verification, recovery, rotation, and invalidation. This chapter fixes the vocabulary and boundary needed to reason about authentication.",
+          "sections": [
+            {
+              "id": "security-02-section-model",
+              "title": "Core model",
+              "summary": "Authentication includes enrollment, verification, recovery, rotation, and invalidation.",
+              "key_facts": [
+                "security-02-fact-model"
+              ]
+            },
+            {
+              "id": "security-02-section-check",
+              "title": "Practical check",
+              "summary": "Treat recovery as an authentication path with equivalent scrutiny. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "security-02-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "security-02-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "security-02-section-failure",
+              "title": "Common failure",
+              "summary": "Securing login while leaving reset tokens or sessions weak leaves the identity boundary open. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "security-02-fact-caution"
+              ]
+            },
+            {
+              "id": "security-02-section-pattern",
+              "title": "Working pattern",
+              "summary": "Treat recovery as an authentication path with equivalent scrutiny. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "security-02-fact-model",
+                "security-02-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "security-02-fact-model",
+          "statement": "Authentication includes enrollment, verification, recovery, rotation, and invalidation.",
+          "tags": [
+            "authentication",
+            "security"
+          ],
+          "citation_ids": [
+            "security-02-cite-editorial",
+            "security-02-cite-reference"
+          ]
+        },
+        {
+          "id": "security-02-fact-practice",
+          "statement": "Treat recovery as an authentication path with equivalent scrutiny.",
+          "tags": [
+            "practice",
+            "security"
+          ],
+          "citation_ids": [
+            "security-02-cite-editorial"
+          ]
+        },
+        {
+          "id": "security-02-fact-caution",
+          "statement": "Securing login while leaving reset tokens or sessions weak leaves the identity boundary open.",
+          "tags": [
+            "failure-mode",
+            "security"
+          ],
+          "citation_ids": [
+            "security-02-cite-editorial",
+            "security-02-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "security-02-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Authentication - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-02-cite-reference",
+          "locator": "reference landing page",
+          "source": "Cybersecurity Framework",
+          "note": "Starting point for authentication; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nist.gov/cyberframework",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-02-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "security-03",
+        "version": "1.0.0",
+        "title": "Authorization: Security Engineering",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "security"
+        ],
+        "tags": [
+          "authorization",
+          "security",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/security.json",
+        "abstract_text": "Authorization in Security Engineering: Access decisions need an explicit action, resource, actor, and trusted context. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Authorization - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "security-03-chapter-model",
+          "title": "Model and scope",
+          "summary": "Access decisions need an explicit action, resource, actor, and trusted context. This chapter fixes the vocabulary and boundary needed to reason about authorization.",
+          "sections": [
+            {
+              "id": "security-03-section-model",
+              "title": "Core model",
+              "summary": "Access decisions need an explicit action, resource, actor, and trusted context.",
+              "key_facts": [
+                "security-03-fact-model"
+              ]
+            },
+            {
+              "id": "security-03-section-check",
+              "title": "Practical check",
+              "summary": "Default to denial and enforce the decision at the point of use. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "security-03-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "security-03-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "security-03-section-failure",
+              "title": "Common failure",
+              "summary": "Checking a role once and assuming it remains valid throughout a workflow creates confused deputy paths. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "security-03-fact-caution"
+              ]
+            },
+            {
+              "id": "security-03-section-pattern",
+              "title": "Working pattern",
+              "summary": "Default to denial and enforce the decision at the point of use. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "security-03-fact-model",
+                "security-03-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "security-03-fact-model",
+          "statement": "Access decisions need an explicit action, resource, actor, and trusted context.",
+          "tags": [
+            "authorization",
+            "security"
+          ],
+          "citation_ids": [
+            "security-03-cite-editorial",
+            "security-03-cite-reference"
+          ]
+        },
+        {
+          "id": "security-03-fact-practice",
+          "statement": "Default to denial and enforce the decision at the point of use.",
+          "tags": [
+            "practice",
+            "security"
+          ],
+          "citation_ids": [
+            "security-03-cite-editorial"
+          ]
+        },
+        {
+          "id": "security-03-fact-caution",
+          "statement": "Checking a role once and assuming it remains valid throughout a workflow creates confused deputy paths.",
+          "tags": [
+            "failure-mode",
+            "security"
+          ],
+          "citation_ids": [
+            "security-03-cite-editorial",
+            "security-03-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "security-03-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Authorization - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-03-cite-reference",
+          "locator": "reference landing page",
+          "source": "Cybersecurity Framework",
+          "note": "Starting point for authorization; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nist.gov/cyberframework",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-03-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "security-04",
+        "version": "1.0.0",
+        "title": "Secret Handling: Security Engineering",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "security"
+        ],
+        "tags": [
+          "secret-handling",
+          "security",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/security.json",
+        "abstract_text": "Secret Handling in Security Engineering: A secret has a source, scope, exposure surface, rotation path, and revocation story. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Secret Handling - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "security-04-chapter-model",
+          "title": "Model and scope",
+          "summary": "A secret has a source, scope, exposure surface, rotation path, and revocation story. This chapter fixes the vocabulary and boundary needed to reason about secret handling.",
+          "sections": [
+            {
+              "id": "security-04-section-model",
+              "title": "Core model",
+              "summary": "A secret has a source, scope, exposure surface, rotation path, and revocation story.",
+              "key_facts": [
+                "security-04-fact-model"
+              ]
+            },
+            {
+              "id": "security-04-section-check",
+              "title": "Practical check",
+              "summary": "Keep secrets out of source, logs, caches, and broad process environments. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "security-04-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "security-04-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "security-04-section-failure",
+              "title": "Common failure",
+              "summary": "Masking output does not remove a secret already copied into a debug artifact. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "security-04-fact-caution"
+              ]
+            },
+            {
+              "id": "security-04-section-pattern",
+              "title": "Working pattern",
+              "summary": "Keep secrets out of source, logs, caches, and broad process environments. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "security-04-fact-model",
+                "security-04-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "security-04-fact-model",
+          "statement": "A secret has a source, scope, exposure surface, rotation path, and revocation story.",
+          "tags": [
+            "secret-handling",
+            "security"
+          ],
+          "citation_ids": [
+            "security-04-cite-editorial",
+            "security-04-cite-reference"
+          ]
+        },
+        {
+          "id": "security-04-fact-practice",
+          "statement": "Keep secrets out of source, logs, caches, and broad process environments.",
+          "tags": [
+            "practice",
+            "security"
+          ],
+          "citation_ids": [
+            "security-04-cite-editorial"
+          ]
+        },
+        {
+          "id": "security-04-fact-caution",
+          "statement": "Masking output does not remove a secret already copied into a debug artifact.",
+          "tags": [
+            "failure-mode",
+            "security"
+          ],
+          "citation_ids": [
+            "security-04-cite-editorial",
+            "security-04-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "security-04-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Secret Handling - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-04-cite-reference",
+          "locator": "reference landing page",
+          "source": "Cybersecurity Framework",
+          "note": "Starting point for secret handling; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nist.gov/cyberframework",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-04-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "security-05",
+        "version": "1.0.0",
+        "title": "Cryptography Use: Security Engineering",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "security"
+        ],
+        "tags": [
+          "cryptography-use",
+          "security",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/security.json",
+        "abstract_text": "Cryptography Use in Security Engineering: Cryptographic safety depends on construction, nonce, key lifecycle, and verification context. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Cryptography Use - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "security-05-chapter-model",
+          "title": "Model and scope",
+          "summary": "Cryptographic safety depends on construction, nonce, key lifecycle, and verification context. This chapter fixes the vocabulary and boundary needed to reason about cryptography use.",
+          "sections": [
+            {
+              "id": "security-05-section-model",
+              "title": "Core model",
+              "summary": "Cryptographic safety depends on construction, nonce, key lifecycle, and verification context.",
+              "key_facts": [
+                "security-05-fact-model"
+              ]
+            },
+            {
+              "id": "security-05-section-check",
+              "title": "Practical check",
+              "summary": "Use maintained high-level libraries and wrap them with purpose-specific tests. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "security-05-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "security-05-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "security-05-section-failure",
+              "title": "Common failure",
+              "summary": "Inventing a protocol or reusing a nonce defeats an otherwise strong primitive. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "security-05-fact-caution"
+              ]
+            },
+            {
+              "id": "security-05-section-pattern",
+              "title": "Working pattern",
+              "summary": "Use maintained high-level libraries and wrap them with purpose-specific tests. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "security-05-fact-model",
+                "security-05-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "security-05-fact-model",
+          "statement": "Cryptographic safety depends on construction, nonce, key lifecycle, and verification context.",
+          "tags": [
+            "cryptography-use",
+            "security"
+          ],
+          "citation_ids": [
+            "security-05-cite-editorial",
+            "security-05-cite-reference"
+          ]
+        },
+        {
+          "id": "security-05-fact-practice",
+          "statement": "Use maintained high-level libraries and wrap them with purpose-specific tests.",
+          "tags": [
+            "practice",
+            "security"
+          ],
+          "citation_ids": [
+            "security-05-cite-editorial"
+          ]
+        },
+        {
+          "id": "security-05-fact-caution",
+          "statement": "Inventing a protocol or reusing a nonce defeats an otherwise strong primitive.",
+          "tags": [
+            "failure-mode",
+            "security"
+          ],
+          "citation_ids": [
+            "security-05-cite-editorial",
+            "security-05-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "security-05-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Cryptography Use - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-05-cite-reference",
+          "locator": "reference landing page",
+          "source": "Cybersecurity Framework",
+          "note": "Starting point for cryptography use; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nist.gov/cyberframework",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-05-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "security-06",
+        "version": "1.0.0",
+        "title": "Input Boundaries: Security Engineering",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "security"
+        ],
+        "tags": [
+          "input-boundaries",
+          "security",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/security.json",
+        "abstract_text": "Input Boundaries in Security Engineering: External input needs a grammar, size bound, canonical form, and failure behavior. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Input Boundaries - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "security-06-chapter-model",
+          "title": "Model and scope",
+          "summary": "External input needs a grammar, size bound, canonical form, and failure behavior. This chapter fixes the vocabulary and boundary needed to reason about input boundaries.",
+          "sections": [
+            {
+              "id": "security-06-section-model",
+              "title": "Core model",
+              "summary": "External input needs a grammar, size bound, canonical form, and failure behavior.",
+              "key_facts": [
+                "security-06-fact-model"
+              ]
+            },
+            {
+              "id": "security-06-section-check",
+              "title": "Practical check",
+              "summary": "Reject ambiguous or oversized values before deeper processing. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "security-06-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "security-06-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "security-06-section-failure",
+              "title": "Common failure",
+              "summary": "Validating one representation and interpreting another creates parser differentials. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "security-06-fact-caution"
+              ]
+            },
+            {
+              "id": "security-06-section-pattern",
+              "title": "Working pattern",
+              "summary": "Reject ambiguous or oversized values before deeper processing. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "security-06-fact-model",
+                "security-06-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "security-06-fact-model",
+          "statement": "External input needs a grammar, size bound, canonical form, and failure behavior.",
+          "tags": [
+            "input-boundaries",
+            "security"
+          ],
+          "citation_ids": [
+            "security-06-cite-editorial",
+            "security-06-cite-reference"
+          ]
+        },
+        {
+          "id": "security-06-fact-practice",
+          "statement": "Reject ambiguous or oversized values before deeper processing.",
+          "tags": [
+            "practice",
+            "security"
+          ],
+          "citation_ids": [
+            "security-06-cite-editorial"
+          ]
+        },
+        {
+          "id": "security-06-fact-caution",
+          "statement": "Validating one representation and interpreting another creates parser differentials.",
+          "tags": [
+            "failure-mode",
+            "security"
+          ],
+          "citation_ids": [
+            "security-06-cite-editorial",
+            "security-06-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "security-06-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Input Boundaries - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-06-cite-reference",
+          "locator": "reference landing page",
+          "source": "Cybersecurity Framework",
+          "note": "Starting point for input boundaries; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nist.gov/cyberframework",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-06-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "security-07",
+        "version": "1.0.0",
+        "title": "Supply Chain: Security Engineering",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "security"
+        ],
+        "tags": [
+          "supply-chain",
+          "security",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/security.json",
+        "abstract_text": "Supply Chain in Security Engineering: Dependencies, build tools, source provenance, and artifacts all belong in the trust model. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Supply Chain - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "security-07-chapter-model",
+          "title": "Model and scope",
+          "summary": "Dependencies, build tools, source provenance, and artifacts all belong in the trust model. This chapter fixes the vocabulary and boundary needed to reason about supply chain.",
+          "sections": [
+            {
+              "id": "security-07-section-model",
+              "title": "Core model",
+              "summary": "Dependencies, build tools, source provenance, and artifacts all belong in the trust model.",
+              "key_facts": [
+                "security-07-fact-model"
+              ]
+            },
+            {
+              "id": "security-07-section-check",
+              "title": "Practical check",
+              "summary": "Know which components execute during build and which ship at runtime. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "security-07-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "security-07-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "security-07-section-failure",
+              "title": "Common failure",
+              "summary": "A lockfile records resolution but does not by itself prove artifact integrity. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "security-07-fact-caution"
+              ]
+            },
+            {
+              "id": "security-07-section-pattern",
+              "title": "Working pattern",
+              "summary": "Know which components execute during build and which ship at runtime. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "security-07-fact-model",
+                "security-07-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "security-07-fact-model",
+          "statement": "Dependencies, build tools, source provenance, and artifacts all belong in the trust model.",
+          "tags": [
+            "supply-chain",
+            "security"
+          ],
+          "citation_ids": [
+            "security-07-cite-editorial",
+            "security-07-cite-reference"
+          ]
+        },
+        {
+          "id": "security-07-fact-practice",
+          "statement": "Know which components execute during build and which ship at runtime.",
+          "tags": [
+            "practice",
+            "security"
+          ],
+          "citation_ids": [
+            "security-07-cite-editorial"
+          ]
+        },
+        {
+          "id": "security-07-fact-caution",
+          "statement": "A lockfile records resolution but does not by itself prove artifact integrity.",
+          "tags": [
+            "failure-mode",
+            "security"
+          ],
+          "citation_ids": [
+            "security-07-cite-editorial",
+            "security-07-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "security-07-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Supply Chain - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-07-cite-reference",
+          "locator": "reference landing page",
+          "source": "Cybersecurity Framework",
+          "note": "Starting point for supply chain; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nist.gov/cyberframework",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-07-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "security-08",
+        "version": "1.0.0",
+        "title": "Security Telemetry: Security Engineering",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "security"
+        ],
+        "tags": [
+          "security-telemetry",
+          "security",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/security.json",
+        "abstract_text": "Security Telemetry in Security Engineering: Security events need actor, resource, decision, time, and correlation without raw secrets. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Security Telemetry - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "security-08-chapter-model",
+          "title": "Model and scope",
+          "summary": "Security events need actor, resource, decision, time, and correlation without raw secrets. This chapter fixes the vocabulary and boundary needed to reason about security telemetry.",
+          "sections": [
+            {
+              "id": "security-08-section-model",
+              "title": "Core model",
+              "summary": "Security events need actor, resource, decision, time, and correlation without raw secrets.",
+              "key_facts": [
+                "security-08-fact-model"
+              ]
+            },
+            {
+              "id": "security-08-section-check",
+              "title": "Practical check",
+              "summary": "Define detection and investigation events with redaction and retention rules. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "security-08-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "security-08-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "security-08-section-failure",
+              "title": "Common failure",
+              "summary": "Logging credentials to debug one incident creates a second incident. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "security-08-fact-caution"
+              ]
+            },
+            {
+              "id": "security-08-section-pattern",
+              "title": "Working pattern",
+              "summary": "Define detection and investigation events with redaction and retention rules. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "security-08-fact-model",
+                "security-08-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "security-08-fact-model",
+          "statement": "Security events need actor, resource, decision, time, and correlation without raw secrets.",
+          "tags": [
+            "security-telemetry",
+            "security"
+          ],
+          "citation_ids": [
+            "security-08-cite-editorial",
+            "security-08-cite-reference"
+          ]
+        },
+        {
+          "id": "security-08-fact-practice",
+          "statement": "Define detection and investigation events with redaction and retention rules.",
+          "tags": [
+            "practice",
+            "security"
+          ],
+          "citation_ids": [
+            "security-08-cite-editorial"
+          ]
+        },
+        {
+          "id": "security-08-fact-caution",
+          "statement": "Logging credentials to debug one incident creates a second incident.",
+          "tags": [
+            "failure-mode",
+            "security"
+          ],
+          "citation_ids": [
+            "security-08-cite-editorial",
+            "security-08-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "security-08-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Security Telemetry - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-08-cite-reference",
+          "locator": "reference landing page",
+          "source": "Cybersecurity Framework",
+          "note": "Starting point for security telemetry; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nist.gov/cyberframework",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-08-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "security-09",
+        "version": "1.0.0",
+        "title": "Incident Response: Security Engineering",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "security"
+        ],
+        "tags": [
+          "incident-response",
+          "security",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/security.json",
+        "abstract_text": "Incident Response in Security Engineering: Response needs roles, severity, containment, communication, and an evidence record. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Incident Response - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "security-09-chapter-model",
+          "title": "Model and scope",
+          "summary": "Response needs roles, severity, containment, communication, and an evidence record. This chapter fixes the vocabulary and boundary needed to reason about incident response.",
+          "sections": [
+            {
+              "id": "security-09-section-model",
+              "title": "Core model",
+              "summary": "Response needs roles, severity, containment, communication, and an evidence record.",
+              "key_facts": [
+                "security-09-fact-model"
+              ]
+            },
+            {
+              "id": "security-09-section-check",
+              "title": "Practical check",
+              "summary": "Prefer reversible containment that limits blast radius while preserving evidence. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "security-09-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "security-09-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "security-09-section-failure",
+              "title": "Common failure",
+              "summary": "Improvising authority and evidence handling during an incident slows recovery. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "security-09-fact-caution"
+              ]
+            },
+            {
+              "id": "security-09-section-pattern",
+              "title": "Working pattern",
+              "summary": "Prefer reversible containment that limits blast radius while preserving evidence. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "security-09-fact-model",
+                "security-09-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "security-09-fact-model",
+          "statement": "Response needs roles, severity, containment, communication, and an evidence record.",
+          "tags": [
+            "incident-response",
+            "security"
+          ],
+          "citation_ids": [
+            "security-09-cite-editorial",
+            "security-09-cite-reference"
+          ]
+        },
+        {
+          "id": "security-09-fact-practice",
+          "statement": "Prefer reversible containment that limits blast radius while preserving evidence.",
+          "tags": [
+            "practice",
+            "security"
+          ],
+          "citation_ids": [
+            "security-09-cite-editorial"
+          ]
+        },
+        {
+          "id": "security-09-fact-caution",
+          "statement": "Improvising authority and evidence handling during an incident slows recovery.",
+          "tags": [
+            "failure-mode",
+            "security"
+          ],
+          "citation_ids": [
+            "security-09-cite-editorial",
+            "security-09-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "security-09-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Incident Response - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-09-cite-reference",
+          "locator": "reference landing page",
+          "source": "Cybersecurity Framework",
+          "note": "Starting point for incident response; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nist.gov/cyberframework",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-09-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "security-10",
+        "version": "1.0.0",
+        "title": "Data Protection: Security Engineering",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "security"
+        ],
+        "tags": [
+          "data-protection",
+          "security",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/security.json",
+        "abstract_text": "Data Protection in Security Engineering: Protection controls should match sensitivity, exposure, use, and retention. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Data Protection - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "security-10-chapter-model",
+          "title": "Model and scope",
+          "summary": "Protection controls should match sensitivity, exposure, use, and retention. This chapter fixes the vocabulary and boundary needed to reason about data protection.",
+          "sections": [
+            {
+              "id": "security-10-section-model",
+              "title": "Core model",
+              "summary": "Protection controls should match sensitivity, exposure, use, and retention.",
+              "key_facts": [
+                "security-10-fact-model"
+              ]
+            },
+            {
+              "id": "security-10-section-check",
+              "title": "Practical check",
+              "summary": "Inventory copies in exports, caches, support tools, and analytics as well as primary storage. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "security-10-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "security-10-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "security-10-section-failure",
+              "title": "Common failure",
+              "summary": "A protected database does not protect ungoverned replicas and downloads. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "security-10-fact-caution"
+              ]
+            },
+            {
+              "id": "security-10-section-pattern",
+              "title": "Working pattern",
+              "summary": "Inventory copies in exports, caches, support tools, and analytics as well as primary storage. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "security-10-fact-model",
+                "security-10-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "security-10-fact-model",
+          "statement": "Protection controls should match sensitivity, exposure, use, and retention.",
+          "tags": [
+            "data-protection",
+            "security"
+          ],
+          "citation_ids": [
+            "security-10-cite-editorial",
+            "security-10-cite-reference"
+          ]
+        },
+        {
+          "id": "security-10-fact-practice",
+          "statement": "Inventory copies in exports, caches, support tools, and analytics as well as primary storage.",
+          "tags": [
+            "practice",
+            "security"
+          ],
+          "citation_ids": [
+            "security-10-cite-editorial"
+          ]
+        },
+        {
+          "id": "security-10-fact-caution",
+          "statement": "A protected database does not protect ungoverned replicas and downloads.",
+          "tags": [
+            "failure-mode",
+            "security"
+          ],
+          "citation_ids": [
+            "security-10-cite-editorial",
+            "security-10-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "security-10-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Data Protection - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-10-cite-reference",
+          "locator": "reference landing page",
+          "source": "Cybersecurity Framework",
+          "note": "Starting point for data protection; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nist.gov/cyberframework",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "security-10-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    }
+  ]
+}

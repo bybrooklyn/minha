@@ -1,0 +1,3069 @@
+{
+  "schema_version": 2,
+  "registry_id": "minha.first-party.books",
+  "key_id": "builtin:minha-books-v2",
+  "content_digest": "sha256:6fd1e5bacff28226022e8bee9bd7f6b19c9d0a2cd4f84ab5bccd97df407ea6e0",
+  "signature": "builtin:sha256-content-digest-v2",
+  "packs": [
+    {
+      "id": "foundations",
+      "title": "Software Foundations",
+      "entries": [
+        {
+          "id": "foundations-01",
+          "title": "Boundary Design: Software Foundations",
+          "pack_id": "foundations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "programming"
+          ],
+          "tags": [
+            "boundary-design",
+            "programming",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/foundations.json",
+          "abstract_text": "Boundary Design in Software Foundations: Contracts should expose behavior, ownership, and failure without exposing representation. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "foundations-02",
+          "title": "Feedback Loops: Software Foundations",
+          "pack_id": "foundations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "programming"
+          ],
+          "tags": [
+            "feedback-loops",
+            "programming",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/foundations.json",
+          "abstract_text": "Feedback Loops in Software Foundations: A useful loop has an action, observable result, and decision rule. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "foundations-03",
+          "title": "Error Modeling: Software Foundations",
+          "pack_id": "foundations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "programming"
+          ],
+          "tags": [
+            "error-modeling",
+            "programming",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/foundations.json",
+          "abstract_text": "Error Modeling in Software Foundations: Expected failures are part of an API and should preserve recovery-relevant distinctions. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "foundations-04",
+          "title": "Data Ownership: Software Foundations",
+          "pack_id": "foundations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "programming"
+          ],
+          "tags": [
+            "data-ownership",
+            "programming",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/foundations.json",
+          "abstract_text": "Data Ownership in Software Foundations: Ownership decisions explain who may mutate a value, how long it lives, and what synchronization is needed. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "foundations-05",
+          "title": "Reviewable Change: Software Foundations",
+          "pack_id": "foundations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "programming"
+          ],
+          "tags": [
+            "reviewable-change",
+            "programming",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/foundations.json",
+          "abstract_text": "Reviewable Change in Software Foundations: A reviewable diff makes its purpose, invariant, and evidence visible. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "foundations-06",
+          "title": "Refactoring Safely: Software Foundations",
+          "pack_id": "foundations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "programming"
+          ],
+          "tags": [
+            "refactoring-safely",
+            "programming",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/foundations.json",
+          "abstract_text": "Refactoring Safely in Software Foundations: Refactoring changes structure while preserving an explicit set of observable behaviors. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "foundations-07",
+          "title": "Dependency Seams: Software Foundations",
+          "pack_id": "foundations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "programming"
+          ],
+          "tags": [
+            "dependency-seams",
+            "programming",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/foundations.json",
+          "abstract_text": "Dependency Seams in Software Foundations: External services belong behind seams that make policy and failure testable. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "foundations-08",
+          "title": "Observable State: Software Foundations",
+          "pack_id": "foundations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "programming"
+          ],
+          "tags": [
+            "observable-state",
+            "programming",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/foundations.json",
+          "abstract_text": "Observable State in Software Foundations: Useful observability starts with meaningful state transitions and bounded evidence. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "foundations-09",
+          "title": "Documentation as Contract: Software Foundations",
+          "pack_id": "foundations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "programming"
+          ],
+          "tags": [
+            "documentation-as-contract",
+            "programming",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/foundations.json",
+          "abstract_text": "Documentation as Contract in Software Foundations: Documentation prevents misuse when it states scope, assumptions, examples, and failure modes. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "foundations-10",
+          "title": "Maintenance Shape: Software Foundations",
+          "pack_id": "foundations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "programming"
+          ],
+          "tags": [
+            "maintenance-shape",
+            "programming",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/foundations.json",
+          "abstract_text": "Maintenance Shape in Software Foundations: Maintainability is the cost of locating an invariant, changing it, and proving dependent behavior. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        }
+      ]
+    },
+    {
+      "id": "systems",
+      "title": "Systems Craft",
+      "entries": [
+        {
+          "id": "systems-01",
+          "title": "Process Isolation: Systems Craft",
+          "pack_id": "systems",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "systems"
+          ],
+          "tags": [
+            "process-isolation",
+            "systems",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/systems.json",
+          "abstract_text": "Process Isolation in Systems Craft: A process boundary is also a resource, failure, and ownership boundary. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "systems-02",
+          "title": "Concurrency Control: Systems Craft",
+          "pack_id": "systems",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "systems"
+          ],
+          "tags": [
+            "concurrency-control",
+            "systems",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/systems.json",
+          "abstract_text": "Concurrency Control in Systems Craft: Concurrency correctness depends on ownership, ordering, cancellation, and shared-state scope. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "systems-03",
+          "title": "Memory Pressure: Systems Craft",
+          "pack_id": "systems",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "systems"
+          ],
+          "tags": [
+            "memory-pressure",
+            "systems",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/systems.json",
+          "abstract_text": "Memory Pressure in Systems Craft: Memory is a workload budget shaped by allocation, retention, representation, and concurrency. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "systems-04",
+          "title": "Filesystem Semantics: Systems Craft",
+          "pack_id": "systems",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "systems"
+          ],
+          "tags": [
+            "filesystem-semantics",
+            "systems",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/systems.json",
+          "abstract_text": "Filesystem Semantics in Systems Craft: File safety involves names, bytes, permissions, atomicity, and persistence. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "systems-05",
+          "title": "Network Boundaries: Systems Craft",
+          "pack_id": "systems",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "systems"
+          ],
+          "tags": [
+            "network-boundaries",
+            "systems",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/systems.json",
+          "abstract_text": "Network Boundaries in Systems Craft: Remote calls need deadlines, response contracts, idempotency, and retry policy. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "systems-06",
+          "title": "Queue Discipline: Systems Craft",
+          "pack_id": "systems",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "systems"
+          ],
+          "tags": [
+            "queue-discipline",
+            "systems",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/systems.json",
+          "abstract_text": "Queue Discipline in Systems Craft: Queues absorb bounded variation; they do not remove capacity limits. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "systems-07",
+          "title": "Time and Clocks: Systems Craft",
+          "pack_id": "systems",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "systems"
+          ],
+          "tags": [
+            "time-and-clocks",
+            "systems",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/systems.json",
+          "abstract_text": "Time and Clocks in Systems Craft: Elapsed time and human calendar time answer different questions. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "systems-08",
+          "title": "Resilience Budget: Systems Craft",
+          "pack_id": "systems",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "systems"
+          ],
+          "tags": [
+            "resilience-budget",
+            "systems",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/systems.json",
+          "abstract_text": "Resilience Budget in Systems Craft: Retries, fallbacks, and degraded modes spend an explicit correctness and freshness budget. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "systems-09",
+          "title": "Performance Evidence: Systems Craft",
+          "pack_id": "systems",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "systems"
+          ],
+          "tags": [
+            "performance-evidence",
+            "systems",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/systems.json",
+          "abstract_text": "Performance Evidence in Systems Craft: Optimize the bottleneck demonstrated under a representative workload. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "systems-10",
+          "title": "Consistency Choices: Systems Craft",
+          "pack_id": "systems",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "systems"
+          ],
+          "tags": [
+            "consistency-choices",
+            "systems",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/systems.json",
+          "abstract_text": "Consistency Choices in Systems Craft: Consistency is a user-visible tradeoff in latency, coordination, and recovery. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        }
+      ]
+    },
+    {
+      "id": "data",
+      "title": "Data Practice",
+      "entries": [
+        {
+          "id": "data-01",
+          "title": "Data Modeling: Data Practice",
+          "pack_id": "data",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "data"
+          ],
+          "tags": [
+            "data-modeling",
+            "data",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/data.json",
+          "abstract_text": "Data Modeling in Data Practice: A durable model separates identity, state, relationships, and history. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "data-02",
+          "title": "Query Shape: Data Practice",
+          "pack_id": "data",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "data"
+          ],
+          "tags": [
+            "query-shape",
+            "data",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/data.json",
+          "abstract_text": "Query Shape in Data Practice: A query is both a transformation and a bounded resource request. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "data-03",
+          "title": "Migrations: Data Practice",
+          "pack_id": "data",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "data"
+          ],
+          "tags": [
+            "migrations",
+            "data",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/data.json",
+          "abstract_text": "Migrations in Data Practice: Schema change is a staged process across old readers, new writers, and data repair. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "data-04",
+          "title": "Validation: Data Practice",
+          "pack_id": "data",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "data"
+          ],
+          "tags": [
+            "validation",
+            "data",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/data.json",
+          "abstract_text": "Validation in Data Practice: Boundary validation should preserve enough context to correct bad data. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "data-05",
+          "title": "Stream Processing: Data Practice",
+          "pack_id": "data",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "data"
+          ],
+          "tags": [
+            "stream-processing",
+            "data",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/data.json",
+          "abstract_text": "Stream Processing in Data Practice: Incremental processing makes volume, latency, and restart semantics explicit. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "data-06",
+          "title": "Metrics Semantics: Data Practice",
+          "pack_id": "data",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "data"
+          ],
+          "tags": [
+            "metrics-semantics",
+            "data",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/data.json",
+          "abstract_text": "Metrics Semantics in Data Practice: A metric needs a definition, unit, population, denominator, and aggregation rule. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "data-07",
+          "title": "Privacy by Design: Data Practice",
+          "pack_id": "data",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "data"
+          ],
+          "tags": [
+            "privacy-by-design",
+            "data",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/data.json",
+          "abstract_text": "Privacy by Design in Data Practice: Collect less, retain it less, and limit who can join it to identity. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "data-08",
+          "title": "Serialization Contracts: Data Practice",
+          "pack_id": "data",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "data"
+          ],
+          "tags": [
+            "serialization-contracts",
+            "data",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/data.json",
+          "abstract_text": "Serialization Contracts in Data Practice: Encodings are interfaces with versions, defaults, size limits, and unknown-field behavior. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "data-09",
+          "title": "Lineage: Data Practice",
+          "pack_id": "data",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "data"
+          ],
+          "tags": [
+            "lineage",
+            "data",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/data.json",
+          "abstract_text": "Lineage in Data Practice: A result is more trustworthy when its source, transformation, version, and time remain inspectable. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "data-10",
+          "title": "Reproducible Analysis: Data Practice",
+          "pack_id": "data",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "data"
+          ],
+          "tags": [
+            "reproducible-analysis",
+            "data",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/data.json",
+          "abstract_text": "Reproducible Analysis in Data Practice: Rerunnable analysis declares inputs, code, assumptions, dependencies, and randomness. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Security Engineering",
+      "entries": [
+        {
+          "id": "security-01",
+          "title": "Threat Modeling: Security Engineering",
+          "pack_id": "security",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "security"
+          ],
+          "tags": [
+            "threat-modeling",
+            "security",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/security.json",
+          "abstract_text": "Threat Modeling in Security Engineering: A threat model connects assets, boundaries, attacker capabilities, and abuse paths. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "security-02",
+          "title": "Authentication: Security Engineering",
+          "pack_id": "security",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "security"
+          ],
+          "tags": [
+            "authentication",
+            "security",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/security.json",
+          "abstract_text": "Authentication in Security Engineering: Authentication includes enrollment, verification, recovery, rotation, and invalidation. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "security-03",
+          "title": "Authorization: Security Engineering",
+          "pack_id": "security",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "security"
+          ],
+          "tags": [
+            "authorization",
+            "security",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/security.json",
+          "abstract_text": "Authorization in Security Engineering: Access decisions need an explicit action, resource, actor, and trusted context. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "security-04",
+          "title": "Secret Handling: Security Engineering",
+          "pack_id": "security",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "security"
+          ],
+          "tags": [
+            "secret-handling",
+            "security",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/security.json",
+          "abstract_text": "Secret Handling in Security Engineering: A secret has a source, scope, exposure surface, rotation path, and revocation story. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "security-05",
+          "title": "Cryptography Use: Security Engineering",
+          "pack_id": "security",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "security"
+          ],
+          "tags": [
+            "cryptography-use",
+            "security",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/security.json",
+          "abstract_text": "Cryptography Use in Security Engineering: Cryptographic safety depends on construction, nonce, key lifecycle, and verification context. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "security-06",
+          "title": "Input Boundaries: Security Engineering",
+          "pack_id": "security",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "security"
+          ],
+          "tags": [
+            "input-boundaries",
+            "security",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/security.json",
+          "abstract_text": "Input Boundaries in Security Engineering: External input needs a grammar, size bound, canonical form, and failure behavior. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "security-07",
+          "title": "Supply Chain: Security Engineering",
+          "pack_id": "security",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "security"
+          ],
+          "tags": [
+            "supply-chain",
+            "security",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/security.json",
+          "abstract_text": "Supply Chain in Security Engineering: Dependencies, build tools, source provenance, and artifacts all belong in the trust model. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "security-08",
+          "title": "Security Telemetry: Security Engineering",
+          "pack_id": "security",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "security"
+          ],
+          "tags": [
+            "security-telemetry",
+            "security",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/security.json",
+          "abstract_text": "Security Telemetry in Security Engineering: Security events need actor, resource, decision, time, and correlation without raw secrets. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "security-09",
+          "title": "Incident Response: Security Engineering",
+          "pack_id": "security",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "security"
+          ],
+          "tags": [
+            "incident-response",
+            "security",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/security.json",
+          "abstract_text": "Incident Response in Security Engineering: Response needs roles, severity, containment, communication, and an evidence record. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "security-10",
+          "title": "Data Protection: Security Engineering",
+          "pack_id": "security",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "security"
+          ],
+          "tags": [
+            "data-protection",
+            "security",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/security.json",
+          "abstract_text": "Data Protection in Security Engineering: Protection controls should match sensitivity, exposure, use, and retention. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        }
+      ]
+    },
+    {
+      "id": "product",
+      "title": "Product Practice",
+      "entries": [
+        {
+          "id": "product-01",
+          "title": "Problem Framing: Product Practice",
+          "pack_id": "product",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "product"
+          ],
+          "tags": [
+            "problem-framing",
+            "product",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/product.json",
+          "abstract_text": "Problem Framing in Product Practice: A problem statement names the person, context, obstacle, and consequence without prescribing a feature. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "product-02",
+          "title": "User Discovery: Product Practice",
+          "pack_id": "product",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "product"
+          ],
+          "tags": [
+            "user-discovery",
+            "product",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/product.json",
+          "abstract_text": "User Discovery in Product Practice: Discovery reduces uncertainty through recent behavior, context, and competing explanations. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "product-03",
+          "title": "Requirements: Product Practice",
+          "pack_id": "product",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "product"
+          ],
+          "tags": [
+            "requirements",
+            "product",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/product.json",
+          "abstract_text": "Requirements in Product Practice: A requirement exposes actor, trigger, observable result, and important constraints. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "product-04",
+          "title": "Prioritization: Product Practice",
+          "pack_id": "product",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "product"
+          ],
+          "tags": [
+            "prioritization",
+            "product",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/product.json",
+          "abstract_text": "Prioritization in Product Practice: Priority is a tradeoff among value, evidence, cost, risk, and reversibility. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "product-05",
+          "title": "Experiments: Product Practice",
+          "pack_id": "product",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "product"
+          ],
+          "tags": [
+            "experiments",
+            "product",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/product.json",
+          "abstract_text": "Experiments in Product Practice: The smallest useful experiment distinguishes competing explanations. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "product-06",
+          "title": "Product Metrics: Product Practice",
+          "pack_id": "product",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "product"
+          ],
+          "tags": [
+            "product-metrics",
+            "product",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/product.json",
+          "abstract_text": "Product Metrics in Product Practice: Outcome metrics show user value; guardrails show what changed elsewhere. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "product-07",
+          "title": "Inclusive Product: Product Practice",
+          "pack_id": "product",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "product"
+          ],
+          "tags": [
+            "inclusive-product",
+            "product",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/product.json",
+          "abstract_text": "Inclusive Product in Product Practice: Accessibility and varied contexts are product requirements, not a final inspection. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "product-08",
+          "title": "Release Readiness: Product Practice",
+          "pack_id": "product",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "product"
+          ],
+          "tags": [
+            "release-readiness",
+            "product",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/product.json",
+          "abstract_text": "Release Readiness in Product Practice: Release readiness covers behavior, migration, operations, support, communication, and rollback. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "product-09",
+          "title": "Feedback Systems: Product Practice",
+          "pack_id": "product",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "product"
+          ],
+          "tags": [
+            "feedback-systems",
+            "product",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/product.json",
+          "abstract_text": "Feedback Systems in Product Practice: Feedback is useful when its source, urgency, scope, and response owner are clear. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "product-10",
+          "title": "Deprecation: Product Practice",
+          "pack_id": "product",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "product"
+          ],
+          "tags": [
+            "deprecation",
+            "product",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/product.json",
+          "abstract_text": "Deprecation in Product Practice: Removal needs a reason, affected population, replacement, timeline, telemetry, and final condition. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        }
+      ]
+    },
+    {
+      "id": "design",
+      "title": "Interaction Design",
+      "entries": [
+        {
+          "id": "design-01",
+          "title": "Design Principles: Interaction Design",
+          "pack_id": "design",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "design"
+          ],
+          "tags": [
+            "design-principles",
+            "design",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/design.json",
+          "abstract_text": "Design Principles in Interaction Design: A principle is useful when it predicts a concrete choice and can be challenged by evidence. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "design-02",
+          "title": "Information Architecture: Interaction Design",
+          "pack_id": "design",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "design"
+          ],
+          "tags": [
+            "information-architecture",
+            "design",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/design.json",
+          "abstract_text": "Information Architecture in Interaction Design: Good structure follows user tasks, labels, hierarchy, and retrieval paths. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "design-03",
+          "title": "Interaction States: Interaction Design",
+          "pack_id": "design",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "design"
+          ],
+          "tags": [
+            "interaction-states",
+            "design",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/design.json",
+          "abstract_text": "Interaction States in Interaction Design: A complete interaction includes waiting, empty, error, success, and recovery states. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "design-04",
+          "title": "Visual Hierarchy: Interaction Design",
+          "pack_id": "design",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "design"
+          ],
+          "tags": [
+            "visual-hierarchy",
+            "design",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/design.json",
+          "abstract_text": "Visual Hierarchy in Interaction Design: Contrast, grouping, spacing, and order should show what matters first. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "design-05",
+          "title": "Forms: Interaction Design",
+          "pack_id": "design",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "design"
+          ],
+          "tags": [
+            "forms",
+            "design",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/design.json",
+          "abstract_text": "Forms in Interaction Design: Forms should be predictable, forgiving, and explicit about purpose and requiredness. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "design-06",
+          "title": "Error Experience: Interaction Design",
+          "pack_id": "design",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "design"
+          ],
+          "tags": [
+            "error-experience",
+            "design",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/design.json",
+          "abstract_text": "Error Experience in Interaction Design: An error should explain what failed and offer a safe next step without blame. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "design-07",
+          "title": "Accessible Interaction: Interaction Design",
+          "pack_id": "design",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "design"
+          ],
+          "tags": [
+            "accessible-interaction",
+            "design",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/design.json",
+          "abstract_text": "Accessible Interaction in Interaction Design: Semantics, focus, input methods, and feedback must work beyond a pointing device. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "design-08",
+          "title": "Design Systems: Interaction Design",
+          "pack_id": "design",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "design"
+          ],
+          "tags": [
+            "design-systems",
+            "design",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/design.json",
+          "abstract_text": "Design Systems in Interaction Design: A design system shares components, tokens, states, and usage guidance. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "design-09",
+          "title": "Content Design: Interaction Design",
+          "pack_id": "design",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "design"
+          ],
+          "tags": [
+            "content-design",
+            "design",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/design.json",
+          "abstract_text": "Content Design in Interaction Design: Language reduces uncertainty when it uses concrete verbs and honest limits. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "design-10",
+          "title": "Evaluation: Interaction Design",
+          "pack_id": "design",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "design"
+          ],
+          "tags": [
+            "evaluation",
+            "design",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/design.json",
+          "abstract_text": "Evaluation in Interaction Design: Evaluate task completion and consequences, not only visual appeal. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        }
+      ]
+    },
+    {
+      "id": "management",
+      "title": "Engineering Management",
+      "entries": [
+        {
+          "id": "management-01",
+          "title": "Planning: Engineering Management",
+          "pack_id": "management",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "management"
+          ],
+          "tags": [
+            "planning",
+            "management",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/management.json",
+          "abstract_text": "Planning in Engineering Management: A plan is a current model of goals, decisions, dependencies, and evidence. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "management-02",
+          "title": "Delegation: Engineering Management",
+          "pack_id": "management",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "management"
+          ],
+          "tags": [
+            "delegation",
+            "management",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/management.json",
+          "abstract_text": "Delegation in Engineering Management: Delegation transfers an outcome with context, authority, and an escalation boundary. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "management-03",
+          "title": "Decision Records: Engineering Management",
+          "pack_id": "management",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "management"
+          ],
+          "tags": [
+            "decision-records",
+            "management",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/management.json",
+          "abstract_text": "Decision Records in Engineering Management: Important choices need options, criteria, consequences, and review triggers. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "management-04",
+          "title": "Risk Management: Engineering Management",
+          "pack_id": "management",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "management"
+          ],
+          "tags": [
+            "risk-management",
+            "management",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/management.json",
+          "abstract_text": "Risk Management in Engineering Management: A risk becomes actionable when likelihood, impact, trigger, owner, and response are named. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "management-05",
+          "title": "Meetings: Engineering Management",
+          "pack_id": "management",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "management"
+          ],
+          "tags": [
+            "meetings",
+            "management",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/management.json",
+          "abstract_text": "Meetings in Engineering Management: Synchronous time is best for decisions, conflict, and context documents cannot carry. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "management-06",
+          "title": "Async Collaboration: Engineering Management",
+          "pack_id": "management",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "management"
+          ],
+          "tags": [
+            "async-collaboration",
+            "management",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/management.json",
+          "abstract_text": "Async Collaboration in Engineering Management: Async work needs enough context for a reader to act without private oral history. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "management-07",
+          "title": "Feedback: Engineering Management",
+          "pack_id": "management",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "management"
+          ],
+          "tags": [
+            "feedback",
+            "management",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/management.json",
+          "abstract_text": "Feedback in Engineering Management: Useful feedback is timely, behavior-specific, grounded in effect, and open to context. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "management-08",
+          "title": "Team Health: Engineering Management",
+          "pack_id": "management",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "management"
+          ],
+          "tags": [
+            "team-health",
+            "management",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/management.json",
+          "abstract_text": "Team Health in Engineering Management: Trust, clarity, workload, inclusion, and interruption patterns are operational signals. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "management-09",
+          "title": "Retrospectives: Engineering Management",
+          "pack_id": "management",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "management"
+          ],
+          "tags": [
+            "retrospectives",
+            "management",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/management.json",
+          "abstract_text": "Retrospectives in Engineering Management: A retrospective improves the system of work rather than assigning blame. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "management-10",
+          "title": "Change Leadership: Engineering Management",
+          "pack_id": "management",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "management"
+          ],
+          "tags": [
+            "change-leadership",
+            "management",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/management.json",
+          "abstract_text": "Change Leadership in Engineering Management: Change needs clear reasons, acknowledged uncertainty, participation, and visible adaptation. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        }
+      ]
+    },
+    {
+      "id": "research",
+      "title": "Research Methods",
+      "entries": [
+        {
+          "id": "research-01",
+          "title": "Research Questions: Research Methods",
+          "pack_id": "research",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "research"
+          ],
+          "tags": [
+            "research-questions",
+            "research",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/research.json",
+          "abstract_text": "Research Questions in Research Methods: A good question states what evidence would count as an answer. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "research-02",
+          "title": "Literature Review: Research Methods",
+          "pack_id": "research",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "research"
+          ],
+          "tags": [
+            "literature-review",
+            "research",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/research.json",
+          "abstract_text": "Literature Review in Research Methods: A review maps claims, methods, disagreement, and limits before adding another result. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "research-03",
+          "title": "Qualitative Inquiry: Research Methods",
+          "pack_id": "research",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "research"
+          ],
+          "tags": [
+            "qualitative-inquiry",
+            "research",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/research.json",
+          "abstract_text": "Qualitative Inquiry in Research Methods: Qualitative rigor comes from context, sampling rationale, reflexivity, and traceable coding. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "research-04",
+          "title": "Quantitative Measurement: Research Methods",
+          "pack_id": "research",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "research"
+          ],
+          "tags": [
+            "quantitative-measurement",
+            "research",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/research.json",
+          "abstract_text": "Quantitative Measurement in Research Methods: A number is meaningful only when its variable, population, unit, and error are defined. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "research-05",
+          "title": "Sampling: Research Methods",
+          "pack_id": "research",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "research"
+          ],
+          "tags": [
+            "sampling",
+            "research",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/research.json",
+          "abstract_text": "Sampling in Research Methods: Sampling determines which uncertainty is represented and which remains invisible. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "research-06",
+          "title": "Experiments: Research Methods",
+          "pack_id": "research",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "research"
+          ],
+          "tags": [
+            "experiments",
+            "research",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/research.json",
+          "abstract_text": "Experiments in Research Methods: Controlled variation helps distinguish treatment effects from background change. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "research-07",
+          "title": "Causal Reasoning: Research Methods",
+          "pack_id": "research",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "research"
+          ],
+          "tags": [
+            "causal-reasoning",
+            "research",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/research.json",
+          "abstract_text": "Causal Reasoning in Research Methods: Causal claims require an intervention question and an identification argument. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "research-08",
+          "title": "Uncertainty: Research Methods",
+          "pack_id": "research",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "research"
+          ],
+          "tags": [
+            "uncertainty",
+            "research",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/research.json",
+          "abstract_text": "Uncertainty in Research Methods: Uncertainty includes sampling, measurement, model assumptions, and missing alternatives. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "research-09",
+          "title": "Synthesis: Research Methods",
+          "pack_id": "research",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "research"
+          ],
+          "tags": [
+            "synthesis",
+            "research",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/research.json",
+          "abstract_text": "Synthesis in Research Methods: Synthesis compares methods, contexts, convergence, disagreement, and transfer limits. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "research-10",
+          "title": "Reproducibility: Research Methods",
+          "pack_id": "research",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "research"
+          ],
+          "tags": [
+            "reproducibility",
+            "research",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/research.json",
+          "abstract_text": "Reproducibility in Research Methods: Rerunning analysis requires provenance, code, environment, transformations, and decisions. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        }
+      ]
+    },
+    {
+      "id": "writing",
+      "title": "Technical Writing",
+      "entries": [
+        {
+          "id": "writing-01",
+          "title": "Audience: Technical Writing",
+          "pack_id": "writing",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "writing"
+          ],
+          "tags": [
+            "audience",
+            "writing",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/writing.json",
+          "abstract_text": "Audience in Technical Writing: Audience is the task, context, vocabulary, and risk a reader brings. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "writing-02",
+          "title": "Structure: Technical Writing",
+          "pack_id": "writing",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "writing"
+          ],
+          "tags": [
+            "structure",
+            "writing",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/writing.json",
+          "abstract_text": "Structure in Technical Writing: Information order should match how a reader will use it. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "writing-03",
+          "title": "Clarity: Technical Writing",
+          "pack_id": "writing",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "writing"
+          ],
+          "tags": [
+            "clarity",
+            "writing",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/writing.json",
+          "abstract_text": "Clarity in Technical Writing: Concrete subjects, verbs, and bounded claims reduce interpretation work. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "writing-04",
+          "title": "Technical Procedures: Technical Writing",
+          "pack_id": "writing",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "writing"
+          ],
+          "tags": [
+            "technical-procedures",
+            "writing",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/writing.json",
+          "abstract_text": "Technical Procedures in Technical Writing: Executable documentation states preconditions, actions, expected output, and recovery. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "writing-05",
+          "title": "Examples: Technical Writing",
+          "pack_id": "writing",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "writing"
+          ],
+          "tags": [
+            "examples",
+            "writing",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/writing.json",
+          "abstract_text": "Examples in Technical Writing: Examples expose solution shape and limits when complete enough to run. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "writing-06",
+          "title": "Editing: Technical Writing",
+          "pack_id": "writing",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "writing"
+          ],
+          "tags": [
+            "editing",
+            "writing",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/writing.json",
+          "abstract_text": "Editing in Technical Writing: Separate correctness, structure, clarity, and economy into deliberate passes. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "writing-07",
+          "title": "Terminology: Technical Writing",
+          "pack_id": "writing",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "writing"
+          ],
+          "tags": [
+            "terminology",
+            "writing",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/writing.json",
+          "abstract_text": "Terminology in Technical Writing: A controlled vocabulary makes behavior and search more consistent. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "writing-08",
+          "title": "Citations: Technical Writing",
+          "pack_id": "writing",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "writing"
+          ],
+          "tags": [
+            "citations",
+            "writing",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/writing.json",
+          "abstract_text": "Citations in Technical Writing: Readers should distinguish source claims, editorial synthesis, and current project facts. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "writing-09",
+          "title": "Change Notes: Technical Writing",
+          "pack_id": "writing",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "writing"
+          ],
+          "tags": [
+            "change-notes",
+            "writing",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/writing.json",
+          "abstract_text": "Change Notes in Technical Writing: Release notes help users decide whether to act by stating impact and migration. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "writing-10",
+          "title": "Documentation Maintenance: Technical Writing",
+          "pack_id": "writing",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "writing"
+          ],
+          "tags": [
+            "documentation-maintenance",
+            "writing",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/writing.json",
+          "abstract_text": "Documentation Maintenance in Technical Writing: Docs need owners, freshness expectations, checks, and an archive policy. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        }
+      ]
+    },
+    {
+      "id": "operations",
+      "title": "Operations Practice",
+      "entries": [
+        {
+          "id": "operations-01",
+          "title": "Deployment: Operations Practice",
+          "pack_id": "operations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "operations"
+          ],
+          "tags": [
+            "deployment",
+            "operations",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/operations.json",
+          "abstract_text": "Deployment in Operations Practice: Deployment is a repeatable transition with observable preconditions and outcomes. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "operations-02",
+          "title": "Configuration: Operations Practice",
+          "pack_id": "operations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "operations"
+          ],
+          "tags": [
+            "configuration",
+            "operations",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/operations.json",
+          "abstract_text": "Configuration in Operations Practice: Configuration is typed behavior with defaults, precedence, scope, and ownership. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "operations-03",
+          "title": "Observability: Operations Practice",
+          "pack_id": "operations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "operations"
+          ],
+          "tags": [
+            "observability",
+            "operations",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/operations.json",
+          "abstract_text": "Observability in Operations Practice: Operational signals should describe user-visible health and resource saturation together. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "operations-04",
+          "title": "Incident Command: Operations Practice",
+          "pack_id": "operations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "operations"
+          ],
+          "tags": [
+            "incident-command",
+            "operations",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/operations.json",
+          "abstract_text": "Incident Command in Operations Practice: Temporary roles and a shared state reduce confusion during an active failure. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "operations-05",
+          "title": "Backups: Operations Practice",
+          "pack_id": "operations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "operations"
+          ],
+          "tags": [
+            "backups",
+            "operations",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/operations.json",
+          "abstract_text": "Backups in Operations Practice: A backup is useful only when restoration is timely, consistent, and understood. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "operations-06",
+          "title": "Capacity: Operations Practice",
+          "pack_id": "operations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "operations"
+          ],
+          "tags": [
+            "capacity",
+            "operations",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/operations.json",
+          "abstract_text": "Capacity in Operations Practice: Capacity connects demand shape to limits, headroom, and safe degraded behavior. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "operations-07",
+          "title": "Reliability: Operations Practice",
+          "pack_id": "operations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "operations"
+          ],
+          "tags": [
+            "reliability",
+            "operations",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/operations.json",
+          "abstract_text": "Reliability in Operations Practice: Reliability is a user-visible promise with an error budget and consequence. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "operations-08",
+          "title": "Runbooks: Operations Practice",
+          "pack_id": "operations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "operations"
+          ],
+          "tags": [
+            "runbooks",
+            "operations",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/operations.json",
+          "abstract_text": "Runbooks in Operations Practice: Runbooks document safe decisions and recovery actions that are hard to improvise. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "operations-09",
+          "title": "Change Management: Operations Practice",
+          "pack_id": "operations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "operations"
+          ],
+          "tags": [
+            "change-management",
+            "operations",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/operations.json",
+          "abstract_text": "Change Management in Operations Practice: Risk is lower when changes are visible, reversible, and proportionate to impact. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        },
+        {
+          "id": "operations-10",
+          "title": "Decommissioning: Operations Practice",
+          "pack_id": "operations",
+          "version": "1.0.0",
+          "language": "english",
+          "taxonomy": [
+            "operations"
+          ],
+          "tags": [
+            "decommissioning",
+            "operations",
+            "curated",
+            "technical-reference"
+          ],
+          "path": "bundled/books/operations.json",
+          "abstract_text": "Decommissioning in Operations Practice: Removal requires evidence of dependency absence, migration, retention, and access closure. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+          "trust": "promoted",
+          "staleness": {
+            "status": "current",
+            "checked_at": "2026-07-29",
+            "review_after": "2027-01-29",
+            "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+          },
+          "token_budget": {
+            "index_tokens": 180,
+            "compact_tokens": 720,
+            "detailed_tokens": 1900
+          }
+        }
+      ]
+    }
+  ]
+}

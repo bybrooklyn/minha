@@ -1,0 +1,1597 @@
+{
+  "schema_version": 2,
+  "pack_id": "research",
+  "title": "Research Methods",
+  "books": [
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "research-01",
+        "version": "1.0.0",
+        "title": "Research Questions: Research Methods",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "research"
+        ],
+        "tags": [
+          "research-questions",
+          "research",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/research.json",
+        "abstract_text": "Research Questions in Research Methods: A good question states what evidence would count as an answer. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Research Questions - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "research-01-chapter-model",
+          "title": "Model and scope",
+          "summary": "A good question states what evidence would count as an answer. This chapter fixes the vocabulary and boundary needed to reason about research questions.",
+          "sections": [
+            {
+              "id": "research-01-section-model",
+              "title": "Core model",
+              "summary": "A good question states what evidence would count as an answer.",
+              "key_facts": [
+                "research-01-fact-model"
+              ]
+            },
+            {
+              "id": "research-01-section-check",
+              "title": "Practical check",
+              "summary": "Scope population, context, variable, comparison, time, and the decision informed. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "research-01-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "research-01-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "research-01-section-failure",
+              "title": "Common failure",
+              "summary": "Interesting observations without an organizing question are hard to interpret. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "research-01-fact-caution"
+              ]
+            },
+            {
+              "id": "research-01-section-pattern",
+              "title": "Working pattern",
+              "summary": "Scope population, context, variable, comparison, time, and the decision informed. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "research-01-fact-model",
+                "research-01-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "research-01-fact-model",
+          "statement": "A good question states what evidence would count as an answer.",
+          "tags": [
+            "research-questions",
+            "research"
+          ],
+          "citation_ids": [
+            "research-01-cite-editorial",
+            "research-01-cite-reference"
+          ]
+        },
+        {
+          "id": "research-01-fact-practice",
+          "statement": "Scope population, context, variable, comparison, time, and the decision informed.",
+          "tags": [
+            "practice",
+            "research"
+          ],
+          "citation_ids": [
+            "research-01-cite-editorial"
+          ]
+        },
+        {
+          "id": "research-01-fact-caution",
+          "statement": "Interesting observations without an organizing question are hard to interpret.",
+          "tags": [
+            "failure-mode",
+            "research"
+          ],
+          "citation_ids": [
+            "research-01-cite-editorial",
+            "research-01-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "research-01-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Research Questions - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-01-cite-reference",
+          "locator": "reference landing page",
+          "source": "Reproducibility and Replicability in Science",
+          "note": "Starting point for research questions; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nationalacademies.org/our-work/reproducibility-and-replicability-in-science",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-01-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "research-02",
+        "version": "1.0.0",
+        "title": "Literature Review: Research Methods",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "research"
+        ],
+        "tags": [
+          "literature-review",
+          "research",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/research.json",
+        "abstract_text": "Literature Review in Research Methods: A review maps claims, methods, disagreement, and limits before adding another result. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Literature Review - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "research-02-chapter-model",
+          "title": "Model and scope",
+          "summary": "A review maps claims, methods, disagreement, and limits before adding another result. This chapter fixes the vocabulary and boundary needed to reason about literature review.",
+          "sections": [
+            {
+              "id": "research-02-section-model",
+              "title": "Core model",
+              "summary": "A review maps claims, methods, disagreement, and limits before adding another result.",
+              "key_facts": [
+                "research-02-fact-model"
+              ]
+            },
+            {
+              "id": "research-02-section-check",
+              "title": "Practical check",
+              "summary": "Record inclusion criteria and why each source was retained or excluded. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "research-02-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "research-02-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "research-02-section-failure",
+              "title": "Common failure",
+              "summary": "A convenient summary is not automatically the underlying evidence. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "research-02-fact-caution"
+              ]
+            },
+            {
+              "id": "research-02-section-pattern",
+              "title": "Working pattern",
+              "summary": "Record inclusion criteria and why each source was retained or excluded. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "research-02-fact-model",
+                "research-02-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "research-02-fact-model",
+          "statement": "A review maps claims, methods, disagreement, and limits before adding another result.",
+          "tags": [
+            "literature-review",
+            "research"
+          ],
+          "citation_ids": [
+            "research-02-cite-editorial",
+            "research-02-cite-reference"
+          ]
+        },
+        {
+          "id": "research-02-fact-practice",
+          "statement": "Record inclusion criteria and why each source was retained or excluded.",
+          "tags": [
+            "practice",
+            "research"
+          ],
+          "citation_ids": [
+            "research-02-cite-editorial"
+          ]
+        },
+        {
+          "id": "research-02-fact-caution",
+          "statement": "A convenient summary is not automatically the underlying evidence.",
+          "tags": [
+            "failure-mode",
+            "research"
+          ],
+          "citation_ids": [
+            "research-02-cite-editorial",
+            "research-02-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "research-02-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Literature Review - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-02-cite-reference",
+          "locator": "reference landing page",
+          "source": "Reproducibility and Replicability in Science",
+          "note": "Starting point for literature review; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nationalacademies.org/our-work/reproducibility-and-replicability-in-science",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-02-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "research-03",
+        "version": "1.0.0",
+        "title": "Qualitative Inquiry: Research Methods",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "research"
+        ],
+        "tags": [
+          "qualitative-inquiry",
+          "research",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/research.json",
+        "abstract_text": "Qualitative Inquiry in Research Methods: Qualitative rigor comes from context, sampling rationale, reflexivity, and traceable coding. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Qualitative Inquiry - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "research-03-chapter-model",
+          "title": "Model and scope",
+          "summary": "Qualitative rigor comes from context, sampling rationale, reflexivity, and traceable coding. This chapter fixes the vocabulary and boundary needed to reason about qualitative inquiry.",
+          "sections": [
+            {
+              "id": "research-03-section-model",
+              "title": "Core model",
+              "summary": "Qualitative rigor comes from context, sampling rationale, reflexivity, and traceable coding.",
+              "key_facts": [
+                "research-03-fact-model"
+              ]
+            },
+            {
+              "id": "research-03-section-check",
+              "title": "Practical check",
+              "summary": "Preserve participant context and look for negative or quiet cases. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "research-03-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "research-03-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "research-03-section-failure",
+              "title": "Common failure",
+              "summary": "Selecting memorable quotes while ignoring disconfirming cases distorts the account. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "research-03-fact-caution"
+              ]
+            },
+            {
+              "id": "research-03-section-pattern",
+              "title": "Working pattern",
+              "summary": "Preserve participant context and look for negative or quiet cases. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "research-03-fact-model",
+                "research-03-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "research-03-fact-model",
+          "statement": "Qualitative rigor comes from context, sampling rationale, reflexivity, and traceable coding.",
+          "tags": [
+            "qualitative-inquiry",
+            "research"
+          ],
+          "citation_ids": [
+            "research-03-cite-editorial",
+            "research-03-cite-reference"
+          ]
+        },
+        {
+          "id": "research-03-fact-practice",
+          "statement": "Preserve participant context and look for negative or quiet cases.",
+          "tags": [
+            "practice",
+            "research"
+          ],
+          "citation_ids": [
+            "research-03-cite-editorial"
+          ]
+        },
+        {
+          "id": "research-03-fact-caution",
+          "statement": "Selecting memorable quotes while ignoring disconfirming cases distorts the account.",
+          "tags": [
+            "failure-mode",
+            "research"
+          ],
+          "citation_ids": [
+            "research-03-cite-editorial",
+            "research-03-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "research-03-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Qualitative Inquiry - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-03-cite-reference",
+          "locator": "reference landing page",
+          "source": "Reproducibility and Replicability in Science",
+          "note": "Starting point for qualitative inquiry; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nationalacademies.org/our-work/reproducibility-and-replicability-in-science",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-03-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "research-04",
+        "version": "1.0.0",
+        "title": "Quantitative Measurement: Research Methods",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "research"
+        ],
+        "tags": [
+          "quantitative-measurement",
+          "research",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/research.json",
+        "abstract_text": "Quantitative Measurement in Research Methods: A number is meaningful only when its variable, population, unit, and error are defined. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Quantitative Measurement - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "research-04-chapter-model",
+          "title": "Model and scope",
+          "summary": "A number is meaningful only when its variable, population, unit, and error are defined. This chapter fixes the vocabulary and boundary needed to reason about quantitative measurement.",
+          "sections": [
+            {
+              "id": "research-04-section-model",
+              "title": "Core model",
+              "summary": "A number is meaningful only when its variable, population, unit, and error are defined.",
+              "key_facts": [
+                "research-04-fact-model"
+              ]
+            },
+            {
+              "id": "research-04-section-check",
+              "title": "Practical check",
+              "summary": "State missingness and uncertainty beside estimates. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "research-04-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "research-04-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "research-04-section-failure",
+              "title": "Common failure",
+              "summary": "Precision in calculation does not repair an invalid measure of the intended concept. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "research-04-fact-caution"
+              ]
+            },
+            {
+              "id": "research-04-section-pattern",
+              "title": "Working pattern",
+              "summary": "State missingness and uncertainty beside estimates. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "research-04-fact-model",
+                "research-04-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "research-04-fact-model",
+          "statement": "A number is meaningful only when its variable, population, unit, and error are defined.",
+          "tags": [
+            "quantitative-measurement",
+            "research"
+          ],
+          "citation_ids": [
+            "research-04-cite-editorial",
+            "research-04-cite-reference"
+          ]
+        },
+        {
+          "id": "research-04-fact-practice",
+          "statement": "State missingness and uncertainty beside estimates.",
+          "tags": [
+            "practice",
+            "research"
+          ],
+          "citation_ids": [
+            "research-04-cite-editorial"
+          ]
+        },
+        {
+          "id": "research-04-fact-caution",
+          "statement": "Precision in calculation does not repair an invalid measure of the intended concept.",
+          "tags": [
+            "failure-mode",
+            "research"
+          ],
+          "citation_ids": [
+            "research-04-cite-editorial",
+            "research-04-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "research-04-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Quantitative Measurement - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-04-cite-reference",
+          "locator": "reference landing page",
+          "source": "Reproducibility and Replicability in Science",
+          "note": "Starting point for quantitative measurement; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nationalacademies.org/our-work/reproducibility-and-replicability-in-science",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-04-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "research-05",
+        "version": "1.0.0",
+        "title": "Sampling: Research Methods",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "research"
+        ],
+        "tags": [
+          "sampling",
+          "research",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/research.json",
+        "abstract_text": "Sampling in Research Methods: Sampling determines which uncertainty is represented and which remains invisible. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Sampling - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "research-05-chapter-model",
+          "title": "Model and scope",
+          "summary": "Sampling determines which uncertainty is represented and which remains invisible. This chapter fixes the vocabulary and boundary needed to reason about sampling.",
+          "sections": [
+            {
+              "id": "research-05-section-model",
+              "title": "Core model",
+              "summary": "Sampling determines which uncertainty is represented and which remains invisible.",
+              "key_facts": [
+                "research-05-fact-model"
+              ]
+            },
+            {
+              "id": "research-05-section-check",
+              "title": "Practical check",
+              "summary": "State target population, selection, exclusions, and likely bias. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "research-05-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "research-05-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "research-05-section-failure",
+              "title": "Common failure",
+              "summary": "Generalizing from an easy-to-reach group without naming the boundary overclaims evidence. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "research-05-fact-caution"
+              ]
+            },
+            {
+              "id": "research-05-section-pattern",
+              "title": "Working pattern",
+              "summary": "State target population, selection, exclusions, and likely bias. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "research-05-fact-model",
+                "research-05-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "research-05-fact-model",
+          "statement": "Sampling determines which uncertainty is represented and which remains invisible.",
+          "tags": [
+            "sampling",
+            "research"
+          ],
+          "citation_ids": [
+            "research-05-cite-editorial",
+            "research-05-cite-reference"
+          ]
+        },
+        {
+          "id": "research-05-fact-practice",
+          "statement": "State target population, selection, exclusions, and likely bias.",
+          "tags": [
+            "practice",
+            "research"
+          ],
+          "citation_ids": [
+            "research-05-cite-editorial"
+          ]
+        },
+        {
+          "id": "research-05-fact-caution",
+          "statement": "Generalizing from an easy-to-reach group without naming the boundary overclaims evidence.",
+          "tags": [
+            "failure-mode",
+            "research"
+          ],
+          "citation_ids": [
+            "research-05-cite-editorial",
+            "research-05-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "research-05-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Sampling - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-05-cite-reference",
+          "locator": "reference landing page",
+          "source": "Reproducibility and Replicability in Science",
+          "note": "Starting point for sampling; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nationalacademies.org/our-work/reproducibility-and-replicability-in-science",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-05-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "research-06",
+        "version": "1.0.0",
+        "title": "Experiments: Research Methods",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "research"
+        ],
+        "tags": [
+          "experiments",
+          "research",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/research.json",
+        "abstract_text": "Experiments in Research Methods: Controlled variation helps distinguish treatment effects from background change. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Experiments - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "research-06-chapter-model",
+          "title": "Model and scope",
+          "summary": "Controlled variation helps distinguish treatment effects from background change. This chapter fixes the vocabulary and boundary needed to reason about experiments.",
+          "sections": [
+            {
+              "id": "research-06-section-model",
+              "title": "Core model",
+              "summary": "Controlled variation helps distinguish treatment effects from background change.",
+              "key_facts": [
+                "research-06-fact-model"
+              ]
+            },
+            {
+              "id": "research-06-section-check",
+              "title": "Practical check",
+              "summary": "Plan comparison, outcome, guardrails, missing data, and stopping before observing results. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "research-06-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "research-06-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "research-06-section-failure",
+              "title": "Common failure",
+              "summary": "Changing the outcome or stop rule after seeing results weakens the inference. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "research-06-fact-caution"
+              ]
+            },
+            {
+              "id": "research-06-section-pattern",
+              "title": "Working pattern",
+              "summary": "Plan comparison, outcome, guardrails, missing data, and stopping before observing results. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "research-06-fact-model",
+                "research-06-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "research-06-fact-model",
+          "statement": "Controlled variation helps distinguish treatment effects from background change.",
+          "tags": [
+            "experiments",
+            "research"
+          ],
+          "citation_ids": [
+            "research-06-cite-editorial",
+            "research-06-cite-reference"
+          ]
+        },
+        {
+          "id": "research-06-fact-practice",
+          "statement": "Plan comparison, outcome, guardrails, missing data, and stopping before observing results.",
+          "tags": [
+            "practice",
+            "research"
+          ],
+          "citation_ids": [
+            "research-06-cite-editorial"
+          ]
+        },
+        {
+          "id": "research-06-fact-caution",
+          "statement": "Changing the outcome or stop rule after seeing results weakens the inference.",
+          "tags": [
+            "failure-mode",
+            "research"
+          ],
+          "citation_ids": [
+            "research-06-cite-editorial",
+            "research-06-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "research-06-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Experiments - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-06-cite-reference",
+          "locator": "reference landing page",
+          "source": "Reproducibility and Replicability in Science",
+          "note": "Starting point for experiments; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nationalacademies.org/our-work/reproducibility-and-replicability-in-science",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-06-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "research-07",
+        "version": "1.0.0",
+        "title": "Causal Reasoning: Research Methods",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "research"
+        ],
+        "tags": [
+          "causal-reasoning",
+          "research",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/research.json",
+        "abstract_text": "Causal Reasoning in Research Methods: Causal claims require an intervention question and an identification argument. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Causal Reasoning - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "research-07-chapter-model",
+          "title": "Model and scope",
+          "summary": "Causal claims require an intervention question and an identification argument. This chapter fixes the vocabulary and boundary needed to reason about causal reasoning.",
+          "sections": [
+            {
+              "id": "research-07-section-model",
+              "title": "Core model",
+              "summary": "Causal claims require an intervention question and an identification argument.",
+              "key_facts": [
+                "research-07-fact-model"
+              ]
+            },
+            {
+              "id": "research-07-section-check",
+              "title": "Practical check",
+              "summary": "Draw assumptions and identify confounding, selection, and alternative explanations. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "research-07-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "research-07-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "research-07-section-failure",
+              "title": "Common failure",
+              "summary": "Correlation becomes misleading when a plausible story is mistaken for intervention evidence. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "research-07-fact-caution"
+              ]
+            },
+            {
+              "id": "research-07-section-pattern",
+              "title": "Working pattern",
+              "summary": "Draw assumptions and identify confounding, selection, and alternative explanations. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "research-07-fact-model",
+                "research-07-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "research-07-fact-model",
+          "statement": "Causal claims require an intervention question and an identification argument.",
+          "tags": [
+            "causal-reasoning",
+            "research"
+          ],
+          "citation_ids": [
+            "research-07-cite-editorial",
+            "research-07-cite-reference"
+          ]
+        },
+        {
+          "id": "research-07-fact-practice",
+          "statement": "Draw assumptions and identify confounding, selection, and alternative explanations.",
+          "tags": [
+            "practice",
+            "research"
+          ],
+          "citation_ids": [
+            "research-07-cite-editorial"
+          ]
+        },
+        {
+          "id": "research-07-fact-caution",
+          "statement": "Correlation becomes misleading when a plausible story is mistaken for intervention evidence.",
+          "tags": [
+            "failure-mode",
+            "research"
+          ],
+          "citation_ids": [
+            "research-07-cite-editorial",
+            "research-07-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "research-07-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Causal Reasoning - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-07-cite-reference",
+          "locator": "reference landing page",
+          "source": "Reproducibility and Replicability in Science",
+          "note": "Starting point for causal reasoning; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nationalacademies.org/our-work/reproducibility-and-replicability-in-science",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-07-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "research-08",
+        "version": "1.0.0",
+        "title": "Uncertainty: Research Methods",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "research"
+        ],
+        "tags": [
+          "uncertainty",
+          "research",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/research.json",
+        "abstract_text": "Uncertainty in Research Methods: Uncertainty includes sampling, measurement, model assumptions, and missing alternatives. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Uncertainty - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "research-08-chapter-model",
+          "title": "Model and scope",
+          "summary": "Uncertainty includes sampling, measurement, model assumptions, and missing alternatives. This chapter fixes the vocabulary and boundary needed to reason about uncertainty.",
+          "sections": [
+            {
+              "id": "research-08-section-model",
+              "title": "Core model",
+              "summary": "Uncertainty includes sampling, measurement, model assumptions, and missing alternatives.",
+              "key_facts": [
+                "research-08-fact-model"
+              ]
+            },
+            {
+              "id": "research-08-section-check",
+              "title": "Practical check",
+              "summary": "State what is quantified and what remains qualitative. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "research-08-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "research-08-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "research-08-section-failure",
+              "title": "Common failure",
+              "summary": "A single ranked conclusion can hide uncertainty more effectively than it communicates it. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "research-08-fact-caution"
+              ]
+            },
+            {
+              "id": "research-08-section-pattern",
+              "title": "Working pattern",
+              "summary": "State what is quantified and what remains qualitative. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "research-08-fact-model",
+                "research-08-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "research-08-fact-model",
+          "statement": "Uncertainty includes sampling, measurement, model assumptions, and missing alternatives.",
+          "tags": [
+            "uncertainty",
+            "research"
+          ],
+          "citation_ids": [
+            "research-08-cite-editorial",
+            "research-08-cite-reference"
+          ]
+        },
+        {
+          "id": "research-08-fact-practice",
+          "statement": "State what is quantified and what remains qualitative.",
+          "tags": [
+            "practice",
+            "research"
+          ],
+          "citation_ids": [
+            "research-08-cite-editorial"
+          ]
+        },
+        {
+          "id": "research-08-fact-caution",
+          "statement": "A single ranked conclusion can hide uncertainty more effectively than it communicates it.",
+          "tags": [
+            "failure-mode",
+            "research"
+          ],
+          "citation_ids": [
+            "research-08-cite-editorial",
+            "research-08-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "research-08-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Uncertainty - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-08-cite-reference",
+          "locator": "reference landing page",
+          "source": "Reproducibility and Replicability in Science",
+          "note": "Starting point for uncertainty; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nationalacademies.org/our-work/reproducibility-and-replicability-in-science",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-08-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "research-09",
+        "version": "1.0.0",
+        "title": "Synthesis: Research Methods",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "research"
+        ],
+        "tags": [
+          "synthesis",
+          "research",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/research.json",
+        "abstract_text": "Synthesis in Research Methods: Synthesis compares methods, contexts, convergence, disagreement, and transfer limits. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Synthesis - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "research-09-chapter-model",
+          "title": "Model and scope",
+          "summary": "Synthesis compares methods, contexts, convergence, disagreement, and transfer limits. This chapter fixes the vocabulary and boundary needed to reason about synthesis.",
+          "sections": [
+            {
+              "id": "research-09-section-model",
+              "title": "Core model",
+              "summary": "Synthesis compares methods, contexts, convergence, disagreement, and transfer limits.",
+              "key_facts": [
+                "research-09-fact-model"
+              ]
+            },
+            {
+              "id": "research-09-section-check",
+              "title": "Practical check",
+              "summary": "Keep each claim close to supporting evidence and confidence. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "research-09-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "research-09-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "research-09-section-failure",
+              "title": "Common failure",
+              "summary": "Flattening unlike studies into one narrative erases why results differ. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "research-09-fact-caution"
+              ]
+            },
+            {
+              "id": "research-09-section-pattern",
+              "title": "Working pattern",
+              "summary": "Keep each claim close to supporting evidence and confidence. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "research-09-fact-model",
+                "research-09-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "research-09-fact-model",
+          "statement": "Synthesis compares methods, contexts, convergence, disagreement, and transfer limits.",
+          "tags": [
+            "synthesis",
+            "research"
+          ],
+          "citation_ids": [
+            "research-09-cite-editorial",
+            "research-09-cite-reference"
+          ]
+        },
+        {
+          "id": "research-09-fact-practice",
+          "statement": "Keep each claim close to supporting evidence and confidence.",
+          "tags": [
+            "practice",
+            "research"
+          ],
+          "citation_ids": [
+            "research-09-cite-editorial"
+          ]
+        },
+        {
+          "id": "research-09-fact-caution",
+          "statement": "Flattening unlike studies into one narrative erases why results differ.",
+          "tags": [
+            "failure-mode",
+            "research"
+          ],
+          "citation_ids": [
+            "research-09-cite-editorial",
+            "research-09-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "research-09-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Synthesis - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-09-cite-reference",
+          "locator": "reference landing page",
+          "source": "Reproducibility and Replicability in Science",
+          "note": "Starting point for synthesis; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nationalacademies.org/our-work/reproducibility-and-replicability-in-science",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-09-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "research-10",
+        "version": "1.0.0",
+        "title": "Reproducibility: Research Methods",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "research"
+        ],
+        "tags": [
+          "reproducibility",
+          "research",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/research.json",
+        "abstract_text": "Reproducibility in Research Methods: Rerunning analysis requires provenance, code, environment, transformations, and decisions. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Reproducibility - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "research-10-chapter-model",
+          "title": "Model and scope",
+          "summary": "Rerunning analysis requires provenance, code, environment, transformations, and decisions. This chapter fixes the vocabulary and boundary needed to reason about reproducibility.",
+          "sections": [
+            {
+              "id": "research-10-section-model",
+              "title": "Core model",
+              "summary": "Rerunning analysis requires provenance, code, environment, transformations, and decisions.",
+              "key_facts": [
+                "research-10-fact-model"
+              ]
+            },
+            {
+              "id": "research-10-section-check",
+              "title": "Practical check",
+              "summary": "Separate shareable material from protected inputs and explain substitutions. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "research-10-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "research-10-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "research-10-section-failure",
+              "title": "Common failure",
+              "summary": "A final figure without intermediate artifacts cannot be audited or challenged. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "research-10-fact-caution"
+              ]
+            },
+            {
+              "id": "research-10-section-pattern",
+              "title": "Working pattern",
+              "summary": "Separate shareable material from protected inputs and explain substitutions. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "research-10-fact-model",
+                "research-10-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "research-10-fact-model",
+          "statement": "Rerunning analysis requires provenance, code, environment, transformations, and decisions.",
+          "tags": [
+            "reproducibility",
+            "research"
+          ],
+          "citation_ids": [
+            "research-10-cite-editorial",
+            "research-10-cite-reference"
+          ]
+        },
+        {
+          "id": "research-10-fact-practice",
+          "statement": "Separate shareable material from protected inputs and explain substitutions.",
+          "tags": [
+            "practice",
+            "research"
+          ],
+          "citation_ids": [
+            "research-10-cite-editorial"
+          ]
+        },
+        {
+          "id": "research-10-fact-caution",
+          "statement": "A final figure without intermediate artifacts cannot be audited or challenged.",
+          "tags": [
+            "failure-mode",
+            "research"
+          ],
+          "citation_ids": [
+            "research-10-cite-editorial",
+            "research-10-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "research-10-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Reproducibility - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-10-cite-reference",
+          "locator": "reference landing page",
+          "source": "Reproducibility and Replicability in Science",
+          "note": "Starting point for reproducibility; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.nationalacademies.org/our-work/reproducibility-and-replicability-in-science",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "research-10-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    }
+  ]
+}

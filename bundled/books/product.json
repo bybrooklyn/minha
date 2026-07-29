@@ -1,0 +1,1597 @@
+{
+  "schema_version": 2,
+  "pack_id": "product",
+  "title": "Product Practice",
+  "books": [
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "product-01",
+        "version": "1.0.0",
+        "title": "Problem Framing: Product Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "product"
+        ],
+        "tags": [
+          "problem-framing",
+          "product",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/product.json",
+        "abstract_text": "Problem Framing in Product Practice: A problem statement names the person, context, obstacle, and consequence without prescribing a feature. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Problem Framing - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "product-01-chapter-model",
+          "title": "Model and scope",
+          "summary": "A problem statement names the person, context, obstacle, and consequence without prescribing a feature. This chapter fixes the vocabulary and boundary needed to reason about problem framing.",
+          "sections": [
+            {
+              "id": "product-01-section-model",
+              "title": "Core model",
+              "summary": "A problem statement names the person, context, obstacle, and consequence without prescribing a feature.",
+              "key_facts": [
+                "product-01-fact-model"
+              ]
+            },
+            {
+              "id": "product-01-section-check",
+              "title": "Practical check",
+              "summary": "Write the evidence that would change your mind and the outcome to improve. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "product-01-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "product-01-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "product-01-section-failure",
+              "title": "Common failure",
+              "summary": "Measuring feature delivery as if it proved the problem was solved confuses output and outcome. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "product-01-fact-caution"
+              ]
+            },
+            {
+              "id": "product-01-section-pattern",
+              "title": "Working pattern",
+              "summary": "Write the evidence that would change your mind and the outcome to improve. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "product-01-fact-model",
+                "product-01-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "product-01-fact-model",
+          "statement": "A problem statement names the person, context, obstacle, and consequence without prescribing a feature.",
+          "tags": [
+            "problem-framing",
+            "product"
+          ],
+          "citation_ids": [
+            "product-01-cite-editorial",
+            "product-01-cite-reference"
+          ]
+        },
+        {
+          "id": "product-01-fact-practice",
+          "statement": "Write the evidence that would change your mind and the outcome to improve.",
+          "tags": [
+            "practice",
+            "product"
+          ],
+          "citation_ids": [
+            "product-01-cite-editorial"
+          ]
+        },
+        {
+          "id": "product-01-fact-caution",
+          "statement": "Measuring feature delivery as if it proved the problem was solved confuses output and outcome.",
+          "tags": [
+            "failure-mode",
+            "product"
+          ],
+          "citation_ids": [
+            "product-01-cite-editorial",
+            "product-01-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "product-01-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Problem Framing - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-01-cite-reference",
+          "locator": "reference landing page",
+          "source": "Service Manual",
+          "note": "Starting point for problem framing; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.gov.uk/service-manual",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-01-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "product-02",
+        "version": "1.0.0",
+        "title": "User Discovery: Product Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "product"
+        ],
+        "tags": [
+          "user-discovery",
+          "product",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/product.json",
+        "abstract_text": "User Discovery in Product Practice: Discovery reduces uncertainty through recent behavior, context, and competing explanations. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "User Discovery - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "product-02-chapter-model",
+          "title": "Model and scope",
+          "summary": "Discovery reduces uncertainty through recent behavior, context, and competing explanations. This chapter fixes the vocabulary and boundary needed to reason about user discovery.",
+          "sections": [
+            {
+              "id": "product-02-section-model",
+              "title": "Core model",
+              "summary": "Discovery reduces uncertainty through recent behavior, context, and competing explanations.",
+              "key_facts": [
+                "product-02-fact-model"
+              ]
+            },
+            {
+              "id": "product-02-section-check",
+              "title": "Practical check",
+              "summary": "Separate observed behavior, inference, and unknowns in consent-aware notes. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "product-02-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "product-02-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "product-02-section-failure",
+              "title": "Common failure",
+              "summary": "Leading participants toward a preferred solution turns agreement into false validation. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "product-02-fact-caution"
+              ]
+            },
+            {
+              "id": "product-02-section-pattern",
+              "title": "Working pattern",
+              "summary": "Separate observed behavior, inference, and unknowns in consent-aware notes. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "product-02-fact-model",
+                "product-02-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "product-02-fact-model",
+          "statement": "Discovery reduces uncertainty through recent behavior, context, and competing explanations.",
+          "tags": [
+            "user-discovery",
+            "product"
+          ],
+          "citation_ids": [
+            "product-02-cite-editorial",
+            "product-02-cite-reference"
+          ]
+        },
+        {
+          "id": "product-02-fact-practice",
+          "statement": "Separate observed behavior, inference, and unknowns in consent-aware notes.",
+          "tags": [
+            "practice",
+            "product"
+          ],
+          "citation_ids": [
+            "product-02-cite-editorial"
+          ]
+        },
+        {
+          "id": "product-02-fact-caution",
+          "statement": "Leading participants toward a preferred solution turns agreement into false validation.",
+          "tags": [
+            "failure-mode",
+            "product"
+          ],
+          "citation_ids": [
+            "product-02-cite-editorial",
+            "product-02-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "product-02-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "User Discovery - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-02-cite-reference",
+          "locator": "reference landing page",
+          "source": "Service Manual",
+          "note": "Starting point for user discovery; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.gov.uk/service-manual",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-02-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "product-03",
+        "version": "1.0.0",
+        "title": "Requirements: Product Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "product"
+        ],
+        "tags": [
+          "requirements",
+          "product",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/product.json",
+        "abstract_text": "Requirements in Product Practice: A requirement exposes actor, trigger, observable result, and important constraints. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Requirements - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "product-03-chapter-model",
+          "title": "Model and scope",
+          "summary": "A requirement exposes actor, trigger, observable result, and important constraints. This chapter fixes the vocabulary and boundary needed to reason about requirements.",
+          "sections": [
+            {
+              "id": "product-03-section-model",
+              "title": "Core model",
+              "summary": "A requirement exposes actor, trigger, observable result, and important constraints.",
+              "key_facts": [
+                "product-03-fact-model"
+              ]
+            },
+            {
+              "id": "product-03-section-check",
+              "title": "Practical check",
+              "summary": "Label assumptions and write scenario-based acceptance evidence. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "product-03-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "product-03-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "product-03-section-failure",
+              "title": "Common failure",
+              "summary": "A vague feature list with no failure or accessibility conditions is not testable. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "product-03-fact-caution"
+              ]
+            },
+            {
+              "id": "product-03-section-pattern",
+              "title": "Working pattern",
+              "summary": "Label assumptions and write scenario-based acceptance evidence. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "product-03-fact-model",
+                "product-03-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "product-03-fact-model",
+          "statement": "A requirement exposes actor, trigger, observable result, and important constraints.",
+          "tags": [
+            "requirements",
+            "product"
+          ],
+          "citation_ids": [
+            "product-03-cite-editorial",
+            "product-03-cite-reference"
+          ]
+        },
+        {
+          "id": "product-03-fact-practice",
+          "statement": "Label assumptions and write scenario-based acceptance evidence.",
+          "tags": [
+            "practice",
+            "product"
+          ],
+          "citation_ids": [
+            "product-03-cite-editorial"
+          ]
+        },
+        {
+          "id": "product-03-fact-caution",
+          "statement": "A vague feature list with no failure or accessibility conditions is not testable.",
+          "tags": [
+            "failure-mode",
+            "product"
+          ],
+          "citation_ids": [
+            "product-03-cite-editorial",
+            "product-03-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "product-03-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Requirements - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-03-cite-reference",
+          "locator": "reference landing page",
+          "source": "Service Manual",
+          "note": "Starting point for requirements; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.gov.uk/service-manual",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-03-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "product-04",
+        "version": "1.0.0",
+        "title": "Prioritization: Product Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "product"
+        ],
+        "tags": [
+          "prioritization",
+          "product",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/product.json",
+        "abstract_text": "Prioritization in Product Practice: Priority is a tradeoff among value, evidence, cost, risk, and reversibility. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Prioritization - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "product-04-chapter-model",
+          "title": "Model and scope",
+          "summary": "Priority is a tradeoff among value, evidence, cost, risk, and reversibility. This chapter fixes the vocabulary and boundary needed to reason about prioritization.",
+          "sections": [
+            {
+              "id": "product-04-section-model",
+              "title": "Core model",
+              "summary": "Priority is a tradeoff among value, evidence, cost, risk, and reversibility.",
+              "key_facts": [
+                "product-04-fact-model"
+              ]
+            },
+            {
+              "id": "product-04-section-check",
+              "title": "Practical check",
+              "summary": "Make cost of delay and cost of being wrong visible in a lightweight rationale. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "product-04-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "product-04-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "product-04-section-failure",
+              "title": "Common failure",
+              "summary": "Ranking by volume or seniority alone hides the decision rule. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "product-04-fact-caution"
+              ]
+            },
+            {
+              "id": "product-04-section-pattern",
+              "title": "Working pattern",
+              "summary": "Make cost of delay and cost of being wrong visible in a lightweight rationale. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "product-04-fact-model",
+                "product-04-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "product-04-fact-model",
+          "statement": "Priority is a tradeoff among value, evidence, cost, risk, and reversibility.",
+          "tags": [
+            "prioritization",
+            "product"
+          ],
+          "citation_ids": [
+            "product-04-cite-editorial",
+            "product-04-cite-reference"
+          ]
+        },
+        {
+          "id": "product-04-fact-practice",
+          "statement": "Make cost of delay and cost of being wrong visible in a lightweight rationale.",
+          "tags": [
+            "practice",
+            "product"
+          ],
+          "citation_ids": [
+            "product-04-cite-editorial"
+          ]
+        },
+        {
+          "id": "product-04-fact-caution",
+          "statement": "Ranking by volume or seniority alone hides the decision rule.",
+          "tags": [
+            "failure-mode",
+            "product"
+          ],
+          "citation_ids": [
+            "product-04-cite-editorial",
+            "product-04-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "product-04-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Prioritization - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-04-cite-reference",
+          "locator": "reference landing page",
+          "source": "Service Manual",
+          "note": "Starting point for prioritization; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.gov.uk/service-manual",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-04-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "product-05",
+        "version": "1.0.0",
+        "title": "Experiments: Product Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "product"
+        ],
+        "tags": [
+          "experiments",
+          "product",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/product.json",
+        "abstract_text": "Experiments in Product Practice: The smallest useful experiment distinguishes competing explanations. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Experiments - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "product-05-chapter-model",
+          "title": "Model and scope",
+          "summary": "The smallest useful experiment distinguishes competing explanations. This chapter fixes the vocabulary and boundary needed to reason about experiments.",
+          "sections": [
+            {
+              "id": "product-05-section-model",
+              "title": "Core model",
+              "summary": "The smallest useful experiment distinguishes competing explanations.",
+              "key_facts": [
+                "product-05-fact-model"
+              ]
+            },
+            {
+              "id": "product-05-section-check",
+              "title": "Practical check",
+              "summary": "Predeclare hypothesis, population, measure, duration, guardrails, and stop rule. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "product-05-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "product-05-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "product-05-section-failure",
+              "title": "Common failure",
+              "summary": "An irreversible launch without comparison or rollback is not a safe experiment. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "product-05-fact-caution"
+              ]
+            },
+            {
+              "id": "product-05-section-pattern",
+              "title": "Working pattern",
+              "summary": "Predeclare hypothesis, population, measure, duration, guardrails, and stop rule. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "product-05-fact-model",
+                "product-05-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "product-05-fact-model",
+          "statement": "The smallest useful experiment distinguishes competing explanations.",
+          "tags": [
+            "experiments",
+            "product"
+          ],
+          "citation_ids": [
+            "product-05-cite-editorial",
+            "product-05-cite-reference"
+          ]
+        },
+        {
+          "id": "product-05-fact-practice",
+          "statement": "Predeclare hypothesis, population, measure, duration, guardrails, and stop rule.",
+          "tags": [
+            "practice",
+            "product"
+          ],
+          "citation_ids": [
+            "product-05-cite-editorial"
+          ]
+        },
+        {
+          "id": "product-05-fact-caution",
+          "statement": "An irreversible launch without comparison or rollback is not a safe experiment.",
+          "tags": [
+            "failure-mode",
+            "product"
+          ],
+          "citation_ids": [
+            "product-05-cite-editorial",
+            "product-05-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "product-05-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Experiments - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-05-cite-reference",
+          "locator": "reference landing page",
+          "source": "Service Manual",
+          "note": "Starting point for experiments; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.gov.uk/service-manual",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-05-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "product-06",
+        "version": "1.0.0",
+        "title": "Product Metrics: Product Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "product"
+        ],
+        "tags": [
+          "product-metrics",
+          "product",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/product.json",
+        "abstract_text": "Product Metrics in Product Practice: Outcome metrics show user value; guardrails show what changed elsewhere. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Product Metrics - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "product-06-chapter-model",
+          "title": "Model and scope",
+          "summary": "Outcome metrics show user value; guardrails show what changed elsewhere. This chapter fixes the vocabulary and boundary needed to reason about product metrics.",
+          "sections": [
+            {
+              "id": "product-06-section-model",
+              "title": "Core model",
+              "summary": "Outcome metrics show user value; guardrails show what changed elsewhere.",
+              "key_facts": [
+                "product-06-fact-model"
+              ]
+            },
+            {
+              "id": "product-06-section-check",
+              "title": "Practical check",
+              "summary": "Define numerator, denominator, segment, window, and interpretation beside every chart. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "product-06-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "product-06-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "product-06-section-failure",
+              "title": "Common failure",
+              "summary": "Optimizing a proxy can raise the number while user success or trust falls. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "product-06-fact-caution"
+              ]
+            },
+            {
+              "id": "product-06-section-pattern",
+              "title": "Working pattern",
+              "summary": "Define numerator, denominator, segment, window, and interpretation beside every chart. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "product-06-fact-model",
+                "product-06-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "product-06-fact-model",
+          "statement": "Outcome metrics show user value; guardrails show what changed elsewhere.",
+          "tags": [
+            "product-metrics",
+            "product"
+          ],
+          "citation_ids": [
+            "product-06-cite-editorial",
+            "product-06-cite-reference"
+          ]
+        },
+        {
+          "id": "product-06-fact-practice",
+          "statement": "Define numerator, denominator, segment, window, and interpretation beside every chart.",
+          "tags": [
+            "practice",
+            "product"
+          ],
+          "citation_ids": [
+            "product-06-cite-editorial"
+          ]
+        },
+        {
+          "id": "product-06-fact-caution",
+          "statement": "Optimizing a proxy can raise the number while user success or trust falls.",
+          "tags": [
+            "failure-mode",
+            "product"
+          ],
+          "citation_ids": [
+            "product-06-cite-editorial",
+            "product-06-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "product-06-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Product Metrics - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-06-cite-reference",
+          "locator": "reference landing page",
+          "source": "Service Manual",
+          "note": "Starting point for product metrics; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.gov.uk/service-manual",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-06-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "product-07",
+        "version": "1.0.0",
+        "title": "Inclusive Product: Product Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "product"
+        ],
+        "tags": [
+          "inclusive-product",
+          "product",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/product.json",
+        "abstract_text": "Inclusive Product in Product Practice: Accessibility and varied contexts are product requirements, not a final inspection. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Inclusive Product - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "product-07-chapter-model",
+          "title": "Model and scope",
+          "summary": "Accessibility and varied contexts are product requirements, not a final inspection. This chapter fixes the vocabulary and boundary needed to reason about inclusive product.",
+          "sections": [
+            {
+              "id": "product-07-section-model",
+              "title": "Core model",
+              "summary": "Accessibility and varied contexts are product requirements, not a final inspection.",
+              "key_facts": [
+                "product-07-fact-model"
+              ]
+            },
+            {
+              "id": "product-07-section-check",
+              "title": "Practical check",
+              "summary": "Test critical tasks with assistive technology and constrained devices or connectivity. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "product-07-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "product-07-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "product-07-section-failure",
+              "title": "Common failure",
+              "summary": "Adding checks after interaction decisions harden makes exclusion expensive to fix. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "product-07-fact-caution"
+              ]
+            },
+            {
+              "id": "product-07-section-pattern",
+              "title": "Working pattern",
+              "summary": "Test critical tasks with assistive technology and constrained devices or connectivity. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "product-07-fact-model",
+                "product-07-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "product-07-fact-model",
+          "statement": "Accessibility and varied contexts are product requirements, not a final inspection.",
+          "tags": [
+            "inclusive-product",
+            "product"
+          ],
+          "citation_ids": [
+            "product-07-cite-editorial",
+            "product-07-cite-reference"
+          ]
+        },
+        {
+          "id": "product-07-fact-practice",
+          "statement": "Test critical tasks with assistive technology and constrained devices or connectivity.",
+          "tags": [
+            "practice",
+            "product"
+          ],
+          "citation_ids": [
+            "product-07-cite-editorial"
+          ]
+        },
+        {
+          "id": "product-07-fact-caution",
+          "statement": "Adding checks after interaction decisions harden makes exclusion expensive to fix.",
+          "tags": [
+            "failure-mode",
+            "product"
+          ],
+          "citation_ids": [
+            "product-07-cite-editorial",
+            "product-07-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "product-07-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Inclusive Product - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-07-cite-reference",
+          "locator": "reference landing page",
+          "source": "Service Manual",
+          "note": "Starting point for inclusive product; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.gov.uk/service-manual",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-07-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "product-08",
+        "version": "1.0.0",
+        "title": "Release Readiness: Product Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "product"
+        ],
+        "tags": [
+          "release-readiness",
+          "product",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/product.json",
+        "abstract_text": "Release Readiness in Product Practice: Release readiness covers behavior, migration, operations, support, communication, and rollback. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Release Readiness - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "product-08-chapter-model",
+          "title": "Model and scope",
+          "summary": "Release readiness covers behavior, migration, operations, support, communication, and rollback. This chapter fixes the vocabulary and boundary needed to reason about release readiness.",
+          "sections": [
+            {
+              "id": "product-08-section-model",
+              "title": "Core model",
+              "summary": "Release readiness covers behavior, migration, operations, support, communication, and rollback.",
+              "key_facts": [
+                "product-08-fact-model"
+              ]
+            },
+            {
+              "id": "product-08-section-check",
+              "title": "Practical check",
+              "summary": "Attach owners and evidence to each high-risk readiness item. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "product-08-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "product-08-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "product-08-section-failure",
+              "title": "Common failure",
+              "summary": "Code merged is not the same as users having a safe path through change. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "product-08-fact-caution"
+              ]
+            },
+            {
+              "id": "product-08-section-pattern",
+              "title": "Working pattern",
+              "summary": "Attach owners and evidence to each high-risk readiness item. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "product-08-fact-model",
+                "product-08-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "product-08-fact-model",
+          "statement": "Release readiness covers behavior, migration, operations, support, communication, and rollback.",
+          "tags": [
+            "release-readiness",
+            "product"
+          ],
+          "citation_ids": [
+            "product-08-cite-editorial",
+            "product-08-cite-reference"
+          ]
+        },
+        {
+          "id": "product-08-fact-practice",
+          "statement": "Attach owners and evidence to each high-risk readiness item.",
+          "tags": [
+            "practice",
+            "product"
+          ],
+          "citation_ids": [
+            "product-08-cite-editorial"
+          ]
+        },
+        {
+          "id": "product-08-fact-caution",
+          "statement": "Code merged is not the same as users having a safe path through change.",
+          "tags": [
+            "failure-mode",
+            "product"
+          ],
+          "citation_ids": [
+            "product-08-cite-editorial",
+            "product-08-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "product-08-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Release Readiness - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-08-cite-reference",
+          "locator": "reference landing page",
+          "source": "Service Manual",
+          "note": "Starting point for release readiness; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.gov.uk/service-manual",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-08-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "product-09",
+        "version": "1.0.0",
+        "title": "Feedback Systems: Product Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "product"
+        ],
+        "tags": [
+          "feedback-systems",
+          "product",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/product.json",
+        "abstract_text": "Feedback Systems in Product Practice: Feedback is useful when its source, urgency, scope, and response owner are clear. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Feedback Systems - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "product-09-chapter-model",
+          "title": "Model and scope",
+          "summary": "Feedback is useful when its source, urgency, scope, and response owner are clear. This chapter fixes the vocabulary and boundary needed to reason about feedback systems.",
+          "sections": [
+            {
+              "id": "product-09-section-model",
+              "title": "Core model",
+              "summary": "Feedback is useful when its source, urgency, scope, and response owner are clear.",
+              "key_facts": [
+                "product-09-fact-model"
+              ]
+            },
+            {
+              "id": "product-09-section-check",
+              "title": "Practical check",
+              "summary": "Separate individual requests from patterns and safety-critical reports. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "product-09-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "product-09-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "product-09-section-failure",
+              "title": "Common failure",
+              "summary": "An untriaged backlog is storage, not a feedback loop. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "product-09-fact-caution"
+              ]
+            },
+            {
+              "id": "product-09-section-pattern",
+              "title": "Working pattern",
+              "summary": "Separate individual requests from patterns and safety-critical reports. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "product-09-fact-model",
+                "product-09-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "product-09-fact-model",
+          "statement": "Feedback is useful when its source, urgency, scope, and response owner are clear.",
+          "tags": [
+            "feedback-systems",
+            "product"
+          ],
+          "citation_ids": [
+            "product-09-cite-editorial",
+            "product-09-cite-reference"
+          ]
+        },
+        {
+          "id": "product-09-fact-practice",
+          "statement": "Separate individual requests from patterns and safety-critical reports.",
+          "tags": [
+            "practice",
+            "product"
+          ],
+          "citation_ids": [
+            "product-09-cite-editorial"
+          ]
+        },
+        {
+          "id": "product-09-fact-caution",
+          "statement": "An untriaged backlog is storage, not a feedback loop.",
+          "tags": [
+            "failure-mode",
+            "product"
+          ],
+          "citation_ids": [
+            "product-09-cite-editorial",
+            "product-09-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "product-09-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Feedback Systems - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-09-cite-reference",
+          "locator": "reference landing page",
+          "source": "Service Manual",
+          "note": "Starting point for feedback systems; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.gov.uk/service-manual",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-09-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "product-10",
+        "version": "1.0.0",
+        "title": "Deprecation: Product Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "product"
+        ],
+        "tags": [
+          "deprecation",
+          "product",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/product.json",
+        "abstract_text": "Deprecation in Product Practice: Removal needs a reason, affected population, replacement, timeline, telemetry, and final condition. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Deprecation - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "product-10-chapter-model",
+          "title": "Model and scope",
+          "summary": "Removal needs a reason, affected population, replacement, timeline, telemetry, and final condition. This chapter fixes the vocabulary and boundary needed to reason about deprecation.",
+          "sections": [
+            {
+              "id": "product-10-section-model",
+              "title": "Core model",
+              "summary": "Removal needs a reason, affected population, replacement, timeline, telemetry, and final condition.",
+              "key_facts": [
+                "product-10-fact-model"
+              ]
+            },
+            {
+              "id": "product-10-section-check",
+              "title": "Practical check",
+              "summary": "Use announced stages and measure usage before irreversible deletion. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "product-10-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "product-10-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "product-10-section-failure",
+              "title": "Common failure",
+              "summary": "Hiding an old path until support volume rises makes migration needlessly adversarial. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "product-10-fact-caution"
+              ]
+            },
+            {
+              "id": "product-10-section-pattern",
+              "title": "Working pattern",
+              "summary": "Use announced stages and measure usage before irreversible deletion. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "product-10-fact-model",
+                "product-10-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "product-10-fact-model",
+          "statement": "Removal needs a reason, affected population, replacement, timeline, telemetry, and final condition.",
+          "tags": [
+            "deprecation",
+            "product"
+          ],
+          "citation_ids": [
+            "product-10-cite-editorial",
+            "product-10-cite-reference"
+          ]
+        },
+        {
+          "id": "product-10-fact-practice",
+          "statement": "Use announced stages and measure usage before irreversible deletion.",
+          "tags": [
+            "practice",
+            "product"
+          ],
+          "citation_ids": [
+            "product-10-cite-editorial"
+          ]
+        },
+        {
+          "id": "product-10-fact-caution",
+          "statement": "Hiding an old path until support volume rises makes migration needlessly adversarial.",
+          "tags": [
+            "failure-mode",
+            "product"
+          ],
+          "citation_ids": [
+            "product-10-cite-editorial",
+            "product-10-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "product-10-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Deprecation - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-10-cite-reference",
+          "locator": "reference landing page",
+          "source": "Service Manual",
+          "note": "Starting point for deprecation; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.gov.uk/service-manual",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "product-10-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    }
+  ]
+}

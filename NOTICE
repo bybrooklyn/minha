@@ -1,0 +1,7 @@
+Minha
+Copyright 2026 Dead Signal Works contributors
+
+This product includes behavior-compatible protocol adapters developed with
+reference to OpenAI Codex, Copyright OpenAI, licensed under Apache License 2.0.
+The reviewed upstream repository and revision are recorded in
+vendor/codex/UPSTREAM.toml. No upstream source file is copied verbatim.

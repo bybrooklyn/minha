@@ -1,0 +1,1687 @@
+{
+  "schema_version": 2,
+  "pack_id": "operations",
+  "title": "Operations Practice",
+  "books": [
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "operations-01",
+        "version": "1.0.0",
+        "title": "Deployment: Operations Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "operations"
+        ],
+        "tags": [
+          "deployment",
+          "operations",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/operations.json",
+        "abstract_text": "Deployment in Operations Practice: Deployment is a repeatable transition with observable preconditions and outcomes. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Deployment - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "operations-01-chapter-model",
+          "title": "Model and scope",
+          "summary": "Deployment is a repeatable transition with observable preconditions and outcomes. This chapter fixes the vocabulary and boundary needed to reason about deployment.",
+          "sections": [
+            {
+              "id": "operations-01-section-model",
+              "title": "Core model",
+              "summary": "Deployment is a repeatable transition with observable preconditions and outcomes.",
+              "key_facts": [
+                "operations-01-fact-model"
+              ]
+            },
+            {
+              "id": "operations-01-section-check",
+              "title": "Practical check",
+              "summary": "Define artifact identity, compatibility, health gates, rollout, and rollback. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "operations-01-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "operations-01-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "operations-01-section-failure",
+              "title": "Common failure",
+              "summary": "A process that starts successfully is not necessarily serving healthy behavior. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "operations-01-fact-caution"
+              ]
+            },
+            {
+              "id": "operations-01-section-pattern",
+              "title": "Working pattern",
+              "summary": "Define artifact identity, compatibility, health gates, rollout, and rollback. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "operations-01-fact-model",
+                "operations-01-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "operations-01-chapter-release-integrity",
+          "title": "Release artifact integrity",
+          "summary": "A self-update path is a release transaction: identify one immutable version, select one exact platform artifact, verify its digest, and report whether installation actually completed.",
+          "sections": [
+            {
+              "id": "operations-01-section-release-selection",
+              "title": "Select exact release inputs",
+              "summary": "Match a normalized semantic version and exact target-specific filename; reject missing, duplicate, option-shaped, oversized, or ambiguous inputs before replacing anything.",
+              "key_facts": [
+                "operations-01-fact-release-selection"
+              ]
+            },
+            {
+              "id": "operations-01-section-release-proof",
+              "title": "Verify and report the outcome",
+              "summary": "Bound downloads and diagnostics, verify SHA-256 before staging, use atomic replacement where the operating system permits it, and distinguish a staged file from an installed update.",
+              "key_facts": [
+                "operations-01-fact-release-proof",
+                "operations-01-fact-release-permissions"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "operations-01-fact-model",
+          "statement": "Deployment is a repeatable transition with observable preconditions and outcomes.",
+          "tags": [
+            "deployment",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-01-cite-editorial",
+            "operations-01-cite-reference"
+          ]
+        },
+        {
+          "id": "operations-01-fact-practice",
+          "statement": "Define artifact identity, compatibility, health gates, rollout, and rollback.",
+          "tags": [
+            "practice",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-01-cite-editorial"
+          ]
+        },
+        {
+          "id": "operations-01-fact-caution",
+          "statement": "A process that starts successfully is not necessarily serving healthy behavior.",
+          "tags": [
+            "failure-mode",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-01-cite-editorial",
+            "operations-01-cite-reference"
+          ]
+        },
+        {
+          "id": "operations-01-fact-release-selection",
+          "statement": "An updater should select one exact versioned platform asset and its exact checksum companion rather than accept substring or first-match selection.",
+          "tags": [
+            "release-integrity",
+            "artifact-selection",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-01-cite-editorial",
+            "operations-01-cite-gh-release"
+          ]
+        },
+        {
+          "id": "operations-01-fact-release-proof",
+          "statement": "Checksum verification must occur before installation, and a staged executable must not be reported as an installed update.",
+          "tags": [
+            "checksum",
+            "self-update",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-01-cite-editorial",
+            "operations-01-cite-cargo-profile"
+          ]
+        },
+        {
+          "id": "operations-01-fact-release-permissions",
+          "statement": "Build jobs should use read-only repository permissions; only the release publication job needs contents write authority.",
+          "tags": [
+            "least-privilege",
+            "github-actions",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-01-cite-editorial",
+            "operations-01-cite-actions-token"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "operations-01-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Deployment - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-01-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Twelve-Factor App",
+          "note": "Starting point for deployment; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://12factor.net/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-01-cite-gh-release",
+          "locator": "gh release view and download command reference",
+          "source": "GitHub CLI manual",
+          "note": "Primary command reference for structured release metadata and asset download behavior.",
+          "kind": "official_documentation",
+          "url": "https://cli.github.com/manual/gh_release_view",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-01-cite-actions-token",
+          "locator": "GitHub Actions token permissions",
+          "source": "GitHub Docs",
+          "note": "Primary guidance for setting minimum workflow and job permissions.",
+          "kind": "official_documentation",
+          "url": "https://docs.github.com/en/actions/concepts/security/github_token",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-01-cite-cargo-profile",
+          "locator": "Cargo release profile reference",
+          "source": "The Cargo Book",
+          "note": "Primary reference for release-profile behavior and reproducible build configuration boundaries.",
+          "kind": "official_documentation",
+          "url": "https://doc.rust-lang.org/cargo/reference/profiles.html",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-01-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "operations-02",
+        "version": "1.0.0",
+        "title": "Configuration: Operations Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "operations"
+        ],
+        "tags": [
+          "configuration",
+          "operations",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/operations.json",
+        "abstract_text": "Configuration in Operations Practice: Configuration is typed behavior with defaults, precedence, scope, and ownership. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Configuration - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "operations-02-chapter-model",
+          "title": "Model and scope",
+          "summary": "Configuration is typed behavior with defaults, precedence, scope, and ownership. This chapter fixes the vocabulary and boundary needed to reason about configuration.",
+          "sections": [
+            {
+              "id": "operations-02-section-model",
+              "title": "Core model",
+              "summary": "Configuration is typed behavior with defaults, precedence, scope, and ownership.",
+              "key_facts": [
+                "operations-02-fact-model"
+              ]
+            },
+            {
+              "id": "operations-02-section-check",
+              "title": "Practical check",
+              "summary": "Separate deploy-time settings from runtime secrets and expose redacted effective values. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "operations-02-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "operations-02-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "operations-02-section-failure",
+              "title": "Common failure",
+              "summary": "A hidden environment variable can change production behavior without a reviewable diff. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "operations-02-fact-caution"
+              ]
+            },
+            {
+              "id": "operations-02-section-pattern",
+              "title": "Working pattern",
+              "summary": "Separate deploy-time settings from runtime secrets and expose redacted effective values. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "operations-02-fact-model",
+                "operations-02-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "operations-02-fact-model",
+          "statement": "Configuration is typed behavior with defaults, precedence, scope, and ownership.",
+          "tags": [
+            "configuration",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-02-cite-editorial",
+            "operations-02-cite-reference"
+          ]
+        },
+        {
+          "id": "operations-02-fact-practice",
+          "statement": "Separate deploy-time settings from runtime secrets and expose redacted effective values.",
+          "tags": [
+            "practice",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-02-cite-editorial"
+          ]
+        },
+        {
+          "id": "operations-02-fact-caution",
+          "statement": "A hidden environment variable can change production behavior without a reviewable diff.",
+          "tags": [
+            "failure-mode",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-02-cite-editorial",
+            "operations-02-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "operations-02-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Configuration - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-02-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Twelve-Factor App",
+          "note": "Starting point for configuration; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://12factor.net/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-02-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "operations-03",
+        "version": "1.0.0",
+        "title": "Observability: Operations Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "operations"
+        ],
+        "tags": [
+          "observability",
+          "operations",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/operations.json",
+        "abstract_text": "Observability in Operations Practice: Operational signals should describe user-visible health and resource saturation together. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Observability - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "operations-03-chapter-model",
+          "title": "Model and scope",
+          "summary": "Operational signals should describe user-visible health and resource saturation together. This chapter fixes the vocabulary and boundary needed to reason about observability.",
+          "sections": [
+            {
+              "id": "operations-03-section-model",
+              "title": "Core model",
+              "summary": "Operational signals should describe user-visible health and resource saturation together.",
+              "key_facts": [
+                "operations-03-fact-model"
+              ]
+            },
+            {
+              "id": "operations-03-section-check",
+              "title": "Practical check",
+              "summary": "Correlate logs, metrics, traces, and events with stable identity. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "operations-03-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "operations-03-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "operations-03-section-failure",
+              "title": "Common failure",
+              "summary": "Infrastructure noise can look healthy while the user-facing workflow is failing. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "operations-03-fact-caution"
+              ]
+            },
+            {
+              "id": "operations-03-section-pattern",
+              "title": "Working pattern",
+              "summary": "Correlate logs, metrics, traces, and events with stable identity. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "operations-03-fact-model",
+                "operations-03-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "operations-03-fact-model",
+          "statement": "Operational signals should describe user-visible health and resource saturation together.",
+          "tags": [
+            "observability",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-03-cite-editorial",
+            "operations-03-cite-reference"
+          ]
+        },
+        {
+          "id": "operations-03-fact-practice",
+          "statement": "Correlate logs, metrics, traces, and events with stable identity.",
+          "tags": [
+            "practice",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-03-cite-editorial"
+          ]
+        },
+        {
+          "id": "operations-03-fact-caution",
+          "statement": "Infrastructure noise can look healthy while the user-facing workflow is failing.",
+          "tags": [
+            "failure-mode",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-03-cite-editorial",
+            "operations-03-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "operations-03-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Observability - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-03-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Twelve-Factor App",
+          "note": "Starting point for observability; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://12factor.net/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-03-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "operations-04",
+        "version": "1.0.0",
+        "title": "Incident Command: Operations Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "operations"
+        ],
+        "tags": [
+          "incident-command",
+          "operations",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/operations.json",
+        "abstract_text": "Incident Command in Operations Practice: Temporary roles and a shared state reduce confusion during an active failure. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Incident Command - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "operations-04-chapter-model",
+          "title": "Model and scope",
+          "summary": "Temporary roles and a shared state reduce confusion during an active failure. This chapter fixes the vocabulary and boundary needed to reason about incident command.",
+          "sections": [
+            {
+              "id": "operations-04-section-model",
+              "title": "Core model",
+              "summary": "Temporary roles and a shared state reduce confusion during an active failure.",
+              "key_facts": [
+                "operations-04-fact-model"
+              ]
+            },
+            {
+              "id": "operations-04-section-check",
+              "title": "Practical check",
+              "summary": "State impact, hypothesis, mitigation, owner, and next update time. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "operations-04-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "operations-04-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "operations-04-section-failure",
+              "title": "Common failure",
+              "summary": "Everyone investigating while nobody coordinates creates duplicated work and silence. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "operations-04-fact-caution"
+              ]
+            },
+            {
+              "id": "operations-04-section-pattern",
+              "title": "Working pattern",
+              "summary": "State impact, hypothesis, mitigation, owner, and next update time. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "operations-04-fact-model",
+                "operations-04-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "operations-04-fact-model",
+          "statement": "Temporary roles and a shared state reduce confusion during an active failure.",
+          "tags": [
+            "incident-command",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-04-cite-editorial",
+            "operations-04-cite-reference"
+          ]
+        },
+        {
+          "id": "operations-04-fact-practice",
+          "statement": "State impact, hypothesis, mitigation, owner, and next update time.",
+          "tags": [
+            "practice",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-04-cite-editorial"
+          ]
+        },
+        {
+          "id": "operations-04-fact-caution",
+          "statement": "Everyone investigating while nobody coordinates creates duplicated work and silence.",
+          "tags": [
+            "failure-mode",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-04-cite-editorial",
+            "operations-04-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "operations-04-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Incident Command - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-04-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Twelve-Factor App",
+          "note": "Starting point for incident command; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://12factor.net/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-04-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "operations-05",
+        "version": "1.0.0",
+        "title": "Backups: Operations Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "operations"
+        ],
+        "tags": [
+          "backups",
+          "operations",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/operations.json",
+        "abstract_text": "Backups in Operations Practice: A backup is useful only when restoration is timely, consistent, and understood. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Backups - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "operations-05-chapter-model",
+          "title": "Model and scope",
+          "summary": "A backup is useful only when restoration is timely, consistent, and understood. This chapter fixes the vocabulary and boundary needed to reason about backups.",
+          "sections": [
+            {
+              "id": "operations-05-section-model",
+              "title": "Core model",
+              "summary": "A backup is useful only when restoration is timely, consistent, and understood.",
+              "key_facts": [
+                "operations-05-fact-model"
+              ]
+            },
+            {
+              "id": "operations-05-section-check",
+              "title": "Practical check",
+              "summary": "Measure restore time and data loss against the actual service promise. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "operations-05-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "operations-05-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "operations-05-section-failure",
+              "title": "Common failure",
+              "summary": "Successful backup jobs without restore drills provide false confidence. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "operations-05-fact-caution"
+              ]
+            },
+            {
+              "id": "operations-05-section-pattern",
+              "title": "Working pattern",
+              "summary": "Measure restore time and data loss against the actual service promise. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "operations-05-fact-model",
+                "operations-05-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "operations-05-fact-model",
+          "statement": "A backup is useful only when restoration is timely, consistent, and understood.",
+          "tags": [
+            "backups",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-05-cite-editorial",
+            "operations-05-cite-reference"
+          ]
+        },
+        {
+          "id": "operations-05-fact-practice",
+          "statement": "Measure restore time and data loss against the actual service promise.",
+          "tags": [
+            "practice",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-05-cite-editorial"
+          ]
+        },
+        {
+          "id": "operations-05-fact-caution",
+          "statement": "Successful backup jobs without restore drills provide false confidence.",
+          "tags": [
+            "failure-mode",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-05-cite-editorial",
+            "operations-05-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "operations-05-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Backups - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-05-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Twelve-Factor App",
+          "note": "Starting point for backups; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://12factor.net/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-05-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "operations-06",
+        "version": "1.0.0",
+        "title": "Capacity: Operations Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "operations"
+        ],
+        "tags": [
+          "capacity",
+          "operations",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/operations.json",
+        "abstract_text": "Capacity in Operations Practice: Capacity connects demand shape to limits, headroom, and safe degraded behavior. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Capacity - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "operations-06-chapter-model",
+          "title": "Model and scope",
+          "summary": "Capacity connects demand shape to limits, headroom, and safe degraded behavior. This chapter fixes the vocabulary and boundary needed to reason about capacity.",
+          "sections": [
+            {
+              "id": "operations-06-section-model",
+              "title": "Core model",
+              "summary": "Capacity connects demand shape to limits, headroom, and safe degraded behavior.",
+              "key_facts": [
+                "operations-06-fact-model"
+              ]
+            },
+            {
+              "id": "operations-06-section-check",
+              "title": "Practical check",
+              "summary": "Identify leading saturation signals and admission limits before hard exhaustion. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "operations-06-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "operations-06-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "operations-06-section-failure",
+              "title": "Common failure",
+              "summary": "Scaling one resource while a shared dependency is the bottleneck only moves failure. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "operations-06-fact-caution"
+              ]
+            },
+            {
+              "id": "operations-06-section-pattern",
+              "title": "Working pattern",
+              "summary": "Identify leading saturation signals and admission limits before hard exhaustion. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "operations-06-fact-model",
+                "operations-06-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "operations-06-fact-model",
+          "statement": "Capacity connects demand shape to limits, headroom, and safe degraded behavior.",
+          "tags": [
+            "capacity",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-06-cite-editorial",
+            "operations-06-cite-reference"
+          ]
+        },
+        {
+          "id": "operations-06-fact-practice",
+          "statement": "Identify leading saturation signals and admission limits before hard exhaustion.",
+          "tags": [
+            "practice",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-06-cite-editorial"
+          ]
+        },
+        {
+          "id": "operations-06-fact-caution",
+          "statement": "Scaling one resource while a shared dependency is the bottleneck only moves failure.",
+          "tags": [
+            "failure-mode",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-06-cite-editorial",
+            "operations-06-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "operations-06-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Capacity - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-06-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Twelve-Factor App",
+          "note": "Starting point for capacity; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://12factor.net/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-06-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "operations-07",
+        "version": "1.0.0",
+        "title": "Reliability: Operations Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "operations"
+        ],
+        "tags": [
+          "reliability",
+          "operations",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/operations.json",
+        "abstract_text": "Reliability in Operations Practice: Reliability is a user-visible promise with an error budget and consequence. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Reliability - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "operations-07-chapter-model",
+          "title": "Model and scope",
+          "summary": "Reliability is a user-visible promise with an error budget and consequence. This chapter fixes the vocabulary and boundary needed to reason about reliability.",
+          "sections": [
+            {
+              "id": "operations-07-section-model",
+              "title": "Core model",
+              "summary": "Reliability is a user-visible promise with an error budget and consequence.",
+              "key_facts": [
+                "operations-07-fact-model"
+              ]
+            },
+            {
+              "id": "operations-07-section-check",
+              "title": "Practical check",
+              "summary": "Tie service indicators to journeys, windows, exclusions, and engineering decisions. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "operations-07-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "operations-07-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "operations-07-section-failure",
+              "title": "Common failure",
+              "summary": "A percentage target disconnected from user behavior cannot guide tradeoffs. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "operations-07-fact-caution"
+              ]
+            },
+            {
+              "id": "operations-07-section-pattern",
+              "title": "Working pattern",
+              "summary": "Tie service indicators to journeys, windows, exclusions, and engineering decisions. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "operations-07-fact-model",
+                "operations-07-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "operations-07-fact-model",
+          "statement": "Reliability is a user-visible promise with an error budget and consequence.",
+          "tags": [
+            "reliability",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-07-cite-editorial",
+            "operations-07-cite-reference"
+          ]
+        },
+        {
+          "id": "operations-07-fact-practice",
+          "statement": "Tie service indicators to journeys, windows, exclusions, and engineering decisions.",
+          "tags": [
+            "practice",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-07-cite-editorial"
+          ]
+        },
+        {
+          "id": "operations-07-fact-caution",
+          "statement": "A percentage target disconnected from user behavior cannot guide tradeoffs.",
+          "tags": [
+            "failure-mode",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-07-cite-editorial",
+            "operations-07-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "operations-07-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Reliability - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-07-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Twelve-Factor App",
+          "note": "Starting point for reliability; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://12factor.net/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-07-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "operations-08",
+        "version": "1.0.0",
+        "title": "Runbooks: Operations Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "operations"
+        ],
+        "tags": [
+          "runbooks",
+          "operations",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/operations.json",
+        "abstract_text": "Runbooks in Operations Practice: Runbooks document safe decisions and recovery actions that are hard to improvise. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Runbooks - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "operations-08-chapter-model",
+          "title": "Model and scope",
+          "summary": "Runbooks document safe decisions and recovery actions that are hard to improvise. This chapter fixes the vocabulary and boundary needed to reason about runbooks.",
+          "sections": [
+            {
+              "id": "operations-08-section-model",
+              "title": "Core model",
+              "summary": "Runbooks document safe decisions and recovery actions that are hard to improvise.",
+              "key_facts": [
+                "operations-08-fact-model"
+              ]
+            },
+            {
+              "id": "operations-08-section-check",
+              "title": "Practical check",
+              "summary": "Include symptoms, scope checks, stop conditions, expected evidence, and escalation. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "operations-08-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "operations-08-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "operations-08-section-failure",
+              "title": "Common failure",
+              "summary": "An old incident transcript without current preconditions is not a reliable runbook. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "operations-08-fact-caution"
+              ]
+            },
+            {
+              "id": "operations-08-section-pattern",
+              "title": "Working pattern",
+              "summary": "Include symptoms, scope checks, stop conditions, expected evidence, and escalation. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "operations-08-fact-model",
+                "operations-08-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "operations-08-fact-model",
+          "statement": "Runbooks document safe decisions and recovery actions that are hard to improvise.",
+          "tags": [
+            "runbooks",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-08-cite-editorial",
+            "operations-08-cite-reference"
+          ]
+        },
+        {
+          "id": "operations-08-fact-practice",
+          "statement": "Include symptoms, scope checks, stop conditions, expected evidence, and escalation.",
+          "tags": [
+            "practice",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-08-cite-editorial"
+          ]
+        },
+        {
+          "id": "operations-08-fact-caution",
+          "statement": "An old incident transcript without current preconditions is not a reliable runbook.",
+          "tags": [
+            "failure-mode",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-08-cite-editorial",
+            "operations-08-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "operations-08-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Runbooks - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-08-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Twelve-Factor App",
+          "note": "Starting point for runbooks; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://12factor.net/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-08-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "operations-09",
+        "version": "1.0.0",
+        "title": "Change Management: Operations Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "operations"
+        ],
+        "tags": [
+          "change-management",
+          "operations",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/operations.json",
+        "abstract_text": "Change Management in Operations Practice: Risk is lower when changes are visible, reversible, and proportionate to impact. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Change Management - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "operations-09-chapter-model",
+          "title": "Model and scope",
+          "summary": "Risk is lower when changes are visible, reversible, and proportionate to impact. This chapter fixes the vocabulary and boundary needed to reason about change management.",
+          "sections": [
+            {
+              "id": "operations-09-section-model",
+              "title": "Core model",
+              "summary": "Risk is lower when changes are visible, reversible, and proportionate to impact.",
+              "key_facts": [
+                "operations-09-fact-model"
+              ]
+            },
+            {
+              "id": "operations-09-section-check",
+              "title": "Practical check",
+              "summary": "Use risk tiers, automated checks, progressive exposure, and an audit trail. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "operations-09-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "operations-09-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "operations-09-section-failure",
+              "title": "Common failure",
+              "summary": "Silent mutation and ritual approval are opposite failures of the same control. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "operations-09-fact-caution"
+              ]
+            },
+            {
+              "id": "operations-09-section-pattern",
+              "title": "Working pattern",
+              "summary": "Use risk tiers, automated checks, progressive exposure, and an audit trail. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "operations-09-fact-model",
+                "operations-09-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "operations-09-fact-model",
+          "statement": "Risk is lower when changes are visible, reversible, and proportionate to impact.",
+          "tags": [
+            "change-management",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-09-cite-editorial",
+            "operations-09-cite-reference"
+          ]
+        },
+        {
+          "id": "operations-09-fact-practice",
+          "statement": "Use risk tiers, automated checks, progressive exposure, and an audit trail.",
+          "tags": [
+            "practice",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-09-cite-editorial"
+          ]
+        },
+        {
+          "id": "operations-09-fact-caution",
+          "statement": "Silent mutation and ritual approval are opposite failures of the same control.",
+          "tags": [
+            "failure-mode",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-09-cite-editorial",
+            "operations-09-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "operations-09-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Change Management - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-09-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Twelve-Factor App",
+          "note": "Starting point for change management; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://12factor.net/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-09-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "operations-10",
+        "version": "1.0.0",
+        "title": "Decommissioning: Operations Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "operations"
+        ],
+        "tags": [
+          "decommissioning",
+          "operations",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/operations.json",
+        "abstract_text": "Decommissioning in Operations Practice: Removal requires evidence of dependency absence, migration, retention, and access closure. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Decommissioning - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "operations-10-chapter-model",
+          "title": "Model and scope",
+          "summary": "Removal requires evidence of dependency absence, migration, retention, and access closure. This chapter fixes the vocabulary and boundary needed to reason about decommissioning.",
+          "sections": [
+            {
+              "id": "operations-10-section-model",
+              "title": "Core model",
+              "summary": "Removal requires evidence of dependency absence, migration, retention, and access closure.",
+              "key_facts": [
+                "operations-10-fact-model"
+              ]
+            },
+            {
+              "id": "operations-10-section-check",
+              "title": "Practical check",
+              "summary": "Use a shadow period, usage measurement, staged shutdown, and final evidence bundle. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "operations-10-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "operations-10-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "operations-10-section-failure",
+              "title": "Common failure",
+              "summary": "An undocumented job can make a deleted service the hidden cause of a later incident. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "operations-10-fact-caution"
+              ]
+            },
+            {
+              "id": "operations-10-section-pattern",
+              "title": "Working pattern",
+              "summary": "Use a shadow period, usage measurement, staged shutdown, and final evidence bundle. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "operations-10-fact-model",
+                "operations-10-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "operations-10-fact-model",
+          "statement": "Removal requires evidence of dependency absence, migration, retention, and access closure.",
+          "tags": [
+            "decommissioning",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-10-cite-editorial",
+            "operations-10-cite-reference"
+          ]
+        },
+        {
+          "id": "operations-10-fact-practice",
+          "statement": "Use a shadow period, usage measurement, staged shutdown, and final evidence bundle.",
+          "tags": [
+            "practice",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-10-cite-editorial"
+          ]
+        },
+        {
+          "id": "operations-10-fact-caution",
+          "statement": "An undocumented job can make a deleted service the hidden cause of a later incident.",
+          "tags": [
+            "failure-mode",
+            "operations"
+          ],
+          "citation_ids": [
+            "operations-10-cite-editorial",
+            "operations-10-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "operations-10-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Decommissioning - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-10-cite-reference",
+          "locator": "reference landing page",
+          "source": "The Twelve-Factor App",
+          "note": "Starting point for decommissioning; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://12factor.net/",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "operations-10-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1597 @@
+{
+  "schema_version": 2,
+  "pack_id": "writing",
+  "title": "Technical Writing",
+  "books": [
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "writing-01",
+        "version": "1.0.0",
+        "title": "Audience: Technical Writing",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "writing"
+        ],
+        "tags": [
+          "audience",
+          "writing",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/writing.json",
+        "abstract_text": "Audience in Technical Writing: Audience is the task, context, vocabulary, and risk a reader brings. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Audience - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "writing-01-chapter-model",
+          "title": "Model and scope",
+          "summary": "Audience is the task, context, vocabulary, and risk a reader brings. This chapter fixes the vocabulary and boundary needed to reason about audience.",
+          "sections": [
+            {
+              "id": "writing-01-section-model",
+              "title": "Core model",
+              "summary": "Audience is the task, context, vocabulary, and risk a reader brings.",
+              "key_facts": [
+                "writing-01-fact-model"
+              ]
+            },
+            {
+              "id": "writing-01-section-check",
+              "title": "Practical check",
+              "summary": "State what the reader should be able to do after the page. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "writing-01-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "writing-01-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "writing-01-section-failure",
+              "title": "Common failure",
+              "summary": "Explaining internals while leaving the next user action unclear misses the audience. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "writing-01-fact-caution"
+              ]
+            },
+            {
+              "id": "writing-01-section-pattern",
+              "title": "Working pattern",
+              "summary": "State what the reader should be able to do after the page. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "writing-01-fact-model",
+                "writing-01-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "writing-01-fact-model",
+          "statement": "Audience is the task, context, vocabulary, and risk a reader brings.",
+          "tags": [
+            "audience",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-01-cite-editorial",
+            "writing-01-cite-reference"
+          ]
+        },
+        {
+          "id": "writing-01-fact-practice",
+          "statement": "State what the reader should be able to do after the page.",
+          "tags": [
+            "practice",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-01-cite-editorial"
+          ]
+        },
+        {
+          "id": "writing-01-fact-caution",
+          "statement": "Explaining internals while leaving the next user action unclear misses the audience.",
+          "tags": [
+            "failure-mode",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-01-cite-editorial",
+            "writing-01-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "writing-01-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Audience - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-01-cite-reference",
+          "locator": "reference landing page",
+          "source": "Technical Writing One",
+          "note": "Starting point for audience; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://developers.google.com/tech-writing",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-01-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "writing-02",
+        "version": "1.0.0",
+        "title": "Structure: Technical Writing",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "writing"
+        ],
+        "tags": [
+          "structure",
+          "writing",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/writing.json",
+        "abstract_text": "Structure in Technical Writing: Information order should match how a reader will use it. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Structure - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "writing-02-chapter-model",
+          "title": "Model and scope",
+          "summary": "Information order should match how a reader will use it. This chapter fixes the vocabulary and boundary needed to reason about structure.",
+          "sections": [
+            {
+              "id": "writing-02-section-model",
+              "title": "Core model",
+              "summary": "Information order should match how a reader will use it.",
+              "key_facts": [
+                "writing-02-fact-model"
+              ]
+            },
+            {
+              "id": "writing-02-section-check",
+              "title": "Practical check",
+              "summary": "Move from purpose and prerequisites through action, result, and recovery. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "writing-02-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "writing-02-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "writing-02-section-failure",
+              "title": "Common failure",
+              "summary": "Preserving the author’s discovery order makes a procedure hard to follow. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "writing-02-fact-caution"
+              ]
+            },
+            {
+              "id": "writing-02-section-pattern",
+              "title": "Working pattern",
+              "summary": "Move from purpose and prerequisites through action, result, and recovery. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "writing-02-fact-model",
+                "writing-02-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "writing-02-fact-model",
+          "statement": "Information order should match how a reader will use it.",
+          "tags": [
+            "structure",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-02-cite-editorial",
+            "writing-02-cite-reference"
+          ]
+        },
+        {
+          "id": "writing-02-fact-practice",
+          "statement": "Move from purpose and prerequisites through action, result, and recovery.",
+          "tags": [
+            "practice",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-02-cite-editorial"
+          ]
+        },
+        {
+          "id": "writing-02-fact-caution",
+          "statement": "Preserving the author’s discovery order makes a procedure hard to follow.",
+          "tags": [
+            "failure-mode",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-02-cite-editorial",
+            "writing-02-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "writing-02-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Structure - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-02-cite-reference",
+          "locator": "reference landing page",
+          "source": "Technical Writing One",
+          "note": "Starting point for structure; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://developers.google.com/tech-writing",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-02-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "writing-03",
+        "version": "1.0.0",
+        "title": "Clarity: Technical Writing",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "writing"
+        ],
+        "tags": [
+          "clarity",
+          "writing",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/writing.json",
+        "abstract_text": "Clarity in Technical Writing: Concrete subjects, verbs, and bounded claims reduce interpretation work. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Clarity - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "writing-03-chapter-model",
+          "title": "Model and scope",
+          "summary": "Concrete subjects, verbs, and bounded claims reduce interpretation work. This chapter fixes the vocabulary and boundary needed to reason about clarity.",
+          "sections": [
+            {
+              "id": "writing-03-section-model",
+              "title": "Core model",
+              "summary": "Concrete subjects, verbs, and bounded claims reduce interpretation work.",
+              "key_facts": [
+                "writing-03-fact-model"
+              ]
+            },
+            {
+              "id": "writing-03-section-check",
+              "title": "Practical check",
+              "summary": "Define terms once, use them consistently, and split overloaded sentences. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "writing-03-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "writing-03-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "writing-03-section-failure",
+              "title": "Common failure",
+              "summary": "Promotional or passive language can hide who acts and what can fail. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "writing-03-fact-caution"
+              ]
+            },
+            {
+              "id": "writing-03-section-pattern",
+              "title": "Working pattern",
+              "summary": "Define terms once, use them consistently, and split overloaded sentences. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "writing-03-fact-model",
+                "writing-03-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "writing-03-fact-model",
+          "statement": "Concrete subjects, verbs, and bounded claims reduce interpretation work.",
+          "tags": [
+            "clarity",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-03-cite-editorial",
+            "writing-03-cite-reference"
+          ]
+        },
+        {
+          "id": "writing-03-fact-practice",
+          "statement": "Define terms once, use them consistently, and split overloaded sentences.",
+          "tags": [
+            "practice",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-03-cite-editorial"
+          ]
+        },
+        {
+          "id": "writing-03-fact-caution",
+          "statement": "Promotional or passive language can hide who acts and what can fail.",
+          "tags": [
+            "failure-mode",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-03-cite-editorial",
+            "writing-03-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "writing-03-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Clarity - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-03-cite-reference",
+          "locator": "reference landing page",
+          "source": "Technical Writing One",
+          "note": "Starting point for clarity; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://developers.google.com/tech-writing",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-03-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "writing-04",
+        "version": "1.0.0",
+        "title": "Technical Procedures: Technical Writing",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "writing"
+        ],
+        "tags": [
+          "technical-procedures",
+          "writing",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/writing.json",
+        "abstract_text": "Technical Procedures in Technical Writing: Executable documentation states preconditions, actions, expected output, and recovery. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Technical Procedures - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "writing-04-chapter-model",
+          "title": "Model and scope",
+          "summary": "Executable documentation states preconditions, actions, expected output, and recovery. This chapter fixes the vocabulary and boundary needed to reason about technical procedures.",
+          "sections": [
+            {
+              "id": "writing-04-section-model",
+              "title": "Core model",
+              "summary": "Executable documentation states preconditions, actions, expected output, and recovery.",
+              "key_facts": [
+                "writing-04-fact-model"
+              ]
+            },
+            {
+              "id": "writing-04-section-check",
+              "title": "Practical check",
+              "summary": "Test procedures from a clean start and show what success looks like. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "writing-04-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "writing-04-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "writing-04-section-failure",
+              "title": "Common failure",
+              "summary": "A command sequence with hidden permissions or state fails outside its author’s machine. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "writing-04-fact-caution"
+              ]
+            },
+            {
+              "id": "writing-04-section-pattern",
+              "title": "Working pattern",
+              "summary": "Test procedures from a clean start and show what success looks like. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "writing-04-fact-model",
+                "writing-04-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "writing-04-fact-model",
+          "statement": "Executable documentation states preconditions, actions, expected output, and recovery.",
+          "tags": [
+            "technical-procedures",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-04-cite-editorial",
+            "writing-04-cite-reference"
+          ]
+        },
+        {
+          "id": "writing-04-fact-practice",
+          "statement": "Test procedures from a clean start and show what success looks like.",
+          "tags": [
+            "practice",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-04-cite-editorial"
+          ]
+        },
+        {
+          "id": "writing-04-fact-caution",
+          "statement": "A command sequence with hidden permissions or state fails outside its author’s machine.",
+          "tags": [
+            "failure-mode",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-04-cite-editorial",
+            "writing-04-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "writing-04-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Technical Procedures - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-04-cite-reference",
+          "locator": "reference landing page",
+          "source": "Technical Writing One",
+          "note": "Starting point for technical procedures; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://developers.google.com/tech-writing",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-04-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "writing-05",
+        "version": "1.0.0",
+        "title": "Examples: Technical Writing",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "writing"
+        ],
+        "tags": [
+          "examples",
+          "writing",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/writing.json",
+        "abstract_text": "Examples in Technical Writing: Examples expose solution shape and limits when complete enough to run. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Examples - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "writing-05-chapter-model",
+          "title": "Model and scope",
+          "summary": "Examples expose solution shape and limits when complete enough to run. This chapter fixes the vocabulary and boundary needed to reason about examples.",
+          "sections": [
+            {
+              "id": "writing-05-section-model",
+              "title": "Core model",
+              "summary": "Examples expose solution shape and limits when complete enough to run.",
+              "key_facts": [
+                "writing-05-fact-model"
+              ]
+            },
+            {
+              "id": "writing-05-section-check",
+              "title": "Practical check",
+              "summary": "Include a small variation or boundary case when it prevents misuse. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "writing-05-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "writing-05-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "writing-05-section-failure",
+              "title": "Common failure",
+              "summary": "A polished snippet that omits imports, errors, or contract context teaches the wrong lesson. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "writing-05-fact-caution"
+              ]
+            },
+            {
+              "id": "writing-05-section-pattern",
+              "title": "Working pattern",
+              "summary": "Include a small variation or boundary case when it prevents misuse. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "writing-05-fact-model",
+                "writing-05-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "writing-05-fact-model",
+          "statement": "Examples expose solution shape and limits when complete enough to run.",
+          "tags": [
+            "examples",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-05-cite-editorial",
+            "writing-05-cite-reference"
+          ]
+        },
+        {
+          "id": "writing-05-fact-practice",
+          "statement": "Include a small variation or boundary case when it prevents misuse.",
+          "tags": [
+            "practice",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-05-cite-editorial"
+          ]
+        },
+        {
+          "id": "writing-05-fact-caution",
+          "statement": "A polished snippet that omits imports, errors, or contract context teaches the wrong lesson.",
+          "tags": [
+            "failure-mode",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-05-cite-editorial",
+            "writing-05-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "writing-05-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Examples - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-05-cite-reference",
+          "locator": "reference landing page",
+          "source": "Technical Writing One",
+          "note": "Starting point for examples; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://developers.google.com/tech-writing",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-05-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "writing-06",
+        "version": "1.0.0",
+        "title": "Editing: Technical Writing",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "writing"
+        ],
+        "tags": [
+          "editing",
+          "writing",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/writing.json",
+        "abstract_text": "Editing in Technical Writing: Separate correctness, structure, clarity, and economy into deliberate passes. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Editing - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "writing-06-chapter-model",
+          "title": "Model and scope",
+          "summary": "Separate correctness, structure, clarity, and economy into deliberate passes. This chapter fixes the vocabulary and boundary needed to reason about editing.",
+          "sections": [
+            {
+              "id": "writing-06-section-model",
+              "title": "Core model",
+              "summary": "Separate correctness, structure, clarity, and economy into deliberate passes.",
+              "key_facts": [
+                "writing-06-fact-model"
+              ]
+            },
+            {
+              "id": "writing-06-section-check",
+              "title": "Practical check",
+              "summary": "Check every claim, link, command, example, and reader decision. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "writing-06-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "writing-06-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "writing-06-section-failure",
+              "title": "Common failure",
+              "summary": "Polishing sentences cannot repair a missing decision or contradictory term. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "writing-06-fact-caution"
+              ]
+            },
+            {
+              "id": "writing-06-section-pattern",
+              "title": "Working pattern",
+              "summary": "Check every claim, link, command, example, and reader decision. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "writing-06-fact-model",
+                "writing-06-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "writing-06-fact-model",
+          "statement": "Separate correctness, structure, clarity, and economy into deliberate passes.",
+          "tags": [
+            "editing",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-06-cite-editorial",
+            "writing-06-cite-reference"
+          ]
+        },
+        {
+          "id": "writing-06-fact-practice",
+          "statement": "Check every claim, link, command, example, and reader decision.",
+          "tags": [
+            "practice",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-06-cite-editorial"
+          ]
+        },
+        {
+          "id": "writing-06-fact-caution",
+          "statement": "Polishing sentences cannot repair a missing decision or contradictory term.",
+          "tags": [
+            "failure-mode",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-06-cite-editorial",
+            "writing-06-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "writing-06-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Editing - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-06-cite-reference",
+          "locator": "reference landing page",
+          "source": "Technical Writing One",
+          "note": "Starting point for editing; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://developers.google.com/tech-writing",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-06-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "writing-07",
+        "version": "1.0.0",
+        "title": "Terminology: Technical Writing",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "writing"
+        ],
+        "tags": [
+          "terminology",
+          "writing",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/writing.json",
+        "abstract_text": "Terminology in Technical Writing: A controlled vocabulary makes behavior and search more consistent. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Terminology - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "writing-07-chapter-model",
+          "title": "Model and scope",
+          "summary": "A controlled vocabulary makes behavior and search more consistent. This chapter fixes the vocabulary and boundary needed to reason about terminology.",
+          "sections": [
+            {
+              "id": "writing-07-section-model",
+              "title": "Core model",
+              "summary": "A controlled vocabulary makes behavior and search more consistent.",
+              "key_facts": [
+                "writing-07-fact-model"
+              ]
+            },
+            {
+              "id": "writing-07-section-check",
+              "title": "Practical check",
+              "summary": "Record preferred, avoided, and overloaded terms with exact meanings. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "writing-07-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "writing-07-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "writing-07-section-failure",
+              "title": "Common failure",
+              "summary": "Varying labels for style can make cross-reference and support unreliable. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "writing-07-fact-caution"
+              ]
+            },
+            {
+              "id": "writing-07-section-pattern",
+              "title": "Working pattern",
+              "summary": "Record preferred, avoided, and overloaded terms with exact meanings. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "writing-07-fact-model",
+                "writing-07-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "writing-07-fact-model",
+          "statement": "A controlled vocabulary makes behavior and search more consistent.",
+          "tags": [
+            "terminology",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-07-cite-editorial",
+            "writing-07-cite-reference"
+          ]
+        },
+        {
+          "id": "writing-07-fact-practice",
+          "statement": "Record preferred, avoided, and overloaded terms with exact meanings.",
+          "tags": [
+            "practice",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-07-cite-editorial"
+          ]
+        },
+        {
+          "id": "writing-07-fact-caution",
+          "statement": "Varying labels for style can make cross-reference and support unreliable.",
+          "tags": [
+            "failure-mode",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-07-cite-editorial",
+            "writing-07-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "writing-07-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Terminology - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-07-cite-reference",
+          "locator": "reference landing page",
+          "source": "Technical Writing One",
+          "note": "Starting point for terminology; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://developers.google.com/tech-writing",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-07-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "writing-08",
+        "version": "1.0.0",
+        "title": "Citations: Technical Writing",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "writing"
+        ],
+        "tags": [
+          "citations",
+          "writing",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/writing.json",
+        "abstract_text": "Citations in Technical Writing: Readers should distinguish source claims, editorial synthesis, and current project facts. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Citations - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "writing-08-chapter-model",
+          "title": "Model and scope",
+          "summary": "Readers should distinguish source claims, editorial synthesis, and current project facts. This chapter fixes the vocabulary and boundary needed to reason about citations.",
+          "sections": [
+            {
+              "id": "writing-08-section-model",
+              "title": "Core model",
+              "summary": "Readers should distinguish source claims, editorial synthesis, and current project facts.",
+              "key_facts": [
+                "writing-08-fact-model"
+              ]
+            },
+            {
+              "id": "writing-08-section-check",
+              "title": "Practical check",
+              "summary": "Record source kind, title, publisher, locator, access date, and scope honestly. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "writing-08-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "writing-08-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "writing-08-section-failure",
+              "title": "Common failure",
+              "summary": "Attaching a prestigious source to an unsourced interpretation misleads readers. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "writing-08-fact-caution"
+              ]
+            },
+            {
+              "id": "writing-08-section-pattern",
+              "title": "Working pattern",
+              "summary": "Record source kind, title, publisher, locator, access date, and scope honestly. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "writing-08-fact-model",
+                "writing-08-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "writing-08-fact-model",
+          "statement": "Readers should distinguish source claims, editorial synthesis, and current project facts.",
+          "tags": [
+            "citations",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-08-cite-editorial",
+            "writing-08-cite-reference"
+          ]
+        },
+        {
+          "id": "writing-08-fact-practice",
+          "statement": "Record source kind, title, publisher, locator, access date, and scope honestly.",
+          "tags": [
+            "practice",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-08-cite-editorial"
+          ]
+        },
+        {
+          "id": "writing-08-fact-caution",
+          "statement": "Attaching a prestigious source to an unsourced interpretation misleads readers.",
+          "tags": [
+            "failure-mode",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-08-cite-editorial",
+            "writing-08-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "writing-08-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Citations - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-08-cite-reference",
+          "locator": "reference landing page",
+          "source": "Technical Writing One",
+          "note": "Starting point for citations; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://developers.google.com/tech-writing",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-08-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "writing-09",
+        "version": "1.0.0",
+        "title": "Change Notes: Technical Writing",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "writing"
+        ],
+        "tags": [
+          "change-notes",
+          "writing",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/writing.json",
+        "abstract_text": "Change Notes in Technical Writing: Release notes help users decide whether to act by stating impact and migration. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Change Notes - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "writing-09-chapter-model",
+          "title": "Model and scope",
+          "summary": "Release notes help users decide whether to act by stating impact and migration. This chapter fixes the vocabulary and boundary needed to reason about change notes.",
+          "sections": [
+            {
+              "id": "writing-09-section-model",
+              "title": "Core model",
+              "summary": "Release notes help users decide whether to act by stating impact and migration.",
+              "key_facts": [
+                "writing-09-fact-model"
+              ]
+            },
+            {
+              "id": "writing-09-section-check",
+              "title": "Practical check",
+              "summary": "Put breaking behavior and required action before internal implementation detail. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "writing-09-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "writing-09-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "writing-09-section-failure",
+              "title": "Common failure",
+              "summary": "“Improvements” without changed defaults or removed paths hides user risk. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "writing-09-fact-caution"
+              ]
+            },
+            {
+              "id": "writing-09-section-pattern",
+              "title": "Working pattern",
+              "summary": "Put breaking behavior and required action before internal implementation detail. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "writing-09-fact-model",
+                "writing-09-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "writing-09-fact-model",
+          "statement": "Release notes help users decide whether to act by stating impact and migration.",
+          "tags": [
+            "change-notes",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-09-cite-editorial",
+            "writing-09-cite-reference"
+          ]
+        },
+        {
+          "id": "writing-09-fact-practice",
+          "statement": "Put breaking behavior and required action before internal implementation detail.",
+          "tags": [
+            "practice",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-09-cite-editorial"
+          ]
+        },
+        {
+          "id": "writing-09-fact-caution",
+          "statement": "“Improvements” without changed defaults or removed paths hides user risk.",
+          "tags": [
+            "failure-mode",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-09-cite-editorial",
+            "writing-09-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "writing-09-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Change Notes - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-09-cite-reference",
+          "locator": "reference landing page",
+          "source": "Technical Writing One",
+          "note": "Starting point for change notes; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://developers.google.com/tech-writing",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-09-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "writing-10",
+        "version": "1.0.0",
+        "title": "Documentation Maintenance: Technical Writing",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "writing"
+        ],
+        "tags": [
+          "documentation-maintenance",
+          "writing",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/writing.json",
+        "abstract_text": "Documentation Maintenance in Technical Writing: Docs need owners, freshness expectations, checks, and an archive policy. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Documentation Maintenance - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "writing-10-chapter-model",
+          "title": "Model and scope",
+          "summary": "Docs need owners, freshness expectations, checks, and an archive policy. This chapter fixes the vocabulary and boundary needed to reason about documentation maintenance.",
+          "sections": [
+            {
+              "id": "writing-10-section-model",
+              "title": "Core model",
+              "summary": "Docs need owners, freshness expectations, checks, and an archive policy.",
+              "key_facts": [
+                "writing-10-fact-model"
+              ]
+            },
+            {
+              "id": "writing-10-section-check",
+              "title": "Practical check",
+              "summary": "Mark generated, verified, planned, and stale material distinctly. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "writing-10-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "writing-10-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "writing-10-section-failure",
+              "title": "Common failure",
+              "summary": "Silently leaving old instructions that look authoritative creates operational debt. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "writing-10-fact-caution"
+              ]
+            },
+            {
+              "id": "writing-10-section-pattern",
+              "title": "Working pattern",
+              "summary": "Mark generated, verified, planned, and stale material distinctly. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "writing-10-fact-model",
+                "writing-10-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "writing-10-fact-model",
+          "statement": "Docs need owners, freshness expectations, checks, and an archive policy.",
+          "tags": [
+            "documentation-maintenance",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-10-cite-editorial",
+            "writing-10-cite-reference"
+          ]
+        },
+        {
+          "id": "writing-10-fact-practice",
+          "statement": "Mark generated, verified, planned, and stale material distinctly.",
+          "tags": [
+            "practice",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-10-cite-editorial"
+          ]
+        },
+        {
+          "id": "writing-10-fact-caution",
+          "statement": "Silently leaving old instructions that look authoritative creates operational debt.",
+          "tags": [
+            "failure-mode",
+            "writing"
+          ],
+          "citation_ids": [
+            "writing-10-cite-editorial",
+            "writing-10-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "writing-10-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Documentation Maintenance - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-10-cite-reference",
+          "locator": "reference landing page",
+          "source": "Technical Writing One",
+          "note": "Starting point for documentation maintenance; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://developers.google.com/tech-writing",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "writing-10-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1597 @@
+{
+  "schema_version": 2,
+  "pack_id": "data",
+  "title": "Data Practice",
+  "books": [
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "data-01",
+        "version": "1.0.0",
+        "title": "Data Modeling: Data Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "data"
+        ],
+        "tags": [
+          "data-modeling",
+          "data",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/data.json",
+        "abstract_text": "Data Modeling in Data Practice: A durable model separates identity, state, relationships, and history. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Data Modeling - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "data-01-chapter-model",
+          "title": "Model and scope",
+          "summary": "A durable model separates identity, state, relationships, and history. This chapter fixes the vocabulary and boundary needed to reason about data modeling.",
+          "sections": [
+            {
+              "id": "data-01-section-model",
+              "title": "Core model",
+              "summary": "A durable model separates identity, state, relationships, and history.",
+              "key_facts": [
+                "data-01-fact-model"
+              ]
+            },
+            {
+              "id": "data-01-section-check",
+              "title": "Practical check",
+              "summary": "Write cardinality and lifecycle rules beside the schema. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "data-01-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "data-01-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "data-01-section-failure",
+              "title": "Common failure",
+              "summary": "A convenient blob becomes costly when its internal invariants cannot be queried or migrated. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "data-01-fact-caution"
+              ]
+            },
+            {
+              "id": "data-01-section-pattern",
+              "title": "Working pattern",
+              "summary": "Write cardinality and lifecycle rules beside the schema. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "data-01-fact-model",
+                "data-01-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "data-01-fact-model",
+          "statement": "A durable model separates identity, state, relationships, and history.",
+          "tags": [
+            "data-modeling",
+            "data"
+          ],
+          "citation_ids": [
+            "data-01-cite-editorial",
+            "data-01-cite-reference"
+          ]
+        },
+        {
+          "id": "data-01-fact-practice",
+          "statement": "Write cardinality and lifecycle rules beside the schema.",
+          "tags": [
+            "practice",
+            "data"
+          ],
+          "citation_ids": [
+            "data-01-cite-editorial"
+          ]
+        },
+        {
+          "id": "data-01-fact-caution",
+          "statement": "A convenient blob becomes costly when its internal invariants cannot be queried or migrated.",
+          "tags": [
+            "failure-mode",
+            "data"
+          ],
+          "citation_ids": [
+            "data-01-cite-editorial",
+            "data-01-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "data-01-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Data Modeling - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-01-cite-reference",
+          "locator": "reference landing page",
+          "source": "SQLite Language Reference",
+          "note": "Starting point for data modeling; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.sqlite.org/lang.html",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-01-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "data-02",
+        "version": "1.0.0",
+        "title": "Query Shape: Data Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "data"
+        ],
+        "tags": [
+          "query-shape",
+          "data",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/data.json",
+        "abstract_text": "Query Shape in Data Practice: A query is both a transformation and a bounded resource request. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Query Shape - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "data-02-chapter-model",
+          "title": "Model and scope",
+          "summary": "A query is both a transformation and a bounded resource request. This chapter fixes the vocabulary and boundary needed to reason about query shape.",
+          "sections": [
+            {
+              "id": "data-02-section-model",
+              "title": "Core model",
+              "summary": "A query is both a transformation and a bounded resource request.",
+              "key_facts": [
+                "data-02-fact-model"
+              ]
+            },
+            {
+              "id": "data-02-section-check",
+              "title": "Practical check",
+              "summary": "Name expected result size, projection, ordering, and predicate bounds. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "data-02-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "data-02-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "data-02-section-failure",
+              "title": "Common failure",
+              "summary": "Fetching broad rows and filtering in application code makes cost and correctness harder to inspect. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "data-02-fact-caution"
+              ]
+            },
+            {
+              "id": "data-02-section-pattern",
+              "title": "Working pattern",
+              "summary": "Name expected result size, projection, ordering, and predicate bounds. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "data-02-fact-model",
+                "data-02-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "data-02-fact-model",
+          "statement": "A query is both a transformation and a bounded resource request.",
+          "tags": [
+            "query-shape",
+            "data"
+          ],
+          "citation_ids": [
+            "data-02-cite-editorial",
+            "data-02-cite-reference"
+          ]
+        },
+        {
+          "id": "data-02-fact-practice",
+          "statement": "Name expected result size, projection, ordering, and predicate bounds.",
+          "tags": [
+            "practice",
+            "data"
+          ],
+          "citation_ids": [
+            "data-02-cite-editorial"
+          ]
+        },
+        {
+          "id": "data-02-fact-caution",
+          "statement": "Fetching broad rows and filtering in application code makes cost and correctness harder to inspect.",
+          "tags": [
+            "failure-mode",
+            "data"
+          ],
+          "citation_ids": [
+            "data-02-cite-editorial",
+            "data-02-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "data-02-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Query Shape - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-02-cite-reference",
+          "locator": "reference landing page",
+          "source": "SQLite Language Reference",
+          "note": "Starting point for query shape; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.sqlite.org/lang.html",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-02-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "data-03",
+        "version": "1.0.0",
+        "title": "Migrations: Data Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "data"
+        ],
+        "tags": [
+          "migrations",
+          "data",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/data.json",
+        "abstract_text": "Migrations in Data Practice: Schema change is a staged process across old readers, new writers, and data repair. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Migrations - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "data-03-chapter-model",
+          "title": "Model and scope",
+          "summary": "Schema change is a staged process across old readers, new writers, and data repair. This chapter fixes the vocabulary and boundary needed to reason about migrations.",
+          "sections": [
+            {
+              "id": "data-03-section-model",
+              "title": "Core model",
+              "summary": "Schema change is a staged process across old readers, new writers, and data repair.",
+              "key_facts": [
+                "data-03-fact-model"
+              ]
+            },
+            {
+              "id": "data-03-section-check",
+              "title": "Practical check",
+              "summary": "Separate additive changes from destructive cleanup and test rollout order. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "data-03-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "data-03-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "data-03-section-failure",
+              "title": "Common failure",
+              "summary": "Coupling a data rewrite to a deploy can make rollback impossible within the release window. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "data-03-fact-caution"
+              ]
+            },
+            {
+              "id": "data-03-section-pattern",
+              "title": "Working pattern",
+              "summary": "Separate additive changes from destructive cleanup and test rollout order. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "data-03-fact-model",
+                "data-03-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "data-03-fact-model",
+          "statement": "Schema change is a staged process across old readers, new writers, and data repair.",
+          "tags": [
+            "migrations",
+            "data"
+          ],
+          "citation_ids": [
+            "data-03-cite-editorial",
+            "data-03-cite-reference"
+          ]
+        },
+        {
+          "id": "data-03-fact-practice",
+          "statement": "Separate additive changes from destructive cleanup and test rollout order.",
+          "tags": [
+            "practice",
+            "data"
+          ],
+          "citation_ids": [
+            "data-03-cite-editorial"
+          ]
+        },
+        {
+          "id": "data-03-fact-caution",
+          "statement": "Coupling a data rewrite to a deploy can make rollback impossible within the release window.",
+          "tags": [
+            "failure-mode",
+            "data"
+          ],
+          "citation_ids": [
+            "data-03-cite-editorial",
+            "data-03-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "data-03-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Migrations - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-03-cite-reference",
+          "locator": "reference landing page",
+          "source": "SQLite Language Reference",
+          "note": "Starting point for migrations; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.sqlite.org/lang.html",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-03-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "data-04",
+        "version": "1.0.0",
+        "title": "Validation: Data Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "data"
+        ],
+        "tags": [
+          "validation",
+          "data",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/data.json",
+        "abstract_text": "Validation in Data Practice: Boundary validation should preserve enough context to correct bad data. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Validation - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "data-04-chapter-model",
+          "title": "Model and scope",
+          "summary": "Boundary validation should preserve enough context to correct bad data. This chapter fixes the vocabulary and boundary needed to reason about validation.",
+          "sections": [
+            {
+              "id": "data-04-section-model",
+              "title": "Core model",
+              "summary": "Boundary validation should preserve enough context to correct bad data.",
+              "key_facts": [
+                "data-04-fact-model"
+              ]
+            },
+            {
+              "id": "data-04-section-check",
+              "title": "Practical check",
+              "summary": "Distinguish malformed, unacceptable, and missing values with deterministic canonicalization. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "data-04-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "data-04-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "data-04-section-failure",
+              "title": "Common failure",
+              "summary": "Accepting ambiguous values early moves the mismatch into a harder-to-diagnose workflow. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "data-04-fact-caution"
+              ]
+            },
+            {
+              "id": "data-04-section-pattern",
+              "title": "Working pattern",
+              "summary": "Distinguish malformed, unacceptable, and missing values with deterministic canonicalization. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "data-04-fact-model",
+                "data-04-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "data-04-fact-model",
+          "statement": "Boundary validation should preserve enough context to correct bad data.",
+          "tags": [
+            "validation",
+            "data"
+          ],
+          "citation_ids": [
+            "data-04-cite-editorial",
+            "data-04-cite-reference"
+          ]
+        },
+        {
+          "id": "data-04-fact-practice",
+          "statement": "Distinguish malformed, unacceptable, and missing values with deterministic canonicalization.",
+          "tags": [
+            "practice",
+            "data"
+          ],
+          "citation_ids": [
+            "data-04-cite-editorial"
+          ]
+        },
+        {
+          "id": "data-04-fact-caution",
+          "statement": "Accepting ambiguous values early moves the mismatch into a harder-to-diagnose workflow.",
+          "tags": [
+            "failure-mode",
+            "data"
+          ],
+          "citation_ids": [
+            "data-04-cite-editorial",
+            "data-04-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "data-04-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Validation - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-04-cite-reference",
+          "locator": "reference landing page",
+          "source": "SQLite Language Reference",
+          "note": "Starting point for validation; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.sqlite.org/lang.html",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-04-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "data-05",
+        "version": "1.0.0",
+        "title": "Stream Processing: Data Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "data"
+        ],
+        "tags": [
+          "stream-processing",
+          "data",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/data.json",
+        "abstract_text": "Stream Processing in Data Practice: Incremental processing makes volume, latency, and restart semantics explicit. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Stream Processing - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "data-05-chapter-model",
+          "title": "Model and scope",
+          "summary": "Incremental processing makes volume, latency, and restart semantics explicit. This chapter fixes the vocabulary and boundary needed to reason about stream processing.",
+          "sections": [
+            {
+              "id": "data-05-section-model",
+              "title": "Core model",
+              "summary": "Incremental processing makes volume, latency, and restart semantics explicit.",
+              "key_facts": [
+                "data-05-fact-model"
+              ]
+            },
+            {
+              "id": "data-05-section-check",
+              "title": "Practical check",
+              "summary": "Define progress units, checkpoints, duplicate handling, and sink idempotency. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "data-05-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "data-05-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "data-05-section-failure",
+              "title": "Common failure",
+              "summary": "Restarting from scratch can silently skip or re-emit records. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "data-05-fact-caution"
+              ]
+            },
+            {
+              "id": "data-05-section-pattern",
+              "title": "Working pattern",
+              "summary": "Define progress units, checkpoints, duplicate handling, and sink idempotency. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "data-05-fact-model",
+                "data-05-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "data-05-fact-model",
+          "statement": "Incremental processing makes volume, latency, and restart semantics explicit.",
+          "tags": [
+            "stream-processing",
+            "data"
+          ],
+          "citation_ids": [
+            "data-05-cite-editorial",
+            "data-05-cite-reference"
+          ]
+        },
+        {
+          "id": "data-05-fact-practice",
+          "statement": "Define progress units, checkpoints, duplicate handling, and sink idempotency.",
+          "tags": [
+            "practice",
+            "data"
+          ],
+          "citation_ids": [
+            "data-05-cite-editorial"
+          ]
+        },
+        {
+          "id": "data-05-fact-caution",
+          "statement": "Restarting from scratch can silently skip or re-emit records.",
+          "tags": [
+            "failure-mode",
+            "data"
+          ],
+          "citation_ids": [
+            "data-05-cite-editorial",
+            "data-05-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "data-05-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Stream Processing - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-05-cite-reference",
+          "locator": "reference landing page",
+          "source": "SQLite Language Reference",
+          "note": "Starting point for stream processing; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.sqlite.org/lang.html",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-05-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "data-06",
+        "version": "1.0.0",
+        "title": "Metrics Semantics: Data Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "data"
+        ],
+        "tags": [
+          "metrics-semantics",
+          "data",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/data.json",
+        "abstract_text": "Metrics Semantics in Data Practice: A metric needs a definition, unit, population, denominator, and aggregation rule. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Metrics Semantics - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "data-06-chapter-model",
+          "title": "Model and scope",
+          "summary": "A metric needs a definition, unit, population, denominator, and aggregation rule. This chapter fixes the vocabulary and boundary needed to reason about metrics semantics.",
+          "sections": [
+            {
+              "id": "data-06-section-model",
+              "title": "Core model",
+              "summary": "A metric needs a definition, unit, population, denominator, and aggregation rule.",
+              "key_facts": [
+                "data-06-fact-model"
+              ]
+            },
+            {
+              "id": "data-06-section-check",
+              "title": "Practical check",
+              "summary": "Record whether it is a count, rate, distribution, or ratio. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "data-06-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "data-06-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "data-06-section-failure",
+              "title": "Common failure",
+              "summary": "Averaging already-aggregated percentages can produce a precise but meaningless result. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "data-06-fact-caution"
+              ]
+            },
+            {
+              "id": "data-06-section-pattern",
+              "title": "Working pattern",
+              "summary": "Record whether it is a count, rate, distribution, or ratio. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "data-06-fact-model",
+                "data-06-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "data-06-fact-model",
+          "statement": "A metric needs a definition, unit, population, denominator, and aggregation rule.",
+          "tags": [
+            "metrics-semantics",
+            "data"
+          ],
+          "citation_ids": [
+            "data-06-cite-editorial",
+            "data-06-cite-reference"
+          ]
+        },
+        {
+          "id": "data-06-fact-practice",
+          "statement": "Record whether it is a count, rate, distribution, or ratio.",
+          "tags": [
+            "practice",
+            "data"
+          ],
+          "citation_ids": [
+            "data-06-cite-editorial"
+          ]
+        },
+        {
+          "id": "data-06-fact-caution",
+          "statement": "Averaging already-aggregated percentages can produce a precise but meaningless result.",
+          "tags": [
+            "failure-mode",
+            "data"
+          ],
+          "citation_ids": [
+            "data-06-cite-editorial",
+            "data-06-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "data-06-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Metrics Semantics - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-06-cite-reference",
+          "locator": "reference landing page",
+          "source": "SQLite Language Reference",
+          "note": "Starting point for metrics semantics; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.sqlite.org/lang.html",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-06-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "data-07",
+        "version": "1.0.0",
+        "title": "Privacy by Design: Data Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "data"
+        ],
+        "tags": [
+          "privacy-by-design",
+          "data",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/data.json",
+        "abstract_text": "Privacy by Design in Data Practice: Collect less, retain it less, and limit who can join it to identity. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Privacy by Design - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "data-07-chapter-model",
+          "title": "Model and scope",
+          "summary": "Collect less, retain it less, and limit who can join it to identity. This chapter fixes the vocabulary and boundary needed to reason about privacy by design.",
+          "sections": [
+            {
+              "id": "data-07-section-model",
+              "title": "Core model",
+              "summary": "Collect less, retain it less, and limit who can join it to identity.",
+              "key_facts": [
+                "data-07-fact-model"
+              ]
+            },
+            {
+              "id": "data-07-section-check",
+              "title": "Practical check",
+              "summary": "Classify fields before copying them into logs, caches, or analytics. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "data-07-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "data-07-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "data-07-section-failure",
+              "title": "Common failure",
+              "summary": "A hash or identifier can still be sensitive when it permits linkage. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "data-07-fact-caution"
+              ]
+            },
+            {
+              "id": "data-07-section-pattern",
+              "title": "Working pattern",
+              "summary": "Classify fields before copying them into logs, caches, or analytics. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "data-07-fact-model",
+                "data-07-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "data-07-fact-model",
+          "statement": "Collect less, retain it less, and limit who can join it to identity.",
+          "tags": [
+            "privacy-by-design",
+            "data"
+          ],
+          "citation_ids": [
+            "data-07-cite-editorial",
+            "data-07-cite-reference"
+          ]
+        },
+        {
+          "id": "data-07-fact-practice",
+          "statement": "Classify fields before copying them into logs, caches, or analytics.",
+          "tags": [
+            "practice",
+            "data"
+          ],
+          "citation_ids": [
+            "data-07-cite-editorial"
+          ]
+        },
+        {
+          "id": "data-07-fact-caution",
+          "statement": "A hash or identifier can still be sensitive when it permits linkage.",
+          "tags": [
+            "failure-mode",
+            "data"
+          ],
+          "citation_ids": [
+            "data-07-cite-editorial",
+            "data-07-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "data-07-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Privacy by Design - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-07-cite-reference",
+          "locator": "reference landing page",
+          "source": "SQLite Language Reference",
+          "note": "Starting point for privacy by design; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.sqlite.org/lang.html",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-07-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "data-08",
+        "version": "1.0.0",
+        "title": "Serialization Contracts: Data Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "data"
+        ],
+        "tags": [
+          "serialization-contracts",
+          "data",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/data.json",
+        "abstract_text": "Serialization Contracts in Data Practice: Encodings are interfaces with versions, defaults, size limits, and unknown-field behavior. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Serialization Contracts - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "data-08-chapter-model",
+          "title": "Model and scope",
+          "summary": "Encodings are interfaces with versions, defaults, size limits, and unknown-field behavior. This chapter fixes the vocabulary and boundary needed to reason about serialization contracts.",
+          "sections": [
+            {
+              "id": "data-08-section-model",
+              "title": "Core model",
+              "summary": "Encodings are interfaces with versions, defaults, size limits, and unknown-field behavior.",
+              "key_facts": [
+                "data-08-fact-model"
+              ]
+            },
+            {
+              "id": "data-08-section-check",
+              "title": "Practical check",
+              "summary": "Make incompatible changes detectable with fixture-backed compatibility tests. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "data-08-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "data-08-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "data-08-section-failure",
+              "title": "Common failure",
+              "summary": "A debug representation is not automatically a stable wire format. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "data-08-fact-caution"
+              ]
+            },
+            {
+              "id": "data-08-section-pattern",
+              "title": "Working pattern",
+              "summary": "Make incompatible changes detectable with fixture-backed compatibility tests. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "data-08-fact-model",
+                "data-08-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "data-08-fact-model",
+          "statement": "Encodings are interfaces with versions, defaults, size limits, and unknown-field behavior.",
+          "tags": [
+            "serialization-contracts",
+            "data"
+          ],
+          "citation_ids": [
+            "data-08-cite-editorial",
+            "data-08-cite-reference"
+          ]
+        },
+        {
+          "id": "data-08-fact-practice",
+          "statement": "Make incompatible changes detectable with fixture-backed compatibility tests.",
+          "tags": [
+            "practice",
+            "data"
+          ],
+          "citation_ids": [
+            "data-08-cite-editorial"
+          ]
+        },
+        {
+          "id": "data-08-fact-caution",
+          "statement": "A debug representation is not automatically a stable wire format.",
+          "tags": [
+            "failure-mode",
+            "data"
+          ],
+          "citation_ids": [
+            "data-08-cite-editorial",
+            "data-08-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "data-08-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Serialization Contracts - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-08-cite-reference",
+          "locator": "reference landing page",
+          "source": "SQLite Language Reference",
+          "note": "Starting point for serialization contracts; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.sqlite.org/lang.html",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-08-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "data-09",
+        "version": "1.0.0",
+        "title": "Lineage: Data Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "data"
+        ],
+        "tags": [
+          "lineage",
+          "data",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/data.json",
+        "abstract_text": "Lineage in Data Practice: A result is more trustworthy when its source, transformation, version, and time remain inspectable. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Lineage - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "data-09-chapter-model",
+          "title": "Model and scope",
+          "summary": "A result is more trustworthy when its source, transformation, version, and time remain inspectable. This chapter fixes the vocabulary and boundary needed to reason about lineage.",
+          "sections": [
+            {
+              "id": "data-09-section-model",
+              "title": "Core model",
+              "summary": "A result is more trustworthy when its source, transformation, version, and time remain inspectable.",
+              "key_facts": [
+                "data-09-fact-model"
+              ]
+            },
+            {
+              "id": "data-09-section-check",
+              "title": "Practical check",
+              "summary": "Store compact provenance at the granularity needed to explain the decision. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "data-09-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "data-09-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "data-09-section-failure",
+              "title": "Common failure",
+              "summary": "Retaining only an answer discards the evidence needed to audit it later. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "data-09-fact-caution"
+              ]
+            },
+            {
+              "id": "data-09-section-pattern",
+              "title": "Working pattern",
+              "summary": "Store compact provenance at the granularity needed to explain the decision. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "data-09-fact-model",
+                "data-09-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "data-09-fact-model",
+          "statement": "A result is more trustworthy when its source, transformation, version, and time remain inspectable.",
+          "tags": [
+            "lineage",
+            "data"
+          ],
+          "citation_ids": [
+            "data-09-cite-editorial",
+            "data-09-cite-reference"
+          ]
+        },
+        {
+          "id": "data-09-fact-practice",
+          "statement": "Store compact provenance at the granularity needed to explain the decision.",
+          "tags": [
+            "practice",
+            "data"
+          ],
+          "citation_ids": [
+            "data-09-cite-editorial"
+          ]
+        },
+        {
+          "id": "data-09-fact-caution",
+          "statement": "Retaining only an answer discards the evidence needed to audit it later.",
+          "tags": [
+            "failure-mode",
+            "data"
+          ],
+          "citation_ids": [
+            "data-09-cite-editorial",
+            "data-09-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "data-09-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Lineage - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-09-cite-reference",
+          "locator": "reference landing page",
+          "source": "SQLite Language Reference",
+          "note": "Starting point for lineage; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.sqlite.org/lang.html",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-09-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema_version": 2,
+        "id": "data-10",
+        "version": "1.0.0",
+        "title": "Reproducible Analysis: Data Practice",
+        "authors": [
+          "Minha Editorial"
+        ],
+        "language": "english",
+        "taxonomy": [
+          "data"
+        ],
+        "tags": [
+          "reproducible-analysis",
+          "data",
+          "curated",
+          "technical-reference"
+        ],
+        "path": "bundled/books/data.json",
+        "abstract_text": "Reproducible Analysis in Data Practice: Rerunnable analysis declares inputs, code, assumptions, dependencies, and randomness. This compact guide gives a bounded practice, a failure mode, and honest source pointers for focused retrieval.",
+        "trust": "promoted",
+        "staleness": {
+          "status": "current",
+          "checked_at": "2026-07-29",
+          "review_after": "2027-01-29",
+          "reason": "Curated against the listed source metadata; recheck before relying on time-sensitive details."
+        },
+        "token_budget": {
+          "index_tokens": 180,
+          "compact_tokens": 720,
+          "detailed_tokens": 1900
+        },
+        "source": {
+          "kind": "curated_editorial",
+          "title": "Reproducible Analysis - Minha editorial synthesis",
+          "publisher": "Minha project maintainers",
+          "url": null,
+          "accessed": "2026-07-29",
+          "license": "Apache-2.0",
+          "note": "Original concise synthesis. It is not a quotation and does not claim that the cited reference uses this wording."
+        }
+      },
+      "chapters": [
+        {
+          "id": "data-10-chapter-model",
+          "title": "Model and scope",
+          "summary": "Rerunnable analysis declares inputs, code, assumptions, dependencies, and randomness. This chapter fixes the vocabulary and boundary needed to reason about reproducible analysis.",
+          "sections": [
+            {
+              "id": "data-10-section-model",
+              "title": "Core model",
+              "summary": "Rerunnable analysis declares inputs, code, assumptions, dependencies, and randomness.",
+              "key_facts": [
+                "data-10-fact-model"
+              ]
+            },
+            {
+              "id": "data-10-section-check",
+              "title": "Practical check",
+              "summary": "Save a small manifest that explains changed outputs and unavailable inputs. Apply the check to one real boundary before broadening the scope.",
+              "key_facts": [
+                "data-10-fact-practice"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "data-10-chapter-application",
+          "title": "Application and failure",
+          "summary": "Use the practice to make one small, inspectable change; then look for the failure signal.",
+          "sections": [
+            {
+              "id": "data-10-section-failure",
+              "title": "Common failure",
+              "summary": "A chart without its query, denominator, or source snapshot cannot be meaningfully checked. Look for this signal in existing code, documents, or operational evidence.",
+              "key_facts": [
+                "data-10-fact-caution"
+              ]
+            },
+            {
+              "id": "data-10-section-pattern",
+              "title": "Working pattern",
+              "summary": "Save a small manifest that explains changed outputs and unavailable inputs. Record the decision and the evidence that would make it worth revisiting.",
+              "key_facts": [
+                "data-10-fact-model",
+                "data-10-fact-practice"
+              ]
+            }
+          ]
+        }
+      ],
+      "key_facts": [
+        {
+          "id": "data-10-fact-model",
+          "statement": "Rerunnable analysis declares inputs, code, assumptions, dependencies, and randomness.",
+          "tags": [
+            "reproducible-analysis",
+            "data"
+          ],
+          "citation_ids": [
+            "data-10-cite-editorial",
+            "data-10-cite-reference"
+          ]
+        },
+        {
+          "id": "data-10-fact-practice",
+          "statement": "Save a small manifest that explains changed outputs and unavailable inputs.",
+          "tags": [
+            "practice",
+            "data"
+          ],
+          "citation_ids": [
+            "data-10-cite-editorial"
+          ]
+        },
+        {
+          "id": "data-10-fact-caution",
+          "statement": "A chart without its query, denominator, or source snapshot cannot be meaningfully checked.",
+          "tags": [
+            "failure-mode",
+            "data"
+          ],
+          "citation_ids": [
+            "data-10-cite-editorial",
+            "data-10-cite-reference"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "data-10-cite-editorial",
+          "locator": "editorial synthesis",
+          "source": "Reproducible Analysis - Minha editorial synthesis",
+          "note": "Original synthesis; no quotation is represented.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-10-cite-reference",
+          "locator": "reference landing page",
+          "source": "SQLite Language Reference",
+          "note": "Starting point for reproducible analysis; consult the source directly for its scope, definitions, and current guidance.",
+          "kind": "official_documentation",
+          "url": "https://www.sqlite.org/lang.html",
+          "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-10-cite-catalog",
+          "locator": "catalog scope note",
+          "source": "Minha bundled book catalog",
+          "note": "Metadata records provenance and freshness; it does not reproduce source text.",
+          "kind": "curated_editorial",
+          "url": null,
+          "accessed": "2026-07-29"
+        }
+      ]
+    }
+  ]
+}

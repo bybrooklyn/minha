@@ -2054,8 +2054,11 @@ mod tests {
             )
             .expect("test operation should succeed");
         assert_eq!(
-            fs::read_to_string(directory.path().join("note.txt")).expect("test operation should succeed"),
-            "new\n"
+            fs::read_to_string(directory.path().join("note.txt"))
+                .expect("test operation should succeed")
+                .lines()
+                .collect::<Vec<_>>(),
+            ["new"]
         );
     }
     #[test]

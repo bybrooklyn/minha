@@ -130,7 +130,7 @@ impl GitRepo {
         branch: &str,
         start: Option<&str>,
     ) -> Result<(), GitError> {
-        let path = path.as_ref().to_string_lossy().into_owned();
+        let path = git_path_argument(path.as_ref());
         let mut args = vec!["worktree", "add", "-b", branch, &path];
         if let Some(start) = start {
             args.push(start);
@@ -144,7 +144,7 @@ impl GitRepo {
         self.text(&["diff", "--binary", "--no-ext-diff"])
     }
     pub fn remove_worktree(&self, path: impl AsRef<Path>, force: bool) -> Result<(), GitError> {
-        let path = path.as_ref().to_string_lossy().into_owned();
+        let path = git_path_argument(path.as_ref());
         let mut args = vec!["worktree", "remove"];
         if force {
             args.push("--force");
@@ -246,6 +246,20 @@ impl GitRepo {
         }
         Ok(())
     }
+}
+
+#[cfg(windows)]
+fn git_path_argument(path: &Path) -> String {
+    let path = path.to_string_lossy();
+    if let Some(path) = path.strip_prefix(r"\\?\UNC\") {
+        return format!(r"\\{path}");
+    }
+    path.strip_prefix(r"\\?\").unwrap_or(&path).to_owned()
+}
+
+#[cfg(not(windows))]
+fn git_path_argument(path: &Path) -> String {
+    path.to_string_lossy().into_owned()
 }
 
 /// Copy a coding workspace into an isolated lane without carrying repository
@@ -454,8 +468,11 @@ mod tests {
             .apply_patch(&patch, false)
             .expect("generated snapshot patch applies");
         assert_eq!(
-            fs::read_to_string(applied.join("src/lib.rs")).expect("patched source"),
-            "new\n"
+            fs::read_to_string(applied.join("src/lib.rs"))
+                .expect("patched source")
+                .lines()
+                .collect::<Vec<_>>(),
+            ["new"]
         );
     }
 }

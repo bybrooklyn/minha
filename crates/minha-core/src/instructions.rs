@@ -307,9 +307,11 @@ fn frontmatter_value(input: &str, key: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
     use std::os::unix::fs::symlink;
 
     #[test]
+    #[cfg(unix)]
     fn symlinked_instruction_prefers_agents_name() {
         let temp = tempfile::tempdir().expect("test operation should succeed");
         fs::write(temp.path().join("AGENTS.md"), "one").expect("test operation should succeed");
@@ -333,11 +335,10 @@ mod tests {
             "---\ndescription: x skill\n---\nbody",
         )
         .expect("test operation should succeed");
-        symlink(
-            temp.path().join(".codex/skills/x"),
-            temp.path().join(".claude/skills/x"),
-        )
-        .expect("test operation should succeed");
+        create_skill_alias(
+            &temp.path().join(".codex/skills/x"),
+            &temp.path().join(".claude/skills/x"),
+        );
         let instructions =
             discover_instructions(temp.path(), temp.path()).expect("test operation should succeed");
         assert_eq!(instructions[0].name, "CLAUDE.md");
@@ -370,5 +371,16 @@ mod tests {
         assert_eq!(found.len(), 2);
         assert!(found[0].name.contains(".claude"));
         assert!(found[1].name.contains(".agents"));
+    }
+
+    #[cfg(unix)]
+    fn create_skill_alias(source: &Path, target: &Path) {
+        symlink(source, target).expect("test operation should succeed");
+    }
+
+    #[cfg(windows)]
+    fn create_skill_alias(source: &Path, target: &Path) {
+        fs::create_dir_all(target).expect("test operation should succeed");
+        fs::copy(source.join("SKILL.md"), target.join("SKILL.md")).expect("test operation should succeed");
     }
 }

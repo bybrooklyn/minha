@@ -1,11 +1,11 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "pack_id": "operations",
   "title": "Operations Practice",
   "books": [
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "operations-01",
         "version": "1.0.0",
         "title": "Deployment: Operations Practice",
@@ -254,7 +254,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "operations-02",
         "version": "1.0.0",
         "title": "Configuration: Operations Practice",
@@ -413,7 +413,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "operations-03",
         "version": "1.0.0",
         "title": "Observability: Operations Practice",
@@ -572,7 +572,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "operations-04",
         "version": "1.0.0",
         "title": "Incident Command: Operations Practice",
@@ -731,7 +731,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "operations-05",
         "version": "1.0.0",
         "title": "Backups: Operations Practice",
@@ -890,7 +890,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "operations-06",
         "version": "1.0.0",
         "title": "Capacity: Operations Practice",
@@ -1049,7 +1049,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "operations-07",
         "version": "1.0.0",
         "title": "Reliability: Operations Practice",
@@ -1208,7 +1208,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "operations-08",
         "version": "1.0.0",
         "title": "Runbooks: Operations Practice",
@@ -1367,7 +1367,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "operations-09",
         "version": "1.0.0",
         "title": "Change Management: Operations Practice",
@@ -1526,7 +1526,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "operations-10",
         "version": "1.0.0",
         "title": "Decommissioning: Operations Practice",

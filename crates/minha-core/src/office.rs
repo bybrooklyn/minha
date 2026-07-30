@@ -18,6 +18,47 @@ pub type RoomId = String;
 pub type TaskId = String;
 pub type LeaseId = String;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OfficeRoomKind {
+    Run,
+    Direct,
+    Temporary,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OfficeRoomState {
+    Open,
+    Closed,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct OfficeRoom {
+    pub schema_version: u16,
+    pub id: RoomId,
+    pub kind: OfficeRoomKind,
+    pub purpose: String,
+    pub owner: Option<AgentId>,
+    pub state: OfficeRoomState,
+    pub members: BTreeSet<AgentId>,
+    pub created_at: DateTime<Utc>,
+    pub closed_at: Option<DateTime<Utc>>,
+    pub closure_summary: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CoordinationKind {
+    Finding,
+    Decision,
+    Blocker,
+    Request,
+    Progress,
+    Handoff,
+    ArtifactReference,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum Recipient {
     Agent(AgentId),

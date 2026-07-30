@@ -21,22 +21,26 @@ pub enum ConfigError {
     EmptyDatabasePath,
     #[error("scheduler.max_agents must be between 1 and 16")]
     AgentCount,
-    #[error("scheduler.min_agents must be between 1 and scheduler.max_agents")]
-    MinAgentCount,
-    #[error("context.compact_at_percent must be between 25 and 95")]
-    CompactThreshold,
     #[error("scheduler.usage_reserve_percent must be between 0 and 50")]
     UsageReserve,
-    #[error("context.context_limit must be positive and context.reserve_tokens must be smaller")]
+    #[error("budgets DeepSeek reserves must satisfy 0 <= hard < soft <= 100")]
+    DeepSeekReserve,
+    #[error("context.context_limit must be positive when configured")]
     ContextWindow,
     #[error("context.fact_limit and context.recent_turns must be positive")]
     ContextRetention,
     #[error("cache.max_bytes, cache.max_age_days, and cache.hot_entries must be positive")]
     CachePolicy,
+    #[error("memory.retrieval_limit must be between 1 and 20")]
+    MemoryPolicy,
     #[error("configured model slugs must not be empty")]
     EmptyModel,
     #[error("tui.tool_detail must be `compact` or `expanded`")]
     ToolDetail,
+    #[error("tui.theme must be auto, dark, light, ansi16, high_contrast, or no_color")]
+    Theme,
+    #[error("tui.surface_renderer must be auto, kitty, quadrant, or square")]
+    SurfaceRenderer,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -49,6 +53,7 @@ pub struct Config {
     pub context: ContextConfig,
     pub permissions: PermissionConfig,
     pub cache: CacheConfig,
+    pub memory: MemoryConfig,
     pub budgets: BudgetConfig,
     pub books: BooksConfig,
     pub tui: TuiConfig,
@@ -72,7 +77,6 @@ pub struct ModelConfig {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SchedulerConfig {
-    pub min_agents: usize,
     pub max_agents: usize,
     pub hard_max_agents: usize,
     pub usage_reserve_percent: f32,
@@ -90,9 +94,9 @@ pub enum QuestionPolicy {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ContextConfig {
-    pub compact_at_percent: f32,
-    pub context_limit: usize,
-    pub reserve_tokens: usize,
+    /// Optional compatibility ceiling. Provider model metadata is authoritative
+    /// when this is absent.
+    pub context_limit: Option<usize>,
     pub fact_limit: usize,
     pub recent_turns: usize,
 }
@@ -113,30 +117,83 @@ pub struct CacheConfig {
     pub hot_entries: usize,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum BudgetPreset {
-    Economy,
-    Balanced,
-    Thorough,
-    Exhaustive,
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct MemoryConfig {
+    pub enabled: bool,
+    pub use_memory: bool,
+    pub generate: bool,
+    pub retrieval_limit: usize,
 }
 
-impl BudgetPreset {
-    pub const fn token_limit(self) -> u64 {
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionProfile {
+    Economy,
+    Balanced,
+    Turbo,
+}
+
+impl ExecutionProfile {
+    /// A routing target, never a terminal budget.
+    pub const fn soft_token_target(self) -> u64 {
         match self {
             Self::Economy => 25_000,
             Self::Balanced => 100_000,
-            Self::Thorough => 300_000,
-            Self::Exhaustive => 1_000_000,
+            Self::Turbo => 1_000_000,
+        }
+    }
+
+    pub const fn policy(self) -> RunPolicyV1 {
+        match self {
+            Self::Economy => RunPolicyV1 {
+                schema_version: 1,
+                max_agents: 1,
+                minimum_speedup_percent: 100,
+                maximum_coordination_percent: 0,
+                local_yolo: false,
+                prefer_strongest_allowed: false,
+            },
+            Self::Balanced => RunPolicyV1 {
+                schema_version: 1,
+                max_agents: 8,
+                minimum_speedup_percent: 25,
+                maximum_coordination_percent: 15,
+                local_yolo: false,
+                prefer_strongest_allowed: false,
+            },
+            Self::Turbo => RunPolicyV1 {
+                schema_version: 1,
+                max_agents: 16,
+                minimum_speedup_percent: 1,
+                maximum_coordination_percent: 100,
+                local_yolo: true,
+                prefer_strongest_allowed: true,
+            },
         }
     }
 }
 
+/// Compact model-facing execution policy. Profiles are presets; callers may
+/// override individual fields per run without loading dynamic policy code.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct RunPolicyV1 {
+    pub schema_version: u16,
+    pub max_agents: usize,
+    pub minimum_speedup_percent: u8,
+    pub maximum_coordination_percent: u8,
+    pub local_yolo: bool,
+    pub prefer_strongest_allowed: bool,
+}
+
+pub type BudgetPreset = ExecutionProfile;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct BudgetConfig {
-    pub default: BudgetPreset,
+    pub default: ExecutionProfile,
+    pub deepseek_soft_reserve_percent: f32,
+    pub deepseek_hard_reserve_percent: f32,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -158,6 +215,9 @@ pub enum PermissionLevel {
 pub struct TuiConfig {
     pub mouse: bool,
     pub tool_detail: String,
+    pub theme: String,
+    pub surface_renderer: String,
+    pub reduced_motion: bool,
 }
 
 impl Default for Config {
@@ -170,6 +230,7 @@ impl Default for Config {
             context: ContextConfig::default(),
             permissions: PermissionConfig::default(),
             cache: CacheConfig::default(),
+            memory: MemoryConfig::default(),
             budgets: BudgetConfig::default(),
             books: BooksConfig::default(),
             tui: TuiConfig::default(),
@@ -197,7 +258,6 @@ impl Default for ModelConfig {
 impl Default for SchedulerConfig {
     fn default() -> Self {
         Self {
-            min_agents: 2,
             max_agents: 8,
             hard_max_agents: 16,
             usage_reserve_percent: 12.0,
@@ -209,9 +269,7 @@ impl Default for SchedulerConfig {
 impl Default for ContextConfig {
     fn default() -> Self {
         Self {
-            compact_at_percent: 72.0,
-            context_limit: 128_000,
-            reserve_tokens: 16_384,
+            context_limit: None,
             fact_limit: 24,
             recent_turns: 8,
         }
@@ -238,10 +296,23 @@ impl Default for CacheConfig {
     }
 }
 
+impl Default for MemoryConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            use_memory: true,
+            generate: true,
+            retrieval_limit: 5,
+        }
+    }
+}
+
 impl Default for BudgetConfig {
     fn default() -> Self {
         Self {
-            default: BudgetPreset::Balanced,
+            default: ExecutionProfile::Balanced,
+            deepseek_soft_reserve_percent: 10.0,
+            deepseek_hard_reserve_percent: 2.0,
         }
     }
 }
@@ -257,6 +328,9 @@ impl Default for TuiConfig {
         Self {
             mouse: true,
             tool_detail: "compact".into(),
+            theme: "dark".into(),
+            surface_renderer: "auto".into(),
+            reduced_motion: false,
         }
     }
 }
@@ -315,20 +389,19 @@ impl Config {
         if !(1..=16).contains(&self.scheduler.max_agents) {
             return Err(ConfigError::AgentCount);
         }
-        if self.scheduler.min_agents == 0
-            || self.scheduler.min_agents > self.scheduler.max_agents
-            || self.scheduler.hard_max_agents < self.scheduler.max_agents
-            || self.scheduler.hard_max_agents > 16
-        {
-            return Err(ConfigError::MinAgentCount);
-        }
-        if !(25.0..=95.0).contains(&self.context.compact_at_percent) {
-            return Err(ConfigError::CompactThreshold);
+        if self.scheduler.hard_max_agents < self.scheduler.max_agents || self.scheduler.hard_max_agents > 16 {
+            return Err(ConfigError::AgentCount);
         }
         if !(0.0..=50.0).contains(&self.scheduler.usage_reserve_percent) {
             return Err(ConfigError::UsageReserve);
         }
-        if self.context.context_limit == 0 || self.context.reserve_tokens >= self.context.context_limit {
+        if !(0.0..=100.0).contains(&self.budgets.deepseek_soft_reserve_percent)
+            || !(0.0..=100.0).contains(&self.budgets.deepseek_hard_reserve_percent)
+            || self.budgets.deepseek_hard_reserve_percent >= self.budgets.deepseek_soft_reserve_percent
+        {
+            return Err(ConfigError::DeepSeekReserve);
+        }
+        if self.context.context_limit == Some(0) {
             return Err(ConfigError::ContextWindow);
         }
         if self.context.fact_limit == 0 || self.context.recent_turns == 0 {
@@ -340,6 +413,9 @@ impl Config {
             || self.cache.hot_entries == 0
         {
             return Err(ConfigError::CachePolicy);
+        }
+        if self.memory.retrieval_limit == 0 || self.memory.retrieval_limit > 20 {
+            return Err(ConfigError::MemoryPolicy);
         }
         let models = &self.models;
         if [
@@ -360,6 +436,18 @@ impl Config {
         }
         if !matches!(self.tui.tool_detail.as_str(), "compact" | "expanded") {
             return Err(ConfigError::ToolDetail);
+        }
+        if !matches!(
+            self.tui.theme.as_str(),
+            "auto" | "dark" | "light" | "ansi16" | "high_contrast" | "no_color"
+        ) {
+            return Err(ConfigError::Theme);
+        }
+        if !matches!(
+            self.tui.surface_renderer.as_str(),
+            "auto" | "kitty" | "quadrant" | "square"
+        ) {
+            return Err(ConfigError::SurfaceRenderer);
         }
         Ok(())
     }
@@ -406,12 +494,30 @@ mod tests {
         assert_eq!(config.mode, Mode::Batch);
         assert_eq!(config.models.lead, "gpt-5.6-luna");
         assert_eq!(config.scheduler.max_agents, 8);
+        assert_eq!(config.memory, MemoryConfig::default());
+        assert_eq!(config.tui.theme, "dark");
+        assert_eq!(config.tui.surface_renderer, "auto");
+        assert!(!config.tui.reduced_motion);
     }
 
     #[test]
     fn context_reserve_must_fit_inside_the_window() {
-        let error = Config::from_toml("[context]\ncontext_limit = 100\nreserve_tokens = 100\n").unwrap_err();
+        let error = Config::from_toml("[context]\ncontext_limit = 0\n").unwrap_err();
         assert!(matches!(error, ConfigError::ContextWindow));
+    }
+
+    #[test]
+    fn execution_profiles_are_soft_versioned_policies() {
+        let economy = ExecutionProfile::Economy.policy();
+        let balanced = ExecutionProfile::Balanced.policy();
+        let turbo = ExecutionProfile::Turbo.policy();
+        assert_eq!(economy.max_agents, 1);
+        assert_eq!(balanced.minimum_speedup_percent, 25);
+        assert_eq!(balanced.maximum_coordination_percent, 15);
+        assert_eq!(turbo.max_agents, 16);
+        assert!(turbo.local_yolo);
+        assert_eq!(turbo.schema_version, 1);
+        assert_eq!(ExecutionProfile::Balanced.soft_token_target(), 100_000);
     }
 
     #[test]
@@ -443,5 +549,28 @@ mod tests {
         let detail = Config::from_toml("[tui]\ntool_detail = 'verbose'")
             .expect_err("unknown tool detail must fail validation");
         assert!(matches!(detail, ConfigError::ToolDetail));
+    }
+
+    #[test]
+    fn memory_limit_and_theme_are_validated() {
+        let memory = Config::from_toml("[memory]\nretrieval_limit = 21")
+            .expect_err("oversized memory retrieval must fail validation");
+        assert!(matches!(memory, ConfigError::MemoryPolicy));
+
+        let theme =
+            Config::from_toml("[tui]\ntheme = 'solarized'").expect_err("unknown theme must fail validation");
+        assert!(matches!(theme, ConfigError::Theme));
+        let renderer = Config::from_toml("[tui]\nsurface_renderer = 'bezier'")
+            .expect_err("unknown surface renderer must fail validation");
+        assert!(matches!(renderer, ConfigError::SurfaceRenderer));
+
+        let configured = Config::from_toml(
+            "[memory]\nenabled = false\nuse_memory = false\ngenerate = false\nretrieval_limit = 3\n[tui]\ntheme = 'ansi16'\nreduced_motion = true",
+        )
+        .expect("supported memory and TUI settings");
+        assert!(!configured.memory.enabled);
+        assert_eq!(configured.memory.retrieval_limit, 3);
+        assert_eq!(configured.tui.theme, "ansi16");
+        assert!(configured.tui.reduced_motion);
     }
 }

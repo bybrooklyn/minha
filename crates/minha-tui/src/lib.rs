@@ -3,6 +3,8 @@
 #![cfg_attr(not(test), deny(clippy::unwrap_used, clippy::expect_used))]
 
 mod app;
+mod editor;
+mod kitty;
 mod ui;
 
 pub use app::{App, AppAction};
@@ -31,12 +33,12 @@ use ratatui::backend::CrosstermBackend;
 use serde_json::json;
 use std::io;
 use std::path::PathBuf;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 
 enum RuntimeMessage {
-    Finished(Result<RunOutcome, String>),
+    Finished(Box<Result<RunOutcome, String>>),
     LocalFinished {
         display: String,
         result: Result<(String, Option<i32>), String>,
@@ -107,9 +109,18 @@ pub async fn run(harness: Harness) -> Result<()> {
     let mut session = TerminalSession::start(harness.config.tui.mouse)?;
     let mut app = App::new(
         harness.root().to_owned(),
-        harness.config.context.context_limit as u64,
+        harness.config.context.context_limit.unwrap_or(272_000) as u64,
     );
     app.details_expanded = harness.config.tui.tool_detail.eq_ignore_ascii_case("expanded");
+    app.theme = if std::env::var_os("NO_COLOR").is_some() {
+        "no_color".into()
+    } else {
+        harness.config.tui.theme.clone()
+    };
+    app.surface_renderer = harness.config.tui.surface_renderer.clone();
+    let mut surface_renderer = kitty::SurfaceRenderer::new(&app.surface_renderer, &app.theme);
+    app.active_surface_renderer = surface_renderer.active_name().into();
+    app.reduced_motion = harness.config.tui.reduced_motion;
     app.set_sessions(harness.store.list_runs(100)?);
     let usage = harness.store.usage_totals(None)?;
     app.set_usage_totals(usage);
@@ -132,6 +143,7 @@ pub async fn run(harness: Harness) -> Result<()> {
     let mut deferred_answer: Option<(minha_core::RunId, String)> = None;
     let mut quit = false;
     let mut dirty = true;
+    let mut last_animation_tick = Instant::now();
 
     while !quit {
         while let Ok(envelope) = events.try_recv() {
@@ -142,7 +154,7 @@ pub async fn run(harness: Harness) -> Result<()> {
             match message {
                 RuntimeMessage::Finished(result) => {
                     active_task = None;
-                    if let Err(error) = result {
+                    if let Err(error) = *result {
                         app.running = false;
                         app.push_system(SystemTone::Error, error);
                     }
@@ -187,17 +199,26 @@ pub async fn run(harness: Harness) -> Result<()> {
         }
 
         if dirty {
-            session.terminal.draw(|frame| ui::draw(frame, &app))?;
+            let mut surfaces = Vec::new();
+            session.terminal.draw(|frame| {
+                ui::draw(frame, &app);
+                surfaces = ui::raster_surfaces(&app, frame.area());
+            })?;
+            surface_renderer.render(session.terminal.backend_mut(), &surfaces)?;
             dirty = false;
         }
 
         if event::poll(Duration::from_millis(100))? {
-            let terminal_width = session.terminal.size()?.width;
-            let action = map_event(event::read()?, &app, terminal_width);
+            let terminal_size = session.terminal.size()?;
+            let action = map_event(event::read()?, &app, terminal_size.width, terminal_size.height);
             if app.update(action)? {
                 quit = true;
             }
             dirty = true;
+        }
+        if app.running && (!app.reduced_motion || last_animation_tick.elapsed() >= Duration::from_secs(1)) {
+            dirty = true;
+            last_animation_tick = Instant::now();
         }
 
         if let Some(submission) = app.take_submission() {
@@ -227,6 +248,39 @@ pub async fn run(harness: Harness) -> Result<()> {
                         app.push_system(SystemTone::Error, error.to_string());
                     }
                 }
+                Submission::AgentMessage {
+                    run_id,
+                    recipient,
+                    text,
+                } => {
+                    let message_id = uuid::Uuid::now_v7().to_string();
+                    match harness.store.insert_hive_message(
+                        run_id,
+                        &message_id,
+                        "run",
+                        "user",
+                        &recipient,
+                        "request",
+                        &json!({"body": text, "requested_action": "respond_to_user"}),
+                        None,
+                    ) {
+                        Ok(stored_id) => {
+                            harness.store.record_runtime_event(
+                                run_id,
+                                RuntimeEvent::OfficeMessageChanged {
+                                    message_id: stored_id.clone(),
+                                    room_id: "run".into(),
+                                    sender: "user".into(),
+                                    recipient,
+                                    kind: "request".into(),
+                                    summary: text,
+                                    deduplicated: stored_id != message_id,
+                                },
+                            )?;
+                        }
+                        Err(error) => app.push_system(SystemTone::Error, error.to_string()),
+                    }
+                }
                 Submission::Answer { run_id, text } => {
                     if active_task.is_none() {
                         let paused = harness
@@ -252,12 +306,28 @@ pub async fn run(harness: Harness) -> Result<()> {
                         );
                     }
                 }
+                Submission::Clarify { run_id, answers } => {
+                    if active_task.is_none() {
+                        active_task = Some(spawn_run(
+                            harness.clone(),
+                            result_tx.clone(),
+                            async move |harness| {
+                                harness.resume_with_clarification_answers(run_id, &answers).await
+                            },
+                        ));
+                    }
+                }
                 Submission::Interrupt { run_id } => {
                     if let Err(error) = harness.interrupt(run_id) {
                         app.push_system(SystemTone::Error, error.to_string());
                     }
                     if let Some(task) = active_task.take() {
                         task.abort();
+                    }
+                }
+                Submission::Pause { run_id } => {
+                    if let Err(error) = harness.pause(run_id) {
+                        app.push_system(SystemTone::Error, error.to_string());
                     }
                 }
                 Submission::Shell { argv, display } => {
@@ -627,6 +697,94 @@ pub async fn run(harness: Harness) -> Result<()> {
                     ),
                     Err(error) => app.push_system(SystemTone::Error, error.to_string()),
                 },
+                Submission::ShowMemories { query } => {
+                    let settings = harness.store.memory_settings(harness.workspace_id())?;
+                    if let Some(query) = query {
+                        let hits = harness.store.search_memories(
+                            harness.workspace_id(),
+                            app.active_run,
+                            &query,
+                            10,
+                        )?;
+                        let text = if hits.is_empty() {
+                            format!("No durable memories matched {query:?}.")
+                        } else {
+                            hits.iter()
+                                .map(|hit| {
+                                    format!(
+                                        "{} · {} · {}\n  {}",
+                                        hit.memory.id,
+                                        hit.memory.scope.as_str(),
+                                        hit.memory.subject,
+                                        hit.memory.body
+                                    )
+                                })
+                                .collect::<Vec<_>>()
+                                .join("\n")
+                        };
+                        app.push_system(SystemTone::Info, text);
+                    } else {
+                        app.push_system(
+                            SystemTone::Info,
+                            format!(
+                                "memory enabled={} · use={} · generate={} · retrieval limit={}\nUse /memories enabled|use|generate on|off, /memory QUERY, /memory pin ID, or /memory delete ID.",
+                                settings.enabled,
+                                settings.use_memory,
+                                settings.generate,
+                                harness.config.memory.retrieval_limit,
+                            ),
+                        );
+                    }
+                }
+                Submission::SetMemories { setting, enabled } => {
+                    let mut settings = harness.store.memory_settings(harness.workspace_id())?;
+                    match setting.as_str() {
+                        "enabled" | "enable" => settings.enabled = enabled,
+                        "use" | "retrieve" | "retrieval" => settings.use_memory = enabled,
+                        "generate" | "generation" => settings.generate = enabled,
+                        _ => {
+                            app.push_system(
+                                SystemTone::Warning,
+                                "memory setting must be enabled, use, or generate",
+                            );
+                            continue;
+                        }
+                    }
+                    harness
+                        .store
+                        .set_memory_settings(harness.workspace_id(), settings)?;
+                    app.push_system(SystemTone::Success, format!("memory {setting} set to {enabled}"));
+                }
+                Submission::MemoryPin { id } => {
+                    let changed = harness.store.set_memory_state(&id, Some(true), None)?;
+                    app.push_system(
+                        if changed {
+                            SystemTone::Success
+                        } else {
+                            SystemTone::Warning
+                        },
+                        if changed {
+                            "memory pinned"
+                        } else {
+                            "memory not found"
+                        },
+                    );
+                }
+                Submission::MemoryDelete { id } => {
+                    let changed = harness.store.set_memory_state(&id, None, Some(true))?;
+                    app.push_system(
+                        if changed {
+                            SystemTone::Success
+                        } else {
+                            SystemTone::Warning
+                        },
+                        if changed {
+                            "memory deleted"
+                        } else {
+                            "memory not found"
+                        },
+                    );
+                }
             }
         }
     }
@@ -649,7 +807,7 @@ where
 {
     tokio::spawn(async move {
         let result = operation(harness).await.map_err(|error| error.to_string());
-        let _ = sender.send(RuntimeMessage::Finished(result));
+        let _ = sender.send(RuntimeMessage::Finished(Box::new(result)));
     })
 }
 
@@ -766,12 +924,12 @@ fn export_transcript(app: &App, path: Option<PathBuf>) -> Result<PathBuf> {
     Ok(path)
 }
 
-fn map_event(event: Event, app: &App, terminal_width: u16) -> AppAction {
+fn map_event(event: Event, app: &App, terminal_width: u16, terminal_height: u16) -> AppAction {
     match event {
         Event::Key(key) if key.kind == KeyEventKind::Press => match (key.code, key.modifiers) {
             (KeyCode::Char('c'), modifiers) if modifiers.contains(KeyModifiers::CONTROL) => {
                 if app.running {
-                    AppAction::Escape
+                    AppAction::Interrupt
                 } else {
                     AppAction::Quit
                 }
@@ -784,6 +942,9 @@ fn map_event(event: Event, app: &App, terminal_width: u16) -> AppAction {
             (KeyCode::Char('o'), modifiers) if modifiers.contains(KeyModifiers::CONTROL) => {
                 AppAction::ToggleDetails
             }
+            (KeyCode::Char('p'), modifiers) if modifiers.contains(KeyModifiers::CONTROL) => {
+                AppAction::CommandPalette
+            }
             (KeyCode::Char('t'), modifiers) if modifiers.contains(KeyModifiers::CONTROL) => {
                 AppAction::ToggleTasks
             }
@@ -794,33 +955,66 @@ fn map_event(event: Event, app: &App, terminal_width: u16) -> AppAction {
                 AppAction::HistoryPrevious
             }
             (KeyCode::Char('?'), _) if app.input.is_empty() => AppAction::Help,
-            (KeyCode::Tab, _) => AppAction::ToggleDrawer,
+            (KeyCode::Tab, _) => AppAction::Complete,
+            (KeyCode::BackTab, _) => AppAction::ToggleDrawer,
             (KeyCode::Enter, modifiers) if modifiers.intersects(KeyModifiers::SHIFT | KeyModifiers::ALT) => {
                 AppAction::Newline
             }
             (KeyCode::Enter, _)
                 if app.drawer_visible
-                    || matches!(app.overlay, Some(app::Overlay::Sessions | app::Overlay::Books)) =>
+                    || matches!(
+                        app.overlay,
+                        Some(app::Overlay::Palette | app::Overlay::Sessions | app::Overlay::Books)
+                    )
+                    || (app.has_active_clarification() && app.input.is_empty()) =>
             {
                 AppAction::Activate
             }
             (KeyCode::Enter, _) => AppAction::Submit,
+            (KeyCode::Backspace, modifiers)
+                if modifiers.intersects(KeyModifiers::ALT | KeyModifiers::CONTROL) =>
+            {
+                AppAction::DeleteWordBackward
+            }
             (KeyCode::Backspace, _) => AppAction::Backspace,
+            (KeyCode::Delete, _) => AppAction::Delete,
+            (KeyCode::Left, modifiers) if modifiers.intersects(KeyModifiers::ALT | KeyModifiers::CONTROL) => {
+                AppAction::WordLeft
+            }
+            (KeyCode::Right, modifiers)
+                if modifiers.intersects(KeyModifiers::ALT | KeyModifiers::CONTROL) =>
+            {
+                AppAction::WordRight
+            }
+            (KeyCode::Left, _) => AppAction::CursorLeft,
+            (KeyCode::Right, _) => AppAction::CursorRight,
+            (KeyCode::Home, _) => AppAction::CursorHome,
+            (KeyCode::End, _) => AppAction::CursorEnd,
             (KeyCode::Esc, _) => AppAction::Escape,
             (KeyCode::Up, _)
-                if app.drawer_visible
-                    || matches!(app.overlay, Some(app::Overlay::Sessions | app::Overlay::Books)) =>
+                if (app.has_active_clarification() && app.input.is_empty())
+                    || app.drawer_visible
+                    || matches!(
+                        app.overlay,
+                        Some(app::Overlay::Palette | app::Overlay::Sessions | app::Overlay::Books)
+                    ) =>
             {
                 AppAction::SelectUp
             }
             (KeyCode::Down, _)
-                if app.drawer_visible
-                    || matches!(app.overlay, Some(app::Overlay::Sessions | app::Overlay::Books)) =>
+                if (app.has_active_clarification() && app.input.is_empty())
+                    || app.drawer_visible
+                    || matches!(
+                        app.overlay,
+                        Some(app::Overlay::Palette | app::Overlay::Sessions | app::Overlay::Books)
+                    ) =>
             {
                 AppAction::SelectDown
             }
-            (KeyCode::Up, _) => AppAction::ScrollUp,
-            (KeyCode::Down, _) => AppAction::ScrollDown,
+            (KeyCode::Up, _) => AppAction::CursorUp,
+            (KeyCode::Down, _) => AppAction::CursorDown,
+            (KeyCode::Char('z'), modifiers) if modifiers.contains(KeyModifiers::CONTROL) => AppAction::Undo,
+            (KeyCode::Char('y'), modifiers) if modifiers.contains(KeyModifiers::CONTROL) => AppAction::Redo,
             (KeyCode::PageUp, _) => AppAction::PageUp,
             (KeyCode::PageDown, _) => AppAction::PageDown,
             (KeyCode::Char(character), modifiers) if !modifiers.contains(KeyModifiers::CONTROL) => {
@@ -828,13 +1022,42 @@ fn map_event(event: Event, app: &App, terminal_width: u16) -> AppAction {
             }
             _ => AppAction::None,
         },
+        Event::Paste(text) => AppAction::Paste(text),
         Event::Mouse(mouse) => match mouse.kind {
+            MouseEventKind::ScrollUp if app.has_active_clarification() => AppAction::SelectUp,
+            MouseEventKind::ScrollDown if app.has_active_clarification() => AppAction::SelectDown,
+            MouseEventKind::Down(MouseButton::Left)
+                if app.has_active_clarification()
+                    && ui::clarification_option_at(
+                        app,
+                        mouse.column,
+                        mouse.row,
+                        terminal_width,
+                        terminal_height,
+                    )
+                    .is_some() =>
+            {
+                ui::clarification_option_at(app, mouse.column, mouse.row, terminal_width, terminal_height)
+                    .map_or(AppAction::None, AppAction::ActivateClarificationOption)
+            }
+            MouseEventKind::Down(MouseButton::Left)
+                if ui::composer_cursor_at(app, mouse.column, mouse.row, terminal_width, terminal_height)
+                    .is_some() =>
+            {
+                ui::composer_cursor_at(app, mouse.column, mouse.row, terminal_width, terminal_height)
+                    .map_or(AppAction::None, AppAction::CursorSet)
+            }
             MouseEventKind::ScrollUp => AppAction::ScrollUp,
             MouseEventKind::ScrollDown => AppAction::ScrollDown,
             MouseEventKind::Down(MouseButton::Left)
-                if app.drawer_visible && mouse.column >= terminal_width.saturating_sub(40) =>
+                if app.drawer_visible && mouse.column >= terminal_width.saturating_sub(49) =>
             {
-                AppAction::Activate
+                let item_height = match app.drawer_tab {
+                    app::DrawerTab::Activity => 3,
+                    app::DrawerTab::Work => 2,
+                    app::DrawerTab::Board | app::DrawerTab::Problems => 4,
+                };
+                AppAction::ActivateIndex(usize::from(mouse.row.saturating_sub(4)) / item_height)
             }
             _ => AppAction::None,
         },

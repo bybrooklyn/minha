@@ -13,9 +13,9 @@ minha models --json
 minha sessions --json
 ```
 
-`doctor` checks the local Git repository, `rg`, merged configuration, SQLite store, and authentication state. The TUI `/doctor` view additionally reports workspace, database, schema/journal, book index, cache, and model-catalog diagnostics. A healthy local doctor result means the local prerequisites are present; it does not prove model entitlement or provider health. Every field in [`minha.toml.example`](../minha.toml.example) has an active runtime path, including `fact_limit`, destructive/remote-write policy routing, `cache.hot_entries`, `tui.mouse`, and `tui.tool_detail = "expanded"`.
+`doctor` checks the local Git repository, `rg`, merged configuration, SQLite store, and authentication state. The TUI `/doctor` view additionally reports workspace, database, schema/journal, book index, cache, and model-catalog diagnostics. A healthy local doctor result means the local prerequisites are present; it does not prove model entitlement or provider health. Every field in [`minha.toml.example`](../minha.toml.example) has an active runtime path, including context retention, memory controls, destructive/remote-write policy routing, cache bounds, theme, reduced motion, mouse, and tool-detail density.
 
-`/status` is the TUI's real local inspector/dashboard, not just a transcript annotation. It refreshes session and lifetime usage, current context and compact threshold, cache entries/bytes/hits/misses/saved tokens, office agents/tasks, account profiles, indexed books, queued steering, and recorded problems. The implementation also appends a compact status card to the transcript as a convenient snapshot; closing the dashboard does not remove that card.
+`/status` is the TUI's real local inspector/dashboard, not just a transcript annotation. It refreshes session and lifetime usage, per-agent context/forecast/reserve data, cache entries/bytes/hits/misses/saved tokens, TODO freshness, office agents/tasks, provider state, account profiles, memory controls, indexed books, queued steering, and recorded problems. The CLI `status --json` exposes the same typed event-derived context and provider records.
 
 For a clean local validation pass:
 
@@ -43,6 +43,33 @@ The TUI `/gh` command is intentionally read-only and returns selected JSON field
 Common update failures are actionable: authenticate `gh` when release access is denied, verify DNS/network access when the CLI cannot reach GitHub, wait for a published asset matching the current target, or reject and report any checksum mismatch. Never bypass checksum verification.
 
 ## Login and profile operations
+
+Direct DeepSeek credentials are managed separately from ChatGPT OAuth:
+
+```text
+minha provider add deepseek
+minha provider list
+minha provider test deepseek
+minha provider remove deepseek
+```
+
+The add command uses a no-echo prompt and an atomic private file (mode 0600 on Unix). The test performs authenticated model-catalog and balance GETs, not a generation. Provider keys are never persisted in project TOML, SQLite, transcripts, events, board entries, or recovery artifacts. Explicitly configuring DeepSeek is the data-routing consent boundary.
+
+`minha status` reports observed DeepSeek cost, cache-hit savings, and a conservative projection that prices each active agent's current forecast as a cache miss with its full output allowance. The model catalog exposes the dated pricing source and maximum-output metadata. These are estimates from the [official DeepSeek pricing table](https://api-docs.deepseek.com/quick_start/pricing), not provider invoices or hard spend controls.
+
+Inspect and control durable memory without a model call:
+
+```text
+minha memories
+minha memories --use false --generate false
+minha memory search "parser constraint"
+minha memory inspect MEMORY_ID
+minha memory pin MEMORY_ID
+minha memory correct MEMORY_ID "corrected fact"
+minha memory delete MEMORY_ID
+```
+
+The equivalent TUI controls are `/memories`, `/memories enabled|use|generate on|off`, `/memory QUERY`, `/memory pin ID`, and `/memory delete ID`. Deletion creates a tombstone; correction creates a superseding record. Generated records never override current `AGENTS.md`, `CLAUDE.md`, checked-in documentation, or live repository evidence.
 
 Start a device login and keep the terminal open while the provider polls:
 
@@ -86,6 +113,28 @@ minha show --json <RUN_UUID>
 
 Exit states distinguish success, pending/running, blocked or needing input, usage-paused, authentication unavailable, model unavailable, and failure. Preserve the run ID and any incident correlation ID when handing off a problem.
 
+## Operating Issue Clarifier
+
+An actionable but unsafe-to-guess report such as `minha run --implement "fix it"` enters `needs_input` before any workspace edit. Greetings and chat never do. In the TUI, one question is visible at a time: use Up/Down or the mouse to highlight an option, Enter to accept it, or start typing a direct free-text answer. Selecting **Other** moves the user to the same composer; **Not sure** delegates the detail without inventing evidence.
+
+The CLI prints each durable question ID and option value. Answer one pending question positionally or preserve a whole batch's field identities:
+
+```sh
+minha answer "It happens after reopening the TUI" --run <RUN_UUID>
+minha answer --run <RUN_UUID> \
+  --answer goal-1=wrong \
+  --answer reproduction-1=specific \
+  --answer scope-1=tui
+```
+
+When the brief is ready, inspect it and reply with `minha answer confirm`, `minha answer edit`, `minha answer "keep clarifying"`, or `minha answer cancel`. Work does not start before confirmation. The TUI uses the same inline single-question picker for this decision.
+
+Clarification survives process exit because the current meter, question batch, and brief are stored with the run. Use `minha status --json`, `minha show --json`, or TUI `/status` to inspect it. Forking copies the snapshot into the child. A confirmed brief also becomes a project decision; cancelling preserves the session but starts no agents. Transcript export includes the meter dimensions and brief.
+
+Workspace-local text or log paths in the report may be inspected through bounded read-only tools when doing so can replace a question. Do not point intake at credentials or secret-bearing logs. Screenshot paths are retained only as evidence references; the current Issue Clarifier does not decode or inspect the image. If visual interpretation is essential, describe the visible symptom in text.
+
+For token diagnosis, a clear request has no clarification turn. Vague requests use a compact Luna role without skill/agent bodies and with at most three questions per batch. Optional Terra advice is reserved for persistent high-impact ambiguity after two rounds. Provider usage for successful intake calls appears in `/status`; deterministic fallback questions consume no model tokens.
+
 ## Sessions and recovery
 
 The SQLite database at `.minha/minha.sqlite3` is authoritative for run state. Useful commands are:
@@ -121,7 +170,7 @@ Inspect cache totals through the `/status` inspector/dashboard, `/context`, `/cl
 3. reclaim expired task leases;
 4. refresh the TUI cache counters.
 
-It does not delete session history, transcripts, profiles, source files, worktrees, or recovery patches. Cache statistics are durable in SQLite schema v6, so preserve the database and compare hits, misses, bypasses, bytes, and saved-input-token counters before changing policy.
+It does not delete session history, transcripts, profiles, source files, worktrees, issue-clarification state, or recovery patches. SQLite schema v1 retains clarification snapshots, agent TODOs, memory indexes, office-room/message cursors, and cache statistics. Pre-v1 prototype databases are timestamp-archived on open rather than translated.
 
 ## Auto-compaction checkpoints
 

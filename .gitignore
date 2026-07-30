@@ -1,9 +1,31 @@
 /target/
-/.minha/state/
-/.minha/worktrees/
-/.minha/recovery/
-/.minha/*.sqlite3
-/.minha/*.sqlite3-*
+/.minha/*
+!/.minha/autoskills/
+/.minha/autoskills/*
+!/.minha/autoskills/.gitkeep
+
+# Local state, credentials, logs, and generated reports.
+.env
+.env.*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.sqlite3-*
+*.db
 *.db-shm
 *.db-wal
+*.log
+*.pem
+*.key
+*.p12
+auth.json
+credentials.json
+
+# Editors, operating systems, and coverage tools.
 .DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+coverage/
+lcov.info

@@ -7,7 +7,7 @@ use crate::{
     books::Book,
     facts::{BoardEntry, BoardKind, BoardStatus},
     github::GitHubQuery,
-    protocol::{BoardEntryView, EventAgentId, RunId, RuntimeEvent},
+    protocol::{BoardEntryView, EventAgentId, RunId, RuntimeEvent, TodoItem, TodoState},
     store::Store,
 };
 use serde_json::{Value, json};
@@ -22,8 +22,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub const DEFAULT_OUTPUT_CAP: usize = 32 * 1024;
-pub const DEFAULT_READ_CAP: usize = 48 * 1024;
+pub const DEFAULT_OUTPUT_CAP: usize = 16 * 1024;
+pub const DEFAULT_READ_CAP: usize = 24 * 1024;
 pub const DEFAULT_TIMEOUT_MS: u64 = 30_000;
 const TRUNCATION_MARKER: &str = "\n[output truncated]";
 const MAX_BOOK_READ_TOKENS: usize = 32_000;
@@ -181,6 +181,7 @@ impl ToolExecutor {
             "exec" => self.exec(args),
             "ask_user" => self.ask_user(args),
             "hive" => self.hive(args),
+            "todo" => self.todo(args),
             "books" => self.books(args),
             "github" => self.github(args),
             "quality" => self.quality(args),
@@ -371,6 +372,82 @@ impl ToolExecutor {
         }))
     }
 
+    fn todo(&self, args: &Value) -> Result<ToolOutcome, ToolError> {
+        let context = self
+            .coordination
+            .as_ref()
+            .ok_or_else(|| invalid("todo requires a coordinated agent context"))?;
+        let action = args.get("action").and_then(Value::as_str).unwrap_or("list");
+        if action == "list" {
+            return Ok(text_output(
+                serde_json::to_string(&json!({
+                    "schema_version": 1,
+                    "items": context.store.todos(context.run_id, context.agent_id)
+                        .map_err(coordination_error)?
+                }))
+                .map_err(|error| ToolError::Coordination(error.to_string()))?,
+            ));
+        }
+        if action == "replace" {
+            context
+                .store
+                .clear_todos(context.run_id, context.agent_id)
+                .map_err(coordination_error)?;
+        }
+        let id = args.get("id").and_then(Value::as_str).unwrap_or("todo-1");
+        let existing = context
+            .store
+            .todos(context.run_id, context.agent_id)
+            .map_err(coordination_error)?
+            .into_iter()
+            .find(|item| item.id == id);
+        let state = match action {
+            "start" => TodoState::InProgress,
+            "complete" => TodoState::Completed,
+            "block" => TodoState::Blocked,
+            "drop" => TodoState::Dropped,
+            "add" | "replace" => TodoState::Pending,
+            _ => {
+                return Err(invalid(
+                    "todo action must be list, replace, add, start, complete, block, or drop",
+                ));
+            }
+        };
+        let item = TodoItem {
+            id: id.to_owned(),
+            objective: args
+                .get("objective")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+                .or_else(|| existing.as_ref().map(|item| item.objective.clone()))
+                .ok_or_else(|| invalid("new todo items need objective"))?,
+            state,
+            order: args
+                .get("order")
+                .and_then(Value::as_u64)
+                .unwrap_or_else(|| existing.as_ref().map_or(0, |item| u64::from(item.order)))
+                as u32,
+            blocker: args.get("blocker").and_then(Value::as_str).map(str::to_owned),
+            evidence: args
+                .get("evidence")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect(),
+            revision: 0,
+        };
+        let item = context
+            .store
+            .upsert_todo(context.run_id, context.agent_id, item)
+            .map_err(coordination_error)?;
+        Ok(text_output(
+            serde_json::to_string(&json!({"schema_version": 1, "item": item}))
+                .map_err(|error| ToolError::Coordination(error.to_string()))?,
+        ))
+    }
+
     fn hive(&self, args: &Value) -> Result<ToolOutcome, ToolError> {
         let coordination = self
             .coordination
@@ -395,13 +472,27 @@ impl ToolExecutor {
             }
             "send" => {
                 let body = args.get("body").and_then(Value::as_str).unwrap_or_default();
-                if body.len() > 2_000 {
-                    return Err(invalid("hive message body exceeds 2000 bytes; store an artifact"));
+                if body.len() > 1_200 {
+                    return Err(invalid("hive message body exceeds 1200 bytes; store an artifact"));
                 }
                 let recipient = args.get("to").and_then(Value::as_str).unwrap_or("manager");
                 let kind = args.get("kind").and_then(Value::as_str).unwrap_or("progress");
+                if !matches!(
+                    kind,
+                    "finding"
+                        | "decision"
+                        | "blocker"
+                        | "request"
+                        | "progress"
+                        | "handoff"
+                        | "artifact_reference"
+                ) {
+                    return Err(invalid(
+                        "hive kind must be finding, decision, blocker, request, progress, handoff, or artifact_reference",
+                    ));
+                }
                 let id = uuid::Uuid::now_v7().to_string();
-                coordination
+                let stored_id = coordination
                     .store
                     .insert_hive_message(
                         coordination.run_id,
@@ -419,7 +510,29 @@ impl ToolExecutor {
                         Some(chrono::Utc::now() + chrono::Duration::hours(24)),
                     )
                     .map_err(coordination_error)?;
-                Ok(text_output(json!({"id": id, "delivered": true}).to_string()))
+                let deduplicated = stored_id != id;
+                coordination
+                    .store
+                    .record_runtime_event(
+                        coordination.run_id,
+                        RuntimeEvent::OfficeMessageChanged {
+                            message_id: stored_id.clone(),
+                            room_id: args
+                                .get("room")
+                                .and_then(Value::as_str)
+                                .unwrap_or("run")
+                                .to_owned(),
+                            sender: format!("agent:{}", coordination.agent_id),
+                            recipient: recipient.to_owned(),
+                            kind: kind.to_owned(),
+                            summary: body.chars().take(240).collect(),
+                            deduplicated,
+                        },
+                    )
+                    .map_err(coordination_error)?;
+                Ok(text_output(
+                    json!({"id": stored_id, "delivered": true, "deduplicated": deduplicated}).to_string(),
+                ))
             }
             "board_read" => self.board_read(args),
             "board_post" | "board_resolve" => {
@@ -1060,6 +1173,25 @@ pub fn tool_definitions(role: &str, read_only: bool, allow_questions: bool, coor
     if coordinated {
         tools.push(json!({
             "type": "function",
+            "name": "todo",
+            "description": "Maintain this agent's compact durable work list using deltas.",
+            "strict": false,
+            "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["action"],
+                "properties": {
+                    "action": {"type":"string","enum":["list","replace","add","start","complete","block","drop"]},
+                    "id": {"type":"string"},
+                    "objective": {"type":"string"},
+                    "order": {"type":"integer","minimum":0},
+                    "blocker": {"type":"string"},
+                    "evidence": {"type":"array","items":{"type":"string"}}
+                }
+            }
+        }));
+        tools.push(json!({
+            "type": "function",
             "name": "hive",
             "description": "Private compact coordination: inbox, typed messages, shared board entries, and artifact references.",
             "strict": false,
@@ -1071,7 +1203,7 @@ pub fn tool_definitions(role: &str, read_only: bool, allow_questions: bool, coor
                     "action": {"type":"string","enum":["inbox","send","board_read","board_post","board_resolve","artifact_put"]},
                     "to": {"type":"string"},
                     "room": {"type":"string"},
-                    "kind": {"type":"string"},
+                    "kind": {"type":"string","enum":["finding","decision","blocker","request","progress","handoff","artifact_reference"]},
                     "body": {"type":"string"},
                     "subject": {"type":"string"},
                     "entry_id": {"type":"string"},
@@ -1667,8 +1799,8 @@ mod tests {
         assert_eq!(tool_definitions("implementer", false, true, false).len(), 8);
         assert_eq!(tool_definitions("reviewer", true, true, false).len(), 7);
         assert_eq!(tool_definitions("reviewer", true, false, false).len(), 6);
-        assert_eq!(tool_definitions("implementer", false, true, true).len(), 9);
-        assert_eq!(tool_definitions("reviewer", true, true, true).len(), 8);
+        assert_eq!(tool_definitions("implementer", false, true, true).len(), 10);
+        assert_eq!(tool_definitions("reviewer", true, true, true).len(), 9);
         assert!(
             tool_definitions("implementer", false, true, true)
                 .iter()
@@ -1677,6 +1809,7 @@ mod tests {
         );
         let coordinated = tool_definitions("implementer", false, true, true);
         assert!(coordinated.iter().any(|tool| tool["name"] == "hive"));
+        assert!(coordinated.iter().any(|tool| tool["name"] == "todo"));
         assert!(coordinated.iter().any(|tool| tool["name"] == "books"));
         assert!(coordinated.iter().any(|tool| tool["name"] == "github"));
         assert!(coordinated.iter().any(|tool| tool["name"] == "quality"));

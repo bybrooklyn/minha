@@ -10,8 +10,8 @@ use serde_json::Value;
 use std::{fmt, str::FromStr};
 use uuid::Uuid;
 
-pub const PROTOCOL_VERSION: u16 = 4;
-pub const MIN_TYPED_PROTOCOL_VERSION: u16 = 2;
+pub const PROTOCOL_VERSION: u16 = 1;
+pub const MIN_TYPED_PROTOCOL_VERSION: u16 = 1;
 
 macro_rules! id_type {
     ($name:ident) => {
@@ -156,17 +156,171 @@ pub struct PlanTask {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub enum TodoState {
+    Pending,
+    InProgress,
+    Completed,
+    Blocked,
+    Dropped,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TodoItem {
+    pub id: String,
+    pub objective: String,
+    pub state: TodoState,
+    pub order: u32,
+    pub blocker: Option<String>,
+    #[serde(default)]
+    pub evidence: Vec<String>,
+    pub revision: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum RunPhase {
+    Queued,
     Preflight,
+    Clarifying,
     Routing,
     Planning,
     Scheduling,
     Working,
+    Compacting,
+    Retrying,
     Integrating,
     Judging,
     Waiting,
     Recovering,
     Complete,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TerminationReason {
+    Completed,
+    ContextBoundary,
+    ToolLimit,
+    TurnLimit,
+    ProviderReserve,
+    Interrupted,
+    UserPaused,
+    Blocked,
+    InvalidEmptyResponse,
+    ProviderFailure,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IssueKind {
+    Defect,
+    Feature,
+    Audit,
+    Review,
+    Question,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ClarificationStatus {
+    Collecting,
+    Reviewing,
+    Confirmed,
+    Cancelled,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DimensionStatus {
+    Unknown,
+    Partial,
+    Inferred,
+    Delegated,
+    Confirmed,
+    NotApplicable,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct AmbiguityDimension {
+    pub id: String,
+    pub label: String,
+    pub weight: u8,
+    pub status: DimensionStatus,
+    #[serde(default)]
+    pub detail: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct AmbiguityMeter {
+    pub overall: u8,
+    pub dimensions: Vec<AmbiguityDimension>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ClarificationOption {
+    pub value: String,
+    pub label: String,
+    pub description: String,
+    #[serde(default)]
+    pub recommended: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ClarificationQuestion {
+    pub id: String,
+    pub dimension: String,
+    pub header: String,
+    pub question: String,
+    pub options: Vec<ClarificationOption>,
+    #[serde(default = "default_true")]
+    pub allow_free_text: bool,
+    #[serde(default = "default_true")]
+    pub allow_not_sure: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ClarificationBatch {
+    pub round: u32,
+    pub questions: Vec<ClarificationQuestion>,
+    #[serde(default)]
+    pub actions: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct IssueBrief {
+    pub issue_kind: IssueKind,
+    pub observed: String,
+    pub expected: String,
+    #[serde(default)]
+    pub reproduction: Vec<String>,
+    #[serde(default)]
+    pub evidence: Vec<String>,
+    #[serde(default)]
+    pub scope: Vec<String>,
+    #[serde(default)]
+    pub constraints: Vec<String>,
+    #[serde(default)]
+    pub success_criteria: Vec<String>,
+    #[serde(default)]
+    pub assumptions: Vec<String>,
+    pub recommended_workflow: String,
+    pub meter: AmbiguityMeter,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct IssueClarificationView {
+    pub schema_version: u16,
+    pub status: ClarificationStatus,
+    pub issue_kind: IssueKind,
+    pub round: u32,
+    pub meter: AmbiguityMeter,
+    pub pending_batch: Option<ClarificationBatch>,
+    pub brief: Option<IssueBrief>,
+}
+
+const fn default_true() -> bool {
+    true
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -192,9 +346,27 @@ pub struct IncidentView {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CatalogModel {
+    #[serde(default = "default_chatgpt_provider")]
+    pub provider: String,
     pub slug: String,
     pub context_window: Option<u64>,
+    #[serde(default)]
+    pub maximum_output: Option<u64>,
+    #[serde(default)]
+    pub reasoning_levels: Vec<String>,
+    #[serde(default)]
+    pub supports_tools: bool,
     pub supports_parallel_tool_calls: bool,
+    #[serde(default)]
+    pub capability_source: String,
+    #[serde(default)]
+    pub pricing: Option<Value>,
+    #[serde(default)]
+    pub capability_fetched_at: Option<DateTime<Utc>>,
+}
+
+fn default_chatgpt_provider() -> String {
+    "chatgpt_codex".into()
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -231,6 +403,12 @@ pub enum RuntimeEvent {
     RunPhase {
         phase: RunPhase,
         detail: String,
+    },
+    RoutingDecision {
+        mode: String,
+        reason: String,
+        provider: String,
+        model: Option<String>,
     },
     ModelCatalog {
         models: Vec<CatalogModel>,
@@ -272,6 +450,63 @@ pub enum RuntimeEvent {
         task_id: String,
         state: PlanTaskState,
         agent_id: Option<EventAgentId>,
+    },
+    TodoChanged {
+        agent_id: EventAgentId,
+        item: TodoItem,
+    },
+    TodoRollupChanged {
+        active: u64,
+        blocked: u64,
+        completed: u64,
+        stale_agents: u64,
+        #[serde(default)]
+        active_goals: Vec<String>,
+        #[serde(default)]
+        blocked_work: Vec<String>,
+        #[serde(default)]
+        recently_completed: Vec<String>,
+    },
+    ActivityStarted {
+        activity_id: String,
+        agent_id: Option<EventAgentId>,
+        kind: String,
+        summary: String,
+    },
+    ActivityUpdated {
+        activity_id: String,
+        detail: String,
+    },
+    ActivityFinished {
+        activity_id: String,
+        summary: String,
+        succeeded: bool,
+        duration_ms: u64,
+    },
+    MemoryChanged {
+        memory_id: String,
+        action: String,
+        scope: String,
+    },
+    MemoryRetrieved {
+        agent_id: EventAgentId,
+        memory_ids: Vec<String>,
+        estimated_tokens: u64,
+    },
+    ProviderState {
+        provider: String,
+        enabled: bool,
+        healthy: Option<bool>,
+        detail: String,
+    },
+    ProviderBalance {
+        provider: String,
+        available: bool,
+        currency: String,
+        total: String,
+        granted: String,
+        topped_up: String,
+        reserve_percent: Option<f64>,
     },
     AgentRetry {
         task_id: String,
@@ -315,6 +550,15 @@ pub enum RuntimeEvent {
         options: Vec<String>,
         blocking: bool,
     },
+    ClarificationStarted {
+        clarification: IssueClarificationView,
+    },
+    ClarificationUpdated {
+        clarification: IssueClarificationView,
+    },
+    ClarificationConfirmed {
+        brief: IssueBrief,
+    },
     Approval {
         request_id: RequestId,
         agent_id: EventAgentId,
@@ -350,8 +594,12 @@ pub enum RuntimeEvent {
         agent_id: EventAgentId,
         model: String,
         estimated_tokens: u64,
-        context_limit: u64,
-        compact_at_tokens: u64,
+        advertised_limit: u64,
+        effective_limit: u64,
+        forecast_tokens: u64,
+        output_allowance: u64,
+        protected_reserve: u64,
+        capability_source: String,
     },
     AccountUsage {
         snapshot: Value,
@@ -368,6 +616,21 @@ pub enum RuntimeEvent {
         open_tasks: u64,
         blocked_tasks: u64,
         manager_consultations: u64,
+    },
+    OfficeRoomChanged {
+        room_id: String,
+        kind: String,
+        state: String,
+        purpose: String,
+    },
+    OfficeMessageChanged {
+        message_id: String,
+        room_id: String,
+        sender: String,
+        recipient: String,
+        kind: String,
+        summary: String,
+        deduplicated: bool,
     },
     BookCatalog {
         indexed: u64,
@@ -386,6 +649,10 @@ pub enum RuntimeEvent {
     },
     TurnInterrupted {
         reason: String,
+    },
+    RunStopped {
+        reason: TerminationReason,
+        detail: String,
     },
     SessionFinished {
         state: ExitState,
@@ -418,6 +685,7 @@ impl RuntimeEvent {
             Self::SessionArchived => "session.archived",
             Self::SessionState { .. } => "session.state",
             Self::RunPhase { .. } => "run.phase",
+            Self::RoutingDecision { .. } => "routing.decision",
             Self::ModelCatalog { .. } => "model.catalog",
             Self::UserMessage { .. } => "message.user",
             Self::AgentStarted { .. } => "agent.started",
@@ -426,6 +694,15 @@ impl RuntimeEvent {
             Self::AssistantMessage { .. } => "message.assistant",
             Self::PlanCreated { .. } => "plan.created",
             Self::PlanTaskChanged { .. } => "plan.task_changed",
+            Self::TodoChanged { .. } => "todo.changed",
+            Self::TodoRollupChanged { .. } => "todo.rollup_changed",
+            Self::ActivityStarted { .. } => "activity.started",
+            Self::ActivityUpdated { .. } => "activity.updated",
+            Self::ActivityFinished { .. } => "activity.finished",
+            Self::MemoryChanged { .. } => "memory.changed",
+            Self::MemoryRetrieved { .. } => "memory.retrieved",
+            Self::ProviderState { .. } => "provider.state",
+            Self::ProviderBalance { .. } => "provider.balance",
             Self::AgentRetry { .. } => "agent.retry",
             Self::LeaseChanged { .. } => "lease.changed",
             Self::BoardChanged { .. } => "board.changed",
@@ -433,6 +710,9 @@ impl RuntimeEvent {
             Self::ToolOutput { .. } => "tool.output",
             Self::FileChange { .. } => "file.change",
             Self::Question { .. } => "request.question",
+            Self::ClarificationStarted { .. } => "clarification.started",
+            Self::ClarificationUpdated { .. } => "clarification.updated",
+            Self::ClarificationConfirmed { .. } => "clarification.confirmed",
             Self::Approval { .. } => "request.approval",
             Self::RequestResolved { .. } => "request.resolved",
             Self::SteeringQueued { .. } => "steering.queued",
@@ -442,11 +722,14 @@ impl RuntimeEvent {
             Self::AccountUsage { .. } => "usage.account",
             Self::Cache { .. } => "cache.lookup",
             Self::OfficeHealth { .. } => "office.health",
+            Self::OfficeRoomChanged { .. } => "office.room_changed",
+            Self::OfficeMessageChanged { .. } => "office.message_changed",
             Self::BookCatalog { .. } => "books.catalog",
             Self::Incident { .. } => "incident",
             Self::Compacted { .. } => "context.compacted",
             Self::SequentialFallback { .. } => "swarm.sequential_fallback",
             Self::TurnInterrupted { .. } => "turn.interrupted",
+            Self::RunStopped { .. } => "run.stopped",
             Self::SessionFinished { .. } => "session.finished",
             Self::Warning { .. } => "warning",
             Self::Error { .. } => "error",

@@ -1,11 +1,11 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "pack_id": "design",
   "title": "Interaction Design",
   "books": [
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "design-01",
         "version": "1.0.0",
         "title": "Design Principles: Interaction Design",
@@ -164,7 +164,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "design-02",
         "version": "1.0.0",
         "title": "Information Architecture: Interaction Design",
@@ -323,7 +323,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "design-03",
         "version": "1.0.0",
         "title": "Interaction States: Interaction Design",
@@ -448,6 +448,19 @@
             "design-03-cite-editorial",
             "design-03-cite-reference"
           ]
+        },
+        {
+          "id": "design-03-fact-terminal-ui",
+          "statement": "A responsive terminal interface should separate durable transcript state from viewport layout, use display-width-aware cursor geometry, redraw only while visible state can change, and derive mouse targets from rendered rows.",
+          "tags": [
+            "terminal-ui",
+            "differential-rendering",
+            "unicode",
+            "interaction-states"
+          ],
+          "citation_ids": [
+            "design-03-cite-ratatui"
+          ]
         }
       ],
       "citations": [
@@ -477,12 +490,21 @@
           "kind": "curated_editorial",
           "url": null,
           "accessed": "2026-07-29"
+        },
+        {
+          "id": "design-03-cite-ratatui",
+          "locator": "rendering and terminal concepts",
+          "source": "Ratatui documentation",
+          "note": "Primary reference for immediate terminal rendering, buffers, layout, widgets, and terminal lifecycle.",
+          "kind": "official_documentation",
+          "url": "https://ratatui.rs/concepts/rendering/",
+          "accessed": "2026-07-29"
         }
       ]
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "design-04",
         "version": "1.0.0",
         "title": "Visual Hierarchy: Interaction Design",
@@ -641,7 +663,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "design-05",
         "version": "1.0.0",
         "title": "Forms: Interaction Design",
@@ -800,7 +822,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "design-06",
         "version": "1.0.0",
         "title": "Error Experience: Interaction Design",
@@ -959,7 +981,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "design-07",
         "version": "1.0.0",
         "title": "Accessible Interaction: Interaction Design",
@@ -1118,7 +1140,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "design-08",
         "version": "1.0.0",
         "title": "Design Systems: Interaction Design",
@@ -1277,7 +1299,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "design-09",
         "version": "1.0.0",
         "title": "Content Design: Interaction Design",
@@ -1436,7 +1458,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "design-10",
         "version": "1.0.0",
         "title": "Evaluation: Interaction Design",

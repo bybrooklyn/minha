@@ -1,11 +1,11 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "pack_id": "foundations",
   "title": "Software Foundations",
   "books": [
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "foundations-01",
         "version": "1.0.0",
         "title": "Boundary Design: Software Foundations",
@@ -164,7 +164,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "foundations-02",
         "version": "1.0.0",
         "title": "Feedback Loops: Software Foundations",
@@ -323,7 +323,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "foundations-03",
         "version": "1.0.0",
         "title": "Error Modeling: Software Foundations",
@@ -482,7 +482,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "foundations-04",
         "version": "1.0.0",
         "title": "Data Ownership: Software Foundations",
@@ -641,7 +641,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "foundations-05",
         "version": "1.0.0",
         "title": "Reviewable Change: Software Foundations",
@@ -800,7 +800,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "foundations-06",
         "version": "1.0.0",
         "title": "Refactoring Safely: Software Foundations",
@@ -959,7 +959,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "foundations-07",
         "version": "1.0.0",
         "title": "Dependency Seams: Software Foundations",
@@ -1118,7 +1118,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "foundations-08",
         "version": "1.0.0",
         "title": "Observable State: Software Foundations",
@@ -1277,7 +1277,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "foundations-09",
         "version": "1.0.0",
         "title": "Documentation as Contract: Software Foundations",
@@ -1436,7 +1436,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "foundations-10",
         "version": "1.0.0",
         "title": "Maintenance Shape: Software Foundations",

@@ -1,6 +1,6 @@
 #![cfg_attr(not(test), deny(clippy::unwrap_used, clippy::expect_used))]
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use minha_core::runtime::HarnessError;
 use minha_core::{
     Config, ExitState, Harness, RunId, RunKind, RunOutcome, Store,
@@ -9,12 +9,19 @@ use minha_core::{
         load_default_auth, logout_default, openai_oauth_config, remove_account_profile, save_account_profile,
         set_account_profile_enabled, set_active_account_profile,
     },
+    deepseek::{DEEPSEEK_PRICING_SOURCE, DEEPSEEK_PRICING_VERSION, DeepSeekClient, estimate_cost_usd},
+    memory::{MemoryRecord, MemoryScope},
+    provider::DEEPSEEK_BASE_URL,
+    provider_credentials::{
+        default_path as provider_credentials_path, load_deepseek_key, remove_deepseek, save_deepseek_key,
+    },
     store::state_name,
     worktree::GitRepo,
 };
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::{
+    collections::BTreeMap,
     path::PathBuf,
     process::{Command, ExitCode},
 };
@@ -49,6 +56,12 @@ enum CommandLine {
     Logout,
     /// List exact model slugs available to the active account.
     Models,
+    /// Add, list, test, or remove direct model providers.
+    Provider(ProviderArgs),
+    /// Search, inspect, correct, pin, or delete durable memory.
+    Memory(MemoryArgs),
+    /// Show or change project memory generation and retrieval controls.
+    Memories(MemoriesArgs),
     /// Plan, branch, implement, integrate, and judge a coding task.
     Run(TaskArgs),
     /// Inspect and produce a plan without editing the workspace.
@@ -112,8 +125,15 @@ struct RunArgs {
 
 #[derive(Args, Debug)]
 struct AnswerArgs {
-    #[arg(value_name = "TEXT", help = "Answer to the pending question")]
-    text: String,
+    #[arg(value_name = "TEXT", help = "Answer to the pending single question")]
+    text: Option<String>,
+    #[arg(
+        long = "answer",
+        value_name = "ID=VALUE",
+        action = clap::ArgAction::Append,
+        help = "Answer one issue-clarification question; repeat for a batch"
+    )]
+    answers: Vec<String>,
     #[arg(long, value_name = "UUID")]
     run: Option<String>,
 }
@@ -168,6 +188,84 @@ enum LoginCommand {
     Remove { name: String },
 }
 
+#[derive(Args, Debug)]
+struct ProviderArgs {
+    #[command(subcommand)]
+    command: ProviderCommand,
+}
+
+#[derive(Subcommand, Debug)]
+enum ProviderCommand {
+    /// Add a provider credential using a no-echo prompt.
+    Add { name: String },
+    /// List configured providers without exposing credentials.
+    List,
+    /// Test provider authentication without making a model generation request.
+    Test { name: String },
+    /// Remove a provider credential.
+    Remove { name: String },
+}
+
+#[derive(Args, Debug)]
+struct MemoryArgs {
+    #[command(subcommand)]
+    command: MemoryCommand,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum MemoryScopeArg {
+    User,
+    Project,
+    Run,
+}
+
+#[derive(Subcommand, Debug)]
+enum MemoryCommand {
+    Search {
+        query: String,
+        #[arg(long, default_value_t = 10)]
+        limit: usize,
+        #[arg(long)]
+        run: Option<String>,
+    },
+    Inspect {
+        id: String,
+    },
+    Add {
+        #[arg(long, value_enum, default_value_t = MemoryScopeArg::Project)]
+        scope: MemoryScopeArg,
+        subject: String,
+        body: String,
+        #[arg(long)]
+        run: Option<String>,
+    },
+    Pin {
+        id: String,
+    },
+    Correct {
+        id: String,
+        body: String,
+    },
+    Supersede {
+        id: String,
+        subject: String,
+        body: String,
+    },
+    Delete {
+        id: String,
+    },
+}
+
+#[derive(Args, Debug)]
+struct MemoriesArgs {
+    #[arg(long, value_name = "BOOL")]
+    enabled: Option<bool>,
+    #[arg(long = "use", value_name = "BOOL")]
+    use_memory: Option<bool>,
+    #[arg(long, value_name = "BOOL")]
+    generate: Option<bool>,
+}
+
 #[derive(Serialize)]
 struct Envelope {
     ok: bool,
@@ -206,13 +304,31 @@ async fn dispatch(command: Option<CommandLine>, json_output: bool, jsonl: bool) 
         CommandLine::Models => {
             with_harness(|h| async move {
                 let models = h.models().await?;
-                Ok(success(
-                    ExitState::Succeeded,
-                    json!({"models": models.iter().map(|m| &m.slug).collect::<Vec<_>>() }),
-                ))
+                let mut available = models
+                    .iter()
+                    .map(|model| {
+                        json!({
+                            "provider":"chatgpt_codex", "slug":model.slug,
+                            "capabilities":model.capabilities()
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                if let Some(path) = provider_credentials_path()
+                    && load_deepseek_key(&path).ok().flatten().is_some()
+                {
+                    available.extend(["deepseek-v4-flash", "deepseek-v4-pro"].map(|slug| {
+                        json!({
+                            "provider":"deepseek", "slug":slug, "context_window":1_048_576_u64
+                        })
+                    }));
+                }
+                Ok(success(ExitState::Succeeded, json!({"models": available})))
             })
             .await
         }
+        CommandLine::Provider(args) => provider(args).await,
+        CommandLine::Memory(args) => memory(args).await,
+        CommandLine::Memories(args) => memories(args).await,
         CommandLine::Run(args) => execute(RunKind::Implement, args.task, jsonl).await,
         CommandLine::Plan(args) => execute(RunKind::Plan, args.task, jsonl).await,
         CommandLine::Audit(args) => execute_optional(RunKind::Audit, args.task, jsonl).await,
@@ -241,6 +357,215 @@ async fn dispatch(command: Option<CommandLine>, json_output: bool, jsonl: bool) 
         ),
         CommandLine::Update(args) => update(args),
     }
+}
+
+async fn provider(args: ProviderArgs) -> ResultData {
+    let Some(path) = provider_credentials_path() else {
+        return failure("could not determine the user configuration directory".into());
+    };
+    match args.command {
+        ProviderCommand::Add { name } if name.eq_ignore_ascii_case("deepseek") => {
+            let key = match rpassword::prompt_password("DeepSeek API key: ") {
+                Ok(key) => key,
+                Err(error) => return failure(format!("could not read API key: {error}")),
+            };
+            match save_deepseek_key(&path, &key) {
+                Ok(()) => success(
+                    ExitState::Succeeded,
+                    json!({"provider":"deepseek","configured":true}),
+                ),
+                Err(error) => failure(error.to_string()),
+            }
+        }
+        ProviderCommand::List => match load_deepseek_key(&path) {
+            Ok(key) => success(
+                ExitState::Succeeded,
+                json!({
+                    "providers":[
+                        {"id":"chatgpt_codex","authentication":"oauth"},
+                        {"id":"deepseek","authentication":"api_key","configured":key.is_some()}
+                    ]
+                }),
+            ),
+            Err(error) => failure(error.to_string()),
+        },
+        ProviderCommand::Test { name } if name.eq_ignore_ascii_case("deepseek") => {
+            let key = match load_deepseek_key(&path) {
+                Ok(Some(key)) => key,
+                Ok(None) => {
+                    return blocked_data("DeepSeek is not configured; run `minha provider add deepseek`");
+                }
+                Err(error) => return failure(error.to_string()),
+            };
+            let client = DeepSeekClient::new(DEEPSEEK_BASE_URL, key);
+            match client.test_connection().await {
+                Ok(()) => match client.fetch_balance().await {
+                    Ok(balance) => success(
+                        ExitState::Succeeded,
+                        json!({"provider":"deepseek","healthy":true,"balance":balance}),
+                    ),
+                    Err(error) => success(
+                        ExitState::Succeeded,
+                        json!({"provider":"deepseek","healthy":true,"balance_error":error.to_string()}),
+                    ),
+                },
+                Err(error) => failure(error.to_string()),
+            }
+        }
+        ProviderCommand::Remove { name } if name.eq_ignore_ascii_case("deepseek") => {
+            match remove_deepseek(&path) {
+                Ok(removed) => success(
+                    ExitState::Succeeded,
+                    json!({"provider":"deepseek","removed":removed}),
+                ),
+                Err(error) => failure(error.to_string()),
+            }
+        }
+        ProviderCommand::Add { name } | ProviderCommand::Test { name } | ProviderCommand::Remove { name } => {
+            blocked_data(&format!("unsupported provider `{name}`"))
+        }
+    }
+}
+
+async fn memory(args: MemoryArgs) -> ResultData {
+    with_harness(|h| async move {
+        let data = match args.command {
+            MemoryCommand::Search { query, limit, run } => {
+                let run = run
+                    .as_deref()
+                    .map(str::parse::<RunId>)
+                    .transpose()
+                    .map_err(|error| {
+                        HarnessError::Io(std::io::Error::new(std::io::ErrorKind::InvalidInput, error))
+                    })?;
+                json!({"query":query,"hits":h.store.search_memories(h.workspace_id(), run, &query, limit)?})
+            }
+            MemoryCommand::Inspect { id } => {
+                json!({"memory":h.store.memory(&id)?})
+            }
+            MemoryCommand::Add {
+                scope,
+                subject,
+                body,
+                run,
+            } => {
+                let scope = match scope {
+                    MemoryScopeArg::User => MemoryScope::User,
+                    MemoryScopeArg::Project => MemoryScope::Project,
+                    MemoryScopeArg::Run => MemoryScope::Run,
+                };
+                let run_id = run
+                    .as_deref()
+                    .map(str::parse::<RunId>)
+                    .transpose()
+                    .map_err(|error| {
+                        HarnessError::Io(std::io::Error::new(std::io::ErrorKind::InvalidInput, error))
+                    })?;
+                if scope == MemoryScope::Run && run_id.is_none() {
+                    return Ok(blocked_data("run-scoped memory requires --run UUID"));
+                }
+                let mut record = MemoryRecord::candidate(scope, "user_correction", subject, body);
+                record.workspace_id = (scope != MemoryScope::User).then(|| h.workspace_id().to_owned());
+                record.run_id = run_id;
+                record.pinned = true;
+                record.confidence = 100;
+                record.provenance = vec!["user:explicit".into()];
+                let record = h.store.put_memory(record)?;
+                if let Some(run_id) = record.run_id {
+                    h.store.record_runtime_event(
+                        run_id,
+                        minha_core::protocol::RuntimeEvent::MemoryChanged {
+                            memory_id: record.id.clone(),
+                            action: "added".into(),
+                            scope: record.scope.as_str().into(),
+                        },
+                    )?;
+                }
+                json!({"memory":record})
+            }
+            MemoryCommand::Pin { id } => {
+                let changed = h.store.set_memory_state(&id, Some(true), None)?;
+                json!({"id":id,"pinned":changed})
+            }
+            MemoryCommand::Correct { id, body } => {
+                let Some(previous) = h.store.memory(&id)? else {
+                    return Ok(blocked_data("memory not found"));
+                };
+                let record = corrected_memory(previous, None, body);
+                let record = h.store.put_memory(record)?;
+                json!({"memory":record})
+            }
+            MemoryCommand::Supersede { id, subject, body } => {
+                let Some(previous) = h.store.memory(&id)? else {
+                    return Ok(blocked_data("memory not found"));
+                };
+                let record = corrected_memory(previous, Some(subject), body);
+                let record = h.store.put_memory(record)?;
+                json!({"memory":record})
+            }
+            MemoryCommand::Delete { id } => {
+                let changed = h.store.set_memory_state(&id, None, Some(true))?;
+                json!({"id":id,"deleted":changed})
+            }
+        };
+        Ok(success(ExitState::Succeeded, data))
+    })
+    .await
+}
+
+fn corrected_memory(previous: MemoryRecord, subject: Option<String>, body: String) -> MemoryRecord {
+    let mut record = MemoryRecord::candidate(
+        previous.scope,
+        "user_correction",
+        subject.unwrap_or_else(|| previous.subject.clone()),
+        body,
+    );
+    record.workspace_id = previous.workspace_id;
+    record.run_id = previous.run_id;
+    record.pinned = true;
+    record.confidence = 100;
+    record.salience = previous.salience.max(75);
+    record.entities = previous.entities;
+    record.provenance = vec!["user:explicit_correction".into()];
+    record.supersedes_id = Some(previous.id);
+    record
+}
+
+async fn memories(args: MemoriesArgs) -> ResultData {
+    with_harness(|h| async move {
+        let mut settings = h.store.memory_settings(h.workspace_id())?;
+        let changed = args.enabled.is_some() || args.use_memory.is_some() || args.generate.is_some();
+        if let Some(enabled) = args.enabled {
+            settings.enabled = enabled;
+        }
+        if let Some(use_memory) = args.use_memory {
+            settings.use_memory = use_memory;
+        }
+        if let Some(generate) = args.generate {
+            settings.generate = generate;
+        }
+        if changed {
+            h.store.set_memory_settings(h.workspace_id(), settings)?;
+        }
+        Ok(success(
+            ExitState::Succeeded,
+            json!({
+                "settings": settings,
+                "configuration": {
+                    "enabled": h.config.memory.enabled,
+                    "use_memory": h.config.memory.use_memory,
+                    "generate": h.config.memory.generate,
+                    "retrieval_limit": h.config.memory.retrieval_limit,
+                },
+                "effective": {
+                    "enabled": settings.enabled && h.config.memory.enabled,
+                    "use_memory": settings.use_memory && h.config.memory.use_memory,
+                    "generate": settings.generate && h.config.memory.generate,
+                }
+            }),
+        ))
+    })
+    .await
 }
 
 fn update(args: UpdateArgs) -> ResultData {
@@ -424,7 +749,28 @@ where
 async fn answer(args: AnswerArgs) -> ResultData {
     with_harness(|h| async move {
         let run = selected_run(&h.store, args.run.as_deref())?;
-        Ok(outcome(h.resume_with_answer(run.id, &args.text).await))
+        if !args.answers.is_empty() {
+            if args.text.is_some() {
+                return blocked("use either positional TEXT or repeatable --answer ID=VALUE, not both");
+            }
+            let mut answers = Vec::with_capacity(args.answers.len());
+            for encoded in args.answers {
+                let Some((id, value)) = encoded.split_once('=') else {
+                    return blocked("clarification answers must use --answer ID=VALUE");
+                };
+                if id.trim().is_empty() || value.trim().is_empty() {
+                    return blocked("clarification answer IDs and values must not be empty");
+                }
+                answers.push((id.trim().to_owned(), value.trim().to_owned()));
+            }
+            return Ok(outcome(
+                h.resume_with_clarification_answers(run.id, &answers).await,
+            ));
+        }
+        let Some(text) = args.text else {
+            return blocked("provide TEXT or at least one --answer ID=VALUE");
+        };
+        Ok(outcome(h.resume_with_answer(run.id, &text).await))
     })
     .await
 }
@@ -498,11 +844,19 @@ async fn pickup(args: RunArgs) -> ResultData {
             return Ok(outcome(h.resume_paused(run.id).await));
         }
         if run.state == ExitState::NeedsInput {
+            let clarification = h.store.issue_clarification(run.id)?;
             return Ok(ResultData {
                 code: EXIT_BLOCKED,
                 state: ExitState::NeedsInput,
-                data: json!({"run_id": run.id, "question": run.pending_question}),
-                error: Some("pending question requires an answer; use `minha answer TEXT`".into()),
+                data: json!({
+                    "run_id": run.id,
+                    "question": run.pending_question,
+                    "clarification": clarification,
+                }),
+                error: Some(
+                    "pending input requires `minha answer TEXT` or repeatable `minha answer --answer ID=VALUE`"
+                        .into(),
+                ),
             });
         }
         blocked("pickup applies only to a run needing input or paused by the usage reserve")
@@ -527,17 +881,83 @@ async fn inspect(args: RunArgs, kind: InspectKind) -> ResultData {
                 let (active_agents, open_tasks, blocked_tasks) = h.store.office_health(run.id)?;
                 let accounts = list_account_profiles().await?;
                 let active_account = active_account_profile().await?;
+                let events = h.store.events(run.id)?;
+                let mut contexts = BTreeMap::new();
+                let mut providers = BTreeMap::new();
+                let mut last_incident = None;
+                let mut catalog_fetched_at = None;
+                let mut projected_next_deepseek_usd = 0.0;
+                for event in &events {
+                    match &event.event {
+                        minha_core::protocol::RuntimeEvent::ContextUsage {
+                            agent_id,
+                            model,
+                            forecast_tokens,
+                            output_allowance,
+                            ..
+                        } => {
+                            contexts.insert(agent_id.to_string(), event.payload());
+                            projected_next_deepseek_usd +=
+                                estimate_cost_usd(model, *forecast_tokens, 0, *output_allowance)
+                                    .unwrap_or(0.0);
+                        }
+                        minha_core::protocol::RuntimeEvent::ProviderState { provider, .. } => {
+                            providers.insert(provider.clone(), event.payload());
+                        }
+                        minha_core::protocol::RuntimeEvent::Incident { .. } => {
+                            last_incident = Some(event.payload());
+                        }
+                        minha_core::protocol::RuntimeEvent::ModelCatalog { fetched_at, .. } => {
+                            catalog_fetched_at = Some(*fetched_at);
+                        }
+                        _ => {}
+                    }
+                }
+                let todo_rollup = h.store.todo_rollup(run.id)?;
+                let todo_details = h.store.todo_rollup_details(run.id, 3)?;
+                let memory = h.store.memory_settings(h.workspace_id())?;
+                let deepseek_cost = h.store.deepseek_cost_totals(Some(run.id))?;
                 json!({
                     "run": run,
                     "usage": usage,
+                    "contexts": contexts,
                     "cache": cache,
+                    "cache_hit_ratio": if cache.hits + cache.misses == 0 { 0.0 } else { cache.hits as f64 / (cache.hits + cache.misses) as f64 },
                     "office": {
                         "active_agents": active_agents,
                         "open_tasks": open_tasks,
                         "blocked_tasks": blocked_tasks,
                     },
+                    "todos": {
+                        "active": todo_rollup.0,
+                        "blocked": todo_rollup.1,
+                        "completed": todo_rollup.2,
+                        "stale_agents": todo_rollup.3,
+                        "active_goals": todo_details.active_goals,
+                        "blocked_work": todo_details.blocked_work,
+                        "recently_completed": todo_details.recently_completed,
+                    },
+                    "providers": providers,
+                    "deepseek_cost": {
+                        "estimated_usd": deepseek_cost.estimated_usd,
+                        "projected_usd": deepseek_cost.estimated_usd + projected_next_deepseek_usd,
+                        "projected_next_turn_assumption": "current per-agent forecast, cache miss, full output allowance",
+                        "cache_savings_usd": deepseek_cost.cache_savings_usd,
+                        "priced_turns": deepseek_cost.priced_turns,
+                        "unpriced_turns": deepseek_cost.unpriced_turns,
+                        "pricing_version": DEEPSEEK_PRICING_VERSION,
+                        "pricing_source": DEEPSEEK_PRICING_SOURCE,
+                    },
+                    "memory": memory,
+                    "last_incident": last_incident,
+                    "model_catalog_fetched_at": catalog_fetched_at,
+                    "configuration_sources": {
+                        "project": current_dir().join("minha.toml"),
+                        "user": dirs::config_dir().map(|path| path.join("minha/config.toml")),
+                    },
                     "books": {"indexed": h.store.indexed_book_count()?},
                     "accounts": {"active": active_account, "profiles": accounts},
+                    "clarification": h.store.issue_clarification(run.id)?,
                 })
             }
             InspectKind::Usage => {
@@ -556,7 +976,12 @@ async fn inspect(args: RunArgs, kind: InspectKind) -> ResultData {
             }
             InspectKind::Events => json!({"run_id": run.id, "events": h.store.events(run.id)?}),
             InspectKind::Show => {
-                json!({"run": run, "messages": h.store.messages(run.id)?, "events": h.store.events(run.id)?})
+                json!({
+                    "run": run,
+                    "messages": h.store.messages(run.id)?,
+                    "events": h.store.events(run.id)?,
+                    "clarification": h.store.issue_clarification(run.id)?,
+                })
             }
         };
         Ok(success(run.state, data))
@@ -675,12 +1100,16 @@ fn auth_error(error: String) -> ResultData {
     }
 }
 fn blocked(error: &str) -> Result<ResultData, HarnessError> {
-    Ok(ResultData {
+    Ok(blocked_data(error))
+}
+
+fn blocked_data(error: &str) -> ResultData {
+    ResultData {
         code: EXIT_BLOCKED,
         state: ExitState::Blocked,
         data: json!({}),
         error: Some(error.into()),
-    })
+    }
 }
 
 fn code_for_state(state: ExitState) -> u8 {
@@ -714,7 +1143,9 @@ fn emit(json_output: bool, result: ResultData) -> ExitCode {
         eprintln!("error: {error}");
     } else if let Some(text) = result.data.get("text").and_then(Value::as_str) {
         println!("{text}");
-        if let Some(question) = result.data.get("question").and_then(Value::as_object) {
+        if let Some(clarification) = result.data.get("clarification").filter(|value| !value.is_null()) {
+            print_clarification(clarification);
+        } else if let Some(question) = result.data.get("question").and_then(Value::as_object) {
             if let Some(q) = question.get("question").and_then(Value::as_str) {
                 println!("\nQuestion: {q}");
             }
@@ -728,6 +1159,50 @@ fn emit(json_output: bool, result: ResultData) -> ExitCode {
         println!("{}", result.data);
     }
     ExitCode::from(result.code)
+}
+
+fn print_clarification(clarification: &Value) {
+    let ambiguity = clarification
+        .pointer("/meter/overall")
+        .and_then(Value::as_u64)
+        .unwrap_or_default();
+    let status = clarification
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("collecting");
+    println!("\nIssue Clarifier · ambiguity {ambiguity}/100 · {status}");
+
+    let questions = clarification
+        .pointer("/pending_batch/questions")
+        .and_then(Value::as_array);
+    if let Some(questions) = questions {
+        for question in questions {
+            let id = question.get("id").and_then(Value::as_str).unwrap_or("question");
+            let prompt = question
+                .get("question")
+                .and_then(Value::as_str)
+                .unwrap_or("What should Minha know?");
+            println!("\n[{id}] {prompt}");
+            if let Some(options) = question.get("options").and_then(Value::as_array) {
+                for option in options {
+                    let value = option.get("value").and_then(Value::as_str).unwrap_or_default();
+                    let label = option.get("label").and_then(Value::as_str).unwrap_or(value);
+                    let recommended = option
+                        .get("recommended")
+                        .and_then(Value::as_bool)
+                        .is_some_and(|recommended| recommended);
+                    println!(
+                        "  - {value} = {label}{}",
+                        if recommended { " (recommended)" } else { "" }
+                    );
+                }
+            }
+            println!("  - Not sure, or write your own answer");
+        }
+        println!("\nReply with `minha answer --answer ID=VALUE` (repeat --answer for the batch).");
+    } else if status == "reviewing" {
+        println!("Reply with `minha answer confirm`, `edit`, `keep clarifying`, or `cancel`.");
+    }
 }
 
 fn current_dir() -> PathBuf {
@@ -757,5 +1232,27 @@ mod tests {
             encoded,
             json!({"ok": true, "state": "succeeded", "data": {"x": 1}, "error": null})
         );
+    }
+
+    #[test]
+    fn answer_parser_accepts_repeatable_clarification_fields() {
+        let cli = Cli::try_parse_from([
+            "minha",
+            "answer",
+            "--answer",
+            "goal-1=wrong result",
+            "--answer",
+            "scope-1=tui",
+        ])
+        .expect("repeatable answer syntax");
+
+        let Some(CommandLine::Answer(args)) = cli.command else {
+            panic!("answer subcommand");
+        };
+        assert_eq!(
+            args.answers,
+            ["goal-1=wrong result".to_owned(), "scope-1=tui".to_owned()]
+        );
+        assert!(args.text.is_none());
     }
 }

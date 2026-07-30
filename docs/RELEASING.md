@@ -1,6 +1,6 @@
 # Releasing Minha
 
-This document describes the private repository's release process. It is an
+This document describes the public repository's release process. It is an
 operator checklist for maintainers; it does not claim that a provider account,
 terminal, operating system, or downstream updater has been qualified.
 
@@ -75,7 +75,7 @@ git push origin vX.Y.Z
 
 Do not run the push from an automated agent without explicit authorization.
 After the workflow completes, inspect the GitHub Actions job, release asset
-names, and each checksum before sharing the private release. A successful
+names, and each checksum before sharing the public release. A successful
 workflow is build and upload evidence only; it is not proof of runtime or
 provider qualification on every target.
 

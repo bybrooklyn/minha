@@ -1,11 +1,11 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "pack_id": "product",
   "title": "Product Practice",
   "books": [
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "product-01",
         "version": "1.0.0",
         "title": "Problem Framing: Product Practice",
@@ -164,7 +164,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "product-02",
         "version": "1.0.0",
         "title": "User Discovery: Product Practice",
@@ -323,7 +323,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "product-03",
         "version": "1.0.0",
         "title": "Requirements: Product Practice",
@@ -482,7 +482,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "product-04",
         "version": "1.0.0",
         "title": "Prioritization: Product Practice",
@@ -641,7 +641,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "product-05",
         "version": "1.0.0",
         "title": "Experiments: Product Practice",
@@ -800,7 +800,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "product-06",
         "version": "1.0.0",
         "title": "Product Metrics: Product Practice",
@@ -959,7 +959,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "product-07",
         "version": "1.0.0",
         "title": "Inclusive Product: Product Practice",
@@ -1118,7 +1118,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "product-08",
         "version": "1.0.0",
         "title": "Release Readiness: Product Practice",
@@ -1277,7 +1277,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "product-09",
         "version": "1.0.0",
         "title": "Feedback Systems: Product Practice",
@@ -1436,7 +1436,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "product-10",
         "version": "1.0.0",
         "title": "Deprecation: Product Practice",

@@ -1,11 +1,11 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "pack_id": "writing",
   "title": "Technical Writing",
   "books": [
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "writing-01",
         "version": "1.0.0",
         "title": "Audience: Technical Writing",
@@ -164,7 +164,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "writing-02",
         "version": "1.0.0",
         "title": "Structure: Technical Writing",
@@ -323,7 +323,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "writing-03",
         "version": "1.0.0",
         "title": "Clarity: Technical Writing",
@@ -482,7 +482,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "writing-04",
         "version": "1.0.0",
         "title": "Technical Procedures: Technical Writing",
@@ -641,7 +641,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "writing-05",
         "version": "1.0.0",
         "title": "Examples: Technical Writing",
@@ -800,7 +800,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "writing-06",
         "version": "1.0.0",
         "title": "Editing: Technical Writing",
@@ -959,7 +959,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "writing-07",
         "version": "1.0.0",
         "title": "Terminology: Technical Writing",
@@ -1118,7 +1118,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "writing-08",
         "version": "1.0.0",
         "title": "Citations: Technical Writing",
@@ -1277,7 +1277,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "writing-09",
         "version": "1.0.0",
         "title": "Change Notes: Technical Writing",
@@ -1436,7 +1436,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "writing-10",
         "version": "1.0.0",
         "title": "Documentation Maintenance: Technical Writing",

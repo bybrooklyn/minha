@@ -1,8 +1,8 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "registry_id": "minha.first-party.books",
   "key_id": "builtin:minha-books-v2",
-  "content_digest": "sha256:6fd1e5bacff28226022e8bee9bd7f6b19c9d0a2cd4f84ab5bccd97df407ea6e0",
+  "content_digest": "sha256:db1e178355507dcd6aa4814d0176c7a00e3f5f99faaceeccded990c6121f6d1b",
   "signature": "builtin:sha256-content-digest-v2",
   "packs": [
     {

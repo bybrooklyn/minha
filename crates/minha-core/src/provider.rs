@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use thiserror::Error;
@@ -18,6 +20,7 @@ use thiserror::Error;
 const ORIGINATOR: &str = "minha";
 const USER_AGENT_VALUE: &str = "minha/0.1";
 pub const CODEX_COMPAT_CLIENT_VERSION: &str = "0.145.0";
+pub const DEEPSEEK_BASE_URL: &str = "https://api.deepseek.com";
 const MAX_PROVIDER_ERROR_BYTES: usize = 4 * 1024;
 const MAX_GET_ATTEMPTS: usize = 3;
 const MODEL_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -36,6 +39,7 @@ impl ModelDescriptor {
     pub fn capabilities(&self) -> ModelCapabilities {
         ModelCapabilities {
             context_window: self.metadata.get("context_window").and_then(Value::as_u64),
+            maximum_output: self.metadata.get("max_output_tokens").and_then(Value::as_u64),
             minimal_client_version: self
                 .metadata
                 .get("minimal_client_version")
@@ -60,6 +64,13 @@ impl ModelDescriptor {
                 .filter_map(|level| level.get("effort").and_then(Value::as_str))
                 .map(str::to_owned)
                 .collect(),
+            supports_tools: self
+                .metadata
+                .get("supports_tool_calls")
+                .and_then(Value::as_bool)
+                .unwrap_or(true),
+            supports_streaming: true,
+            supports_cache_telemetry: true,
         }
     }
 }
@@ -67,10 +78,116 @@ impl ModelDescriptor {
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct ModelCapabilities {
     pub context_window: Option<u64>,
+    pub maximum_output: Option<u64>,
     pub minimal_client_version: Option<String>,
     pub supports_parallel_tool_calls: bool,
     pub supports_verbosity: bool,
     pub reasoning_efforts: Vec<String>,
+    pub supports_tools: bool,
+    pub supports_streaming: bool,
+    pub supports_cache_telemetry: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProviderId {
+    ChatGptCodex,
+    DeepSeek,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct ProviderBalanceV1 {
+    pub schema_version: u16,
+    pub provider: ProviderId,
+    pub is_available: bool,
+    pub balances: Vec<ProviderBalanceAmountV1>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct ProviderBalanceAmountV1 {
+    pub currency: String,
+    pub total: String,
+    pub granted: String,
+    pub topped_up: String,
+}
+
+impl ProviderBalanceV1 {
+    pub fn total(&self, currency: &str) -> Option<f64> {
+        self.balances
+            .iter()
+            .find(|balance| balance.currency.eq_ignore_ascii_case(currency))?
+            .total
+            .parse()
+            .ok()
+    }
+}
+
+pub trait ProviderClient: Send + Sync {
+    fn provider_id(&self) -> ProviderId;
+    fn discover_models(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<ModelCatalog, ProviderError>> + Send + '_>>;
+    fn complete_turn(
+        &self,
+        request: TurnRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<TurnResult, ProviderError>> + Send + '_>>;
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Deserialize, Serialize)]
+pub struct ModelRef {
+    pub provider: ProviderId,
+    pub slug: String,
+}
+
+impl ModelRef {
+    pub fn parse(value: &str) -> Self {
+        if let Some(slug) = value.strip_prefix("deepseek/") {
+            Self {
+                provider: ProviderId::DeepSeek,
+                slug: slug.to_owned(),
+            }
+        } else if let Some(slug) = value.strip_prefix("chatgpt/") {
+            Self {
+                provider: ProviderId::ChatGptCodex,
+                slug: slug.to_owned(),
+            }
+        } else if value.starts_with("deepseek-") {
+            Self {
+                provider: ProviderId::DeepSeek,
+                slug: value.to_owned(),
+            }
+        } else {
+            Self {
+                provider: ProviderId::ChatGptCodex,
+                slug: value.to_owned(),
+            }
+        }
+    }
+}
+
+pub fn fallback_capabilities(model: &ModelRef) -> ModelCapabilities {
+    let deepseek = model.provider == ProviderId::DeepSeek;
+    ModelCapabilities {
+        context_window: Some(if deepseek {
+            1_048_576
+        } else if model.slug.contains("spark") {
+            128_000
+        } else {
+            272_000
+        }),
+        maximum_output: deepseek.then_some(393_216),
+        supports_parallel_tool_calls: true,
+        supports_verbosity: model.provider == ProviderId::ChatGptCodex,
+        reasoning_efforts: if deepseek {
+            vec!["high".into(), "max".into()]
+        } else {
+            Vec::new()
+        },
+        supports_tools: true,
+        supports_streaming: true,
+        supports_cache_telemetry: true,
+        minimal_client_version: None,
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
@@ -90,6 +207,7 @@ pub struct TurnRequest {
     pub reasoning_effort: Option<String>,
     pub prompt_cache_key: Option<String>,
     pub subagent_label: Option<String>,
+    pub response_format: Option<Value>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -102,17 +220,20 @@ pub struct ToolCall {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TurnResult {
     pub output_text: String,
+    pub reasoning_text: String,
     pub output_items: Vec<Value>,
     pub tool_calls: Vec<ToolCall>,
     pub usage: TokenUsage,
     pub response_id: Option<String>,
     pub server_model: Option<String>,
+    pub finish_reason: Option<String>,
     pub rate_limits: Vec<RateLimitSnapshot>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ProviderStreamEvent {
     TextDelta(String),
+    ReasoningDelta(String),
     OutputItem(Value),
     Completed,
 }
@@ -358,6 +479,25 @@ impl ChatGptClient {
             }
         }
         Err(ProviderError::InvalidResponse("retry loop made no attempts"))
+    }
+}
+
+impl ProviderClient for ChatGptClient {
+    fn provider_id(&self) -> ProviderId {
+        ProviderId::ChatGptCodex
+    }
+
+    fn discover_models(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<ModelCatalog, ProviderError>> + Send + '_>> {
+        Box::pin(self.fetch_models(None))
+    }
+
+    fn complete_turn(
+        &self,
+        request: TurnRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<TurnResult, ProviderError>> + Send + '_>> {
+        Box::pin(self.turn(request))
     }
 }
 

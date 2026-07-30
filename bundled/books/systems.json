@@ -1,11 +1,11 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "pack_id": "systems",
   "title": "Systems Craft",
   "books": [
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "systems-01",
         "version": "1.0.0",
         "title": "Process Isolation: Systems Craft",
@@ -164,7 +164,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "systems-02",
         "version": "1.0.0",
         "title": "Concurrency Control: Systems Craft",
@@ -323,7 +323,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "systems-03",
         "version": "1.0.0",
         "title": "Memory Pressure: Systems Craft",
@@ -448,6 +448,19 @@
             "systems-03-cite-editorial",
             "systems-03-cite-reference"
           ]
+        },
+        {
+          "id": "systems-03-fact-context-engineering",
+          "statement": "Model context is retained working memory, not cumulative billing: forecast the next bounded request against the model window, condense consumed tool evidence first, and reserve compaction for a genuine fit boundary.",
+          "tags": [
+            "context-engineering",
+            "compaction",
+            "evidence-condensation",
+            "memory-pressure"
+          ],
+          "citation_ids": [
+            "systems-03-cite-pi-compaction"
+          ]
         }
       ],
       "citations": [
@@ -477,12 +490,21 @@
           "kind": "curated_editorial",
           "url": null,
           "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-03-cite-pi-compaction",
+          "locator": "append-only sessions and context compaction implementation",
+          "source": "Pi coding agent",
+          "note": "Primary implementation reference for retaining recent complete tool pairs and file-operation metadata during compaction.",
+          "kind": "official_documentation",
+          "url": "https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent",
+          "accessed": "2026-07-29"
         }
       ]
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "systems-04",
         "version": "1.0.0",
         "title": "Filesystem Semantics: Systems Craft",
@@ -641,7 +663,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "systems-05",
         "version": "1.0.0",
         "title": "Network Boundaries: Systems Craft",
@@ -766,6 +788,19 @@
             "systems-05-cite-editorial",
             "systems-05-cite-reference"
           ]
+        },
+        {
+          "id": "systems-05-fact-provider-adapter",
+          "statement": "A provider adapter should translate a canonical turn at the boundary, preserve streamed tool-call fragments and usage, redact credentials and bounded errors, and avoid automatic POST retries when processing may already have started.",
+          "tags": [
+            "provider-adapter",
+            "streaming",
+            "tool-calls",
+            "network-boundaries"
+          ],
+          "citation_ids": [
+            "systems-05-cite-deepseek-tools"
+          ]
         }
       ],
       "citations": [
@@ -795,12 +830,21 @@
           "kind": "curated_editorial",
           "url": null,
           "accessed": "2026-07-29"
+        },
+        {
+          "id": "systems-05-cite-deepseek-tools",
+          "locator": "Chat Completions tool calls and streaming contract",
+          "source": "DeepSeek API documentation",
+          "note": "Primary provider reference for tool-call request and response shapes; retry policy remains an application safety decision.",
+          "kind": "official_documentation",
+          "url": "https://api-docs.deepseek.com/guides/tool_calls",
+          "accessed": "2026-07-29"
         }
       ]
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "systems-06",
         "version": "1.0.0",
         "title": "Queue Discipline: Systems Craft",
@@ -959,7 +1003,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "systems-07",
         "version": "1.0.0",
         "title": "Time and Clocks: Systems Craft",
@@ -1118,7 +1162,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "systems-08",
         "version": "1.0.0",
         "title": "Resilience Budget: Systems Craft",
@@ -1277,7 +1321,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "systems-09",
         "version": "1.0.0",
         "title": "Performance Evidence: Systems Craft",
@@ -1436,7 +1480,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "systems-10",
         "version": "1.0.0",
         "title": "Consistency Choices: Systems Craft",

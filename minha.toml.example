@@ -11,16 +11,14 @@ consult_high_risk = "gpt-5.6-sol"
 reasoning_effort = "medium"
 
 [scheduler]
-min_agents = 2
 max_agents = 8
 hard_max_agents = 16
 usage_reserve_percent = 12.0
 question_policy = "only_blocking"
 
 [context]
-compact_at_percent = 72.0
-context_limit = 128000
-reserve_tokens = 16384
+# Optional compatibility ceiling. Omit to use provider/model capabilities.
+# context_limit = 200000
 fact_limit = 24
 recent_turns = 8
 
@@ -34,8 +32,16 @@ max_bytes = 536870912
 max_age_days = 30
 hot_entries = 128
 
+[memory]
+enabled = true
+use_memory = true
+generate = true
+retrieval_limit = 5
+
 [budgets]
 default = "balanced"
+deepseek_soft_reserve_percent = 10.0
+deepseek_hard_reserve_percent = 2.0
 
 [books]
 enabled = true
@@ -43,3 +49,6 @@ enabled = true
 [tui]
 mouse = true
 tool_detail = "compact"
+theme = "dark"
+surface_renderer = "auto"
+reduced_motion = false

@@ -11,7 +11,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use thiserror::Error;
 
-pub const BOOK_SCHEMA_VERSION: u16 = 2;
+pub const BOOK_SCHEMA_VERSION: u16 = 1;
 pub const BUNDLED_PACK_COUNT: usize = 10;
 pub const MIN_BUNDLED_ENTRY_COUNT: usize = 100;
 pub const BUILTIN_BOOK_KEY_ID: &str = "builtin:minha-books-v2";

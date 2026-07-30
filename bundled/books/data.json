@@ -1,11 +1,11 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "pack_id": "data",
   "title": "Data Practice",
   "books": [
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "data-01",
         "version": "1.0.0",
         "title": "Data Modeling: Data Practice",
@@ -130,6 +130,19 @@
             "data-01-cite-editorial",
             "data-01-cite-reference"
           ]
+        },
+        {
+          "id": "data-01-fact-agent-memory",
+          "statement": "Durable agent memory should separate user, project, and run scope; retain provenance and temporal validity; make supersession and deletion reviewable; and retrieve a small ranked set without overriding authoritative instructions.",
+          "tags": [
+            "agent-memory",
+            "temporal-validity",
+            "fts5",
+            "data-modeling"
+          ],
+          "citation_ids": [
+            "data-01-cite-sqlite-fts5"
+          ]
         }
       ],
       "citations": [
@@ -159,12 +172,21 @@
           "kind": "curated_editorial",
           "url": null,
           "accessed": "2026-07-29"
+        },
+        {
+          "id": "data-01-cite-sqlite-fts5",
+          "locator": "FTS5 full-text query and ranking model",
+          "source": "SQLite FTS5 Extension",
+          "note": "Primary reference for local full-text indexing, MATCH queries, and BM25 ranking primitives.",
+          "kind": "official_documentation",
+          "url": "https://www.sqlite.org/fts5.html",
+          "accessed": "2026-07-29"
         }
       ]
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "data-02",
         "version": "1.0.0",
         "title": "Query Shape: Data Practice",
@@ -323,7 +345,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "data-03",
         "version": "1.0.0",
         "title": "Migrations: Data Practice",
@@ -482,7 +504,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "data-04",
         "version": "1.0.0",
         "title": "Validation: Data Practice",
@@ -641,7 +663,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "data-05",
         "version": "1.0.0",
         "title": "Stream Processing: Data Practice",
@@ -800,7 +822,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "data-06",
         "version": "1.0.0",
         "title": "Metrics Semantics: Data Practice",
@@ -959,7 +981,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "data-07",
         "version": "1.0.0",
         "title": "Privacy by Design: Data Practice",
@@ -1118,7 +1140,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "data-08",
         "version": "1.0.0",
         "title": "Serialization Contracts: Data Practice",
@@ -1277,7 +1299,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "data-09",
         "version": "1.0.0",
         "title": "Lineage: Data Practice",
@@ -1436,7 +1458,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "data-10",
         "version": "1.0.0",
         "title": "Reproducible Analysis: Data Practice",

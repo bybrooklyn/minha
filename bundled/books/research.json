@@ -1,11 +1,11 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "pack_id": "research",
   "title": "Research Methods",
   "books": [
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "research-01",
         "version": "1.0.0",
         "title": "Research Questions: Research Methods",
@@ -164,7 +164,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "research-02",
         "version": "1.0.0",
         "title": "Literature Review: Research Methods",
@@ -323,7 +323,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "research-03",
         "version": "1.0.0",
         "title": "Qualitative Inquiry: Research Methods",
@@ -482,7 +482,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "research-04",
         "version": "1.0.0",
         "title": "Quantitative Measurement: Research Methods",
@@ -641,7 +641,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "research-05",
         "version": "1.0.0",
         "title": "Sampling: Research Methods",
@@ -800,7 +800,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "research-06",
         "version": "1.0.0",
         "title": "Experiments: Research Methods",
@@ -959,7 +959,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "research-07",
         "version": "1.0.0",
         "title": "Causal Reasoning: Research Methods",
@@ -1118,7 +1118,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "research-08",
         "version": "1.0.0",
         "title": "Uncertainty: Research Methods",
@@ -1277,7 +1277,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "research-09",
         "version": "1.0.0",
         "title": "Synthesis: Research Methods",
@@ -1436,7 +1436,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "research-10",
         "version": "1.0.0",
         "title": "Reproducibility: Research Methods",

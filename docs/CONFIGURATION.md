@@ -17,7 +17,7 @@ Use [`minha.toml.example`](../minha.toml.example) as the complete typed example.
 | `database_path` | `.minha/minha.sqlite3` | SQLite run/state database; relative paths are project-relative |
 | `mode` | `interactive` | Default runtime mode when a session does not select a more specific workflow |
 
-SQLite creates parent directories, enables WAL, and migrates forward. A database with a future schema is rejected. Do not copy `.minha/minha.sqlite3` into worker lanes or commit it unless the project explicitly wants local state tracked.
+SQLite creates parent directories and enables WAL. Minha is pre-production: opening a prototype database whose `user_version` is not 0 or 1 atomically renames it to a timestamped `prototype-vN-*.bak` and creates a clean v1 store. No prototype data is silently translated. Do not copy `.minha/minha.sqlite3` into worker lanes or commit it.
 
 ## `[models]`
 
@@ -39,20 +39,19 @@ reasoning_effort = "medium"
 
 These names identify role defaults only. They do not grant access. Run `minha models --json` to inspect the account's discovered catalog. The runtime fails a selected workflow when a required exact slug is absent instead of silently downgrading it.
 
-The typed role labels are Spark, Luna, Terra, and Sol. `manager` is a separate configurable coordination-only string. If the manager slug is absent or its optional review fails, the implementation path continues without manager directives. The manager does not inspect files or receive the worker tool surface.
+The typed role labels are Spark, Luna, Terra, and Sol. Routine work starts with Luna, important or failed work may escalate to Terra, and Sol is reserved for critical/high-risk work. `manager` remains accepted for configuration compatibility, but manager rollups are deterministic and do not spend a model turn.
 
 ## `[scheduler]`
 
 ```toml
 [scheduler]
-min_agents = 2
 max_agents = 8
 hard_max_agents = 16
 usage_reserve_percent = 12.0
 question_policy = "only_blocking"
 ```
 
-`max_agents` and `hard_max_agents` are bounded to 1–16, with `min_agents <= max_agents <= hard_max_agents`. The current scheduler never expands beyond `max_agents`; `hard_max_agents` is a validated ceiling reserved for future/other scheduling policy. `question_policy` accepts `agent_discretion`, `only_blocking`, or `never`; the default persists only questions that block progress.
+`max_agents` and `hard_max_agents` are bounded to 1–16. Delegation is evidence-triggered: small/coherent tasks use one focused lead lane, while only independent, path-disjoint work expands. Balanced requires an estimated 25% speed benefit with at most 15% coordination overhead; Turbo can use `hard_max_agents` for truly disjoint work. `question_policy` accepts `agent_discretion`, `only_blocking`, or `never`.
 
 The usage reserve is a stop threshold for provider-reported account windows. At 12%, a window reaching 88% used pauses further model work. It is not a billing limit and does not redeem credits or transfer quota between accounts.
 
@@ -60,14 +59,12 @@ The usage reserve is a stop threshold for provider-reported account windows. At 
 
 ```toml
 [context]
-compact_at_percent = 72.0
-context_limit = 128000
-reserve_tokens = 16384
+# context_limit = 200000 # optional user ceiling
 fact_limit = 24
 recent_turns = 8
 ```
 
-The local estimator is conservative and model-independent. Compaction is predictive: it uses the estimated current context plus the next turn, triggers at the percentage or hard limit, summarizes older material, keeps recent turns, and leaves the reserve available. `fact_limit` is actively included in the compaction instructions, but the current runtime does not implement it as a separate persisted-fact extractor. These are not provider tokenizer guarantees.
+The provider catalog is authoritative when it reports a context window. The versioned fallback is 128,000 for Spark, 272,000 for GPT-5.4/5.5/5.6 and auto-review, and 1,048,576 with 393,216 (384K) maximum output metadata for DeepSeek V4. Minha protects the final five percent from routine calls and forecasts the next input plus an output allowance before compacting. An explicit legacy `context_limit` remains accepted only as a ceiling. Consumed tool output is replaced in active context with a digest and bounded evidence excerpt while the full event remains in SQLite. DeepSeek fallback pricing is dated independently and is used only for status estimates; it does not impose a billing limit.
 
 ## `[permissions]`
 
@@ -89,27 +86,40 @@ max_age_days = 30
 hot_entries = 128
 ```
 
-The local result cache has exact, TTL, and never classes. Keys include a namespace, request bytes, and sorted observed-input digests. Exact entries are reusable while their key inputs match; TTL entries expire by age; never entries are not read or written. Durable cache entries and `cache_stats` live in SQLite schema v6; the stats retain hits, misses, writes, bypasses, byte counts, and saved input tokens across process restarts. `max_age_days` and `max_bytes` govern durable pruning. `hot_entries` bounds the connected in-memory LRU, which also has a 16 MiB process safety cap; every hot hit validates and touches the durable row before use. The current runtime uses local replay for deterministic, secret-safe compaction results and deliberately does not replay workspace-dependent coding answers. Provider prompt caching is separate and is reported through provider usage fields.
+The local result cache has exact, TTL, and never classes. Keys include a namespace, request bytes, and sorted observed-input digests. Exact entries are reusable while their key inputs match; TTL entries expire by age; never entries are not read or written. Schema v1 retains cache hits, misses, writes, bypasses, byte counts, and saved input tokens across process restarts. `max_age_days` and `max_bytes` govern durable pruning. The current runtime replays only deterministic, secret-safe compaction results and never automatically replays workspace-dependent coding answers. Provider prefix caching is separate.
 
 `/status` opens the local inspector/dashboard and refreshes those cache counters; it may also append a compact status card to the transcript. `/clean` removes expired entries, trims over-limit entries by least-recent use, and reclaims expired task leases. It does not delete transcripts, run history, profiles, source files, worktrees, or recovery patches.
+
+## `[memory]`
+
+```toml
+[memory]
+enabled = true
+use_memory = true
+generate = true
+retrieval_limit = 5
+```
+
+Memory is local SQLite state, not an external service. `enabled` is the master configuration boundary; `use_memory` permits bounded retrieval into non-classifier agents; `generate` queues secret-filtered episodic extraction after meaningful completed or conclusively blocked runs. `retrieval_limit` is validated from 1 through 20. Project-local controls exposed by `minha memories` and `/memories` can turn use or generation off but cannot override a disabled configuration boundary. Generated memory remains advisory beneath checked-in instructions and current repository evidence.
 
 ## `[budgets]`
 
 ```toml
 [budgets]
 default = "balanced"
+deepseek_soft_reserve_percent = 10.0
+deepseek_hard_reserve_percent = 2.0
 ```
 
-The built-in total-token presets are:
+The built-in execution profiles are composable policy presets, not terminal token budgets:
 
-| Preset | Total session budget |
-| --- | ---: |
-| `economy` | 25,000 |
-| `balanced` | 100,000 |
-| `thorough` | 300,000 |
-| `exhaustive` | 1,000,000 |
+| Profile | Soft optimization target | Default concurrency policy |
+| --- | ---: | --- |
+| `economy` | 25,000 | one lane, capability floor, judge required |
+| `balanced` | 100,000 | up to 8 evidence-justified lanes |
+| `turbo` | 1,000,000 | up to 16 truly disjoint lanes; run-scoped local YOLO |
 
-The selected preset is the enforced global session token budget. It does not change provider pricing or entitlement.
+Crossing a target changes routing and parallelism but never terminates useful work. Local YOLO does not authorize destructive commands, credential access, Git history changes, remote writes, pushes, releases, credit operations, or hard-spend bypasses. DeepSeek's live `/user/balance` value is displayed when available; the persisted high-water baseline applies the soft/hard reserve thresholds across restarts.
 
 ## `[books]`
 
@@ -126,9 +136,12 @@ Only the embedded registry is active in the current runtime; no external registr
 [tui]
 mouse = true
 tool_detail = "compact"
+theme = "dark"
+surface_renderer = "auto"
+reduced_motion = false
 ```
 
-`mouse` controls terminal mouse capture. `tool_detail = "expanded"` opens new tool and diff cards; `compact` keeps them collapsed. Slash commands and keyboard controls remain available through the same TUI state reducer.
+`mouse` controls terminal mouse capture. `tool_detail = "expanded"` opens new activity and diff detail; `compact` keeps it collapsed. `theme` accepts `auto`, `dark`, `light`, `ansi16`, `high_contrast`, or `no_color`; `NO_COLOR` always selects no-color rendering. `surface_renderer` accepts `auto`, `kitty`, `quadrant`, or `square`; `auto` tries supported Kitty/Ghostty raster corners before the portable quadrant and square fallbacks. `reduced_motion` lowers active redraws to one elapsed-time update per second and uses a static status marker.
 
 ## Instruction and skill precedence
 

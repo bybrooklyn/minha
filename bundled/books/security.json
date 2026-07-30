@@ -1,11 +1,11 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "pack_id": "security",
   "title": "Security Engineering",
   "books": [
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "security-01",
         "version": "1.0.0",
         "title": "Threat Modeling: Security Engineering",
@@ -164,7 +164,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "security-02",
         "version": "1.0.0",
         "title": "Authentication: Security Engineering",
@@ -323,7 +323,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "security-03",
         "version": "1.0.0",
         "title": "Authorization: Security Engineering",
@@ -482,7 +482,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "security-04",
         "version": "1.0.0",
         "title": "Secret Handling: Security Engineering",
@@ -641,7 +641,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "security-05",
         "version": "1.0.0",
         "title": "Cryptography Use: Security Engineering",
@@ -800,7 +800,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "security-06",
         "version": "1.0.0",
         "title": "Input Boundaries: Security Engineering",
@@ -959,7 +959,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "security-07",
         "version": "1.0.0",
         "title": "Supply Chain: Security Engineering",
@@ -1118,7 +1118,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "security-08",
         "version": "1.0.0",
         "title": "Security Telemetry: Security Engineering",
@@ -1277,7 +1277,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "security-09",
         "version": "1.0.0",
         "title": "Incident Response: Security Engineering",
@@ -1436,7 +1436,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "security-10",
         "version": "1.0.0",
         "title": "Data Protection: Security Engineering",

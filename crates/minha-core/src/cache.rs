@@ -410,6 +410,18 @@ fn secret_reason(name: &str, bytes: &[u8]) -> Option<String> {
         return Some("secret-like filename".into());
     }
     let text = String::from_utf8_lossy(bytes).to_ascii_lowercase();
+    if text.lines().any(|line| {
+        line.find(['=', ':']).is_some_and(|separator| {
+            let key = line[..separator].trim().replace(['-', ' '], "_");
+            let value = line[separator + 1..].trim();
+            !value.is_empty()
+                && ["api_key", "password", "token", "secret", "authorization"]
+                    .iter()
+                    .any(|candidate| key.ends_with(candidate))
+        })
+    }) {
+        return Some("contains a credential assignment".into());
+    }
     [
         "api_key=",
         "api-key:",

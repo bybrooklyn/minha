@@ -1,11 +1,11 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "pack_id": "management",
   "title": "Engineering Management",
   "books": [
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "management-01",
         "version": "1.0.0",
         "title": "Planning: Engineering Management",
@@ -164,7 +164,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "management-02",
         "version": "1.0.0",
         "title": "Delegation: Engineering Management",
@@ -323,7 +323,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "management-03",
         "version": "1.0.0",
         "title": "Decision Records: Engineering Management",
@@ -482,7 +482,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "management-04",
         "version": "1.0.0",
         "title": "Risk Management: Engineering Management",
@@ -641,7 +641,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "management-05",
         "version": "1.0.0",
         "title": "Meetings: Engineering Management",
@@ -800,7 +800,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "management-06",
         "version": "1.0.0",
         "title": "Async Collaboration: Engineering Management",
@@ -925,6 +925,19 @@
             "management-06-cite-editorial",
             "management-06-cite-reference"
           ]
+        },
+        {
+          "id": "management-06-fact-agent-deltas",
+          "statement": "Multi-agent coordination stays efficient when agents exchange typed findings, blockers, decisions, handoffs, TODO deltas, and artifact identifiers instead of rebroadcasting transcripts or raw tool output.",
+          "tags": [
+            "multi-agent",
+            "typed-deltas",
+            "handoffs",
+            "async-collaboration"
+          ],
+          "citation_ids": [
+            "management-06-cite-codex-exec-rendering"
+          ]
         }
       ],
       "citations": [
@@ -954,12 +967,21 @@
           "kind": "curated_editorial",
           "url": null,
           "accessed": "2026-07-29"
+        },
+        {
+          "id": "management-06-cite-codex-exec-rendering",
+          "locator": "grouped exploration and execution rendering",
+          "source": "OpenAI Codex TUI source",
+          "note": "Primary implementation reference for collapsing related low-level operations into compact semantic activity while preserving detail.",
+          "kind": "official_documentation",
+          "url": "https://github.com/openai/codex/blob/main/codex-rs/tui/src/exec_cell/render.rs",
+          "accessed": "2026-07-29"
         }
       ]
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "management-07",
         "version": "1.0.0",
         "title": "Feedback: Engineering Management",
@@ -1118,7 +1140,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "management-08",
         "version": "1.0.0",
         "title": "Team Health: Engineering Management",
@@ -1277,7 +1299,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "management-09",
         "version": "1.0.0",
         "title": "Retrospectives: Engineering Management",
@@ -1436,7 +1458,7 @@
     },
     {
       "metadata": {
-        "schema_version": 2,
+        "schema_version": 1,
         "id": "management-10",
         "version": "1.0.0",
         "title": "Change Leadership: Engineering Management",

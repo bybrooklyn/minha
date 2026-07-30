@@ -41,6 +41,73 @@ pub fn estimate_tokens(text: &str) -> usize {
     text.chars().count().div_ceil(4).max(words + punctuation / 2)
 }
 
+pub const EFFECTIVE_CONTEXT_PERCENT: u64 = 95;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CapabilitySource {
+    ProviderCatalog,
+    FallbackTable,
+    LegacyCeiling,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ContextPolicy {
+    pub advertised_limit: u64,
+    pub effective_limit: u64,
+    pub protected_reserve: u64,
+    pub output_allowance: u64,
+    pub source: CapabilitySource,
+}
+
+impl ContextPolicy {
+    pub fn resolve(model: &str, catalog_limit: Option<u64>, legacy_ceiling: Option<usize>) -> Self {
+        let (advertised_limit, mut source) = catalog_limit
+            .map(|limit| (limit, CapabilitySource::ProviderCatalog))
+            .unwrap_or_else(|| (fallback_context_window(model), CapabilitySource::FallbackTable));
+        let mut limit = advertised_limit;
+        if let Some(ceiling) = legacy_ceiling.map(|value| value as u64)
+            && ceiling < limit
+        {
+            limit = ceiling;
+            source = CapabilitySource::LegacyCeiling;
+        }
+        let effective_limit = limit.saturating_mul(EFFECTIVE_CONTEXT_PERCENT) / 100;
+        Self {
+            advertised_limit,
+            effective_limit,
+            protected_reserve: limit.saturating_sub(effective_limit),
+            output_allowance: default_output_allowance(model).min(effective_limit / 4),
+            source,
+        }
+    }
+
+    pub const fn forecast_fits(self, current: u64, pending: u64) -> bool {
+        current
+            .saturating_add(pending)
+            .saturating_add(self.output_allowance)
+            <= self.effective_limit
+    }
+}
+
+pub fn fallback_context_window(model: &str) -> u64 {
+    let model = model.to_ascii_lowercase();
+    if model.contains("deepseek-v4") {
+        1_048_576
+    } else if model.contains("spark") {
+        128_000
+    } else {
+        272_000
+    }
+}
+
+pub fn default_output_allowance(model: &str) -> u64 {
+    if model.to_ascii_lowercase().contains("spark") {
+        8_192
+    } else {
+        16_384
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CompactionConfig {
     pub context_limit: usize,
@@ -51,9 +118,9 @@ pub struct CompactionConfig {
 impl Default for CompactionConfig {
     fn default() -> Self {
         Self {
-            context_limit: 128_000,
-            reserve_tokens: 8_192,
-            compact_at: 0.85,
+            context_limit: 272_000,
+            reserve_tokens: 13_600,
+            compact_at: 0.95,
         }
     }
 }
@@ -122,5 +189,31 @@ mod tests {
     #[test]
     fn empty_context_is_not_compacted() {
         assert!(!predictive_compaction(&[], 1, CompactionConfig::default()).should_compact);
+    }
+
+    #[test]
+    fn fallback_limits_keep_five_percent_protected() {
+        let luna = ContextPolicy::resolve("gpt-5.6-luna", None, None);
+        assert_eq!(luna.advertised_limit, 272_000);
+        assert_eq!(luna.effective_limit, 258_400);
+        assert_eq!(luna.protected_reserve, 13_600);
+        let spark = ContextPolicy::resolve("gpt-5.3-codex-spark", None, None);
+        assert_eq!(spark.advertised_limit, 128_000);
+        assert_eq!(spark.effective_limit, 121_600);
+        let deepseek = ContextPolicy::resolve("deepseek-v4-pro", None, None);
+        assert_eq!(deepseek.advertised_limit, 1_048_576);
+        assert_eq!(deepseek.effective_limit, 996_147);
+        assert_eq!(deepseek.protected_reserve, 52_429);
+    }
+
+    #[test]
+    fn provider_metadata_precedes_fallback_and_legacy_is_only_a_ceiling() {
+        let catalog = ContextPolicy::resolve("gpt-5.6-luna", Some(300_000), None);
+        assert_eq!(catalog.advertised_limit, 300_000);
+        assert_eq!(catalog.source, CapabilitySource::ProviderCatalog);
+        let capped = ContextPolicy::resolve("gpt-5.6-luna", Some(300_000), Some(200_000));
+        assert_eq!(capped.advertised_limit, 300_000);
+        assert_eq!(capped.effective_limit, 190_000);
+        assert_eq!(capped.source, CapabilitySource::LegacyCeiling);
     }
 }

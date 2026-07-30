@@ -15,8 +15,10 @@ path = "src/main.rs"
 
 [dependencies]
 clap.workspace = true
+dirs.workspace = true
 minha-core = { path = "../minha-core", version = "0.1.0" }
 minha-tui = { path = "../minha-tui", version = "0.1.0" }
 serde.workspace = true
 serde_json.workspace = true
+rpassword.workspace = true
 tokio.workspace = true

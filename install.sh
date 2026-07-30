@@ -44,24 +44,40 @@ staged_path=""
 trap 'rm -rf "$temp_dir"; if [ -n "$staged_path" ]; then rm -f "$staged_path"; fi' EXIT HUP INT TERM
 
 printf 'Downloading %s from %s…\n' "$artifact" "$repo"
-curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
+if curl --proto '=https' --tlsv1.2 --fail --location --silent \
   --output "${temp_dir}/${artifact}" \
   "${release_url}/${artifact}"
-curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
-  --output "${temp_dir}/${artifact}.sha256" \
-  "${release_url}/${artifact}.sha256"
+then
+  curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
+    --output "${temp_dir}/${artifact}.sha256" \
+    "${release_url}/${artifact}.sha256"
 
-if command -v sha256sum >/dev/null 2>&1; then
-  (cd "$temp_dir" && sha256sum --check "${artifact}.sha256")
-elif command -v shasum >/dev/null 2>&1; then
-  (cd "$temp_dir" && shasum -a 256 --check "${artifact}.sha256")
+  if command -v sha256sum >/dev/null 2>&1; then
+    (cd "$temp_dir" && sha256sum --check "${artifact}.sha256")
+  elif command -v shasum >/dev/null 2>&1; then
+    (cd "$temp_dir" && shasum -a 256 --check "${artifact}.sha256")
+  else
+    fail "sha256sum or shasum is required to verify the download"
+  fi
+  source_binary="${temp_dir}/${artifact}"
 else
-  fail "sha256sum or shasum is required to verify the download"
+  command -v cargo >/dev/null 2>&1 || fail \
+    "no release binary is available; install Rust 1.97 or newer for the source fallback"
+  printf 'No release binary is available; building the public source with Cargo…\n'
+  cargo_root="${temp_dir}/cargo-root"
+  if [ "$version" = "latest" ]; then
+    cargo install --locked --git "https://github.com/${repo}.git" \
+      --branch main --root "$cargo_root" minha
+  else
+    cargo install --locked --git "https://github.com/${repo}.git" \
+      --tag "$tag" --root "$cargo_root" minha
+  fi
+  source_binary="${cargo_root}/bin/minha"
 fi
 
 mkdir -p "$install_dir"
 staged_path="${install_dir}/.minha.install.$$"
-install -m 0755 "${temp_dir}/${artifact}" "$staged_path"
+install -m 0755 "$source_binary" "$staged_path"
 mv -f "$staged_path" "${install_dir}/minha"
 staged_path=""
 

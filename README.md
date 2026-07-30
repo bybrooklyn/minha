@@ -42,7 +42,7 @@ Install the latest checksum-verified GitHub release on macOS or x86-64 Linux:
 curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/bybrooklyn/minha/main/install.sh | sh
 ```
 
-The script downloads the target-specific binary and adjacent SHA-256 file, verifies the checksum, and installs to `~/.local/bin/minha`. Set `MINHA_INSTALL_DIR`, `MINHA_VERSION`, or `MINHA_REPO` to override those defaults. Review [`install.sh`](install.sh) before piping it to a shell. Until the first versioned GitHub release is published, build from source instead:
+The script prefers a target-specific release binary, verifies its adjacent SHA-256 file, and installs to `~/.local/bin/minha`. Before the first release—or when that target has no asset—it falls back to a locked build from the public Git repository and therefore requires Rust 1.97 or newer. Set `MINHA_INSTALL_DIR`, `MINHA_VERSION`, or `MINHA_REPO` to override the defaults. Review [`install.sh`](install.sh) before piping it to a shell. To build manually:
 
 ```sh
 cargo build --workspace

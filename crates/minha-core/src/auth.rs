@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     fmt,
-    fs::{self, OpenOptions},
+    fs::{self},
     io::Write,
     path::{Path, PathBuf},
     sync::{Arc, RwLock},
@@ -502,7 +502,7 @@ impl CodexOAuthClient {
         device: &DeviceAuthorization,
     ) -> Result<AuthRecord, AuthError> {
         let started = tokio::time::Instant::now();
-        let interval = Duration::from_secs(device.interval_seconds.max(1));
+        let mut interval = Duration::from_secs(device.interval_seconds.max(1));
         let response: CodeSuccessResponse = loop {
             let response = self
                 .http
@@ -517,10 +517,30 @@ impl CodexOAuthClient {
             if response.status().is_success() {
                 break response.json().await.map_err(|_| AuthError::InvalidResponse)?;
             }
-            if response.status() != reqwest::StatusCode::FORBIDDEN
-                && response.status() != reqwest::StatusCode::NOT_FOUND
-            {
-                return Err(AuthError::Http(response.status().as_u16()));
+            // RFC 8628 polling semantics: pending and slow-down arrive as
+            // 400 with an `error` body field; a real denial also arrives as
+            // 400 and must fail fast instead of polling for the full timeout.
+            let status = response.status();
+            let error = response
+                .json::<serde_json::Value>()
+                .await
+                .ok()
+                .and_then(|body| {
+                    body.get("error")
+                        .and_then(serde_json::Value::as_str)
+                        .map(str::to_owned)
+                })
+                .unwrap_or_default();
+            match error.as_str() {
+                "authorization_pending" | "" if status == reqwest::StatusCode::FORBIDDEN => {}
+                "authorization_pending" | "" if status == reqwest::StatusCode::NOT_FOUND => {}
+                "authorization_pending" => {}
+                "slow_down" => {
+                    interval = interval.saturating_add(Duration::from_secs(5));
+                }
+                "access_denied" => return Err(AuthError::Denied),
+                "expired_token" => return Err(AuthError::Expired),
+                _ => return Err(AuthError::Http(status.as_u16())),
             }
             if started.elapsed() >= self.poll_timeout {
                 return Err(AuthError::Expired);
@@ -662,27 +682,40 @@ async fn save_profile_index(index: &AccountProfileIndex) -> Result<(), AuthError
 async fn save_private_bytes(path: PathBuf, bytes: &[u8]) -> Result<(), AuthError> {
     let parent = path
         .parent()
-        .ok_or_else(|| AuthError::Io("private path has no parent".into()))?;
-    tokio::fs::create_dir_all(parent)
+        .ok_or_else(|| AuthError::Io("private path has no parent".into()))?
+        .to_path_buf();
+    tokio::fs::create_dir_all(&parent)
         .await
         .map_err(|error| AuthError::Io(error.to_string()))?;
-    let mut temp = path.clone();
-    temp.set_extension(format!("tmp-{}", std::process::id()));
-    let mut options = OpenOptions::new();
-    options.create(true).truncate(true).write(true);
+    let owned = bytes.to_vec();
+    tokio::task::spawn_blocking(move || atomic_private_write(&parent, &path, &owned))
+        .await
+        .map_err(|error| AuthError::Io(error.to_string()))?
+        .map_err(|error| AuthError::Io(error.to_string()))
+}
+
+/// Write private bytes through a randomly named exclusive temporary file,
+/// then atomically rename over the destination. The random name avoids the
+/// pid-based predictable path (no symlink/truncate race), and permission
+/// failures are propagated instead of swallowed.
+fn atomic_private_write(parent: &Path, path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
     #[cfg(unix)]
     {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.mode(0o600);
+        use std::os::unix::fs::PermissionsExt;
+        temporary
+            .as_file()
+            .set_permissions(fs::Permissions::from_mode(0o600))?;
     }
-    let mut file = options
-        .open(&temp)
-        .map_err(|error| AuthError::Io(error.to_string()))?;
-    file.write_all(bytes)
-        .map_err(|error| AuthError::Io(error.to_string()))?;
-    file.sync_all()
-        .map_err(|error| AuthError::Io(error.to_string()))?;
-    fs::rename(&temp, &path).map_err(|error| AuthError::Io(error.to_string()))
+    temporary.write_all(bytes)?;
+    temporary.as_file().sync_all()?;
+    temporary.persist(path).map_err(|error| error.error)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600))?;
+    }
+    Ok(())
 }
 
 pub async fn list_account_profiles() -> Result<Vec<AccountProfile>, AuthError> {
@@ -807,31 +840,8 @@ pub async fn load_auth(path: impl AsRef<Path>) -> Result<Option<AuthRecord>, Aut
 
 pub async fn save_auth(path: impl AsRef<Path>, record: &AuthRecord) -> Result<(), AuthError> {
     let path = path.as_ref();
-    let parent = path
-        .parent()
-        .ok_or_else(|| AuthError::Io("auth path has no parent".into()))?;
-    tokio::fs::create_dir_all(parent)
-        .await
-        .map_err(|e| AuthError::Io(e.to_string()))?;
-    let mut temp = path.to_path_buf();
-    temp.set_extension(format!("tmp-{}", std::process::id()));
     let bytes = serde_json::to_vec_pretty(record).map_err(|_| AuthError::InvalidResponse)?;
-    let mut options = OpenOptions::new();
-    options.create(true).truncate(true).write(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.mode(0o600);
-    }
-    let mut file = options.open(&temp).map_err(|e| AuthError::Io(e.to_string()))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(&temp, fs::Permissions::from_mode(0o600));
-    }
-    file.write_all(&bytes).map_err(|e| AuthError::Io(e.to_string()))?;
-    file.sync_all().map_err(|e| AuthError::Io(e.to_string()))?;
-    fs::rename(&temp, path).map_err(|e| AuthError::Io(e.to_string()))
+    save_private_bytes(path.to_path_buf(), &bytes).await
 }
 
 pub async fn logout(path: impl AsRef<Path>) -> Result<bool, AuthError> {
@@ -902,6 +912,7 @@ pub enum AuthError {
     Unsupported,
     InvalidResponse,
     Expired,
+    Denied,
     Transport(String),
     Http(u16),
     Io(String),
@@ -920,6 +931,161 @@ impl std::error::Error for AuthError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::{self, Read, Write};
+    use std::net::TcpListener;
+    use std::sync::{Arc, Mutex};
+    use std::thread;
+    use std::time::Duration;
+
+    struct ScriptedResponse {
+        status: u16,
+        body: &'static str,
+    }
+
+    /// A scripted OAuth device server: serves the scripted token-poll
+    /// responses in order, then one successful exchange response. The
+    /// exchange accept times out after 5s so denial tests that never
+    /// exchange can finish promptly.
+    struct DeviceFlowServer {
+        base_url: String,
+        requests: Arc<Mutex<Vec<String>>>,
+        join: thread::JoinHandle<io::Result<()>>,
+    }
+
+    impl DeviceFlowServer {
+        fn start(token_responses: Vec<ScriptedResponse>, exchange_body: &'static str) -> io::Result<Self> {
+            let listener = TcpListener::bind(("127.0.0.1", 0))?;
+            let address = listener.local_addr()?;
+            let requests = Arc::new(Mutex::new(Vec::new()));
+            let recorded_requests = Arc::clone(&requests);
+            let join = thread::spawn(move || {
+                for response in token_responses {
+                    let (mut stream, _) = listener.accept()?;
+                    let request = read_http_request(&mut stream)?;
+                    if let Ok(mut requests) = recorded_requests.lock() {
+                        requests.push(request);
+                    }
+                    let reason = match response.status {
+                        200 => "OK",
+                        400 => "Bad Request",
+                        _ => "Fixture Response",
+                    };
+                    let header = format!(
+                        "HTTP/1.1 {} {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+                        response.status,
+                        reason,
+                        response.body.len()
+                    );
+                    stream.write_all(header.as_bytes())?;
+                    stream.write_all(response.body.as_bytes())?;
+                    stream.flush()?;
+                }
+                listener.set_nonblocking(true)?;
+                let deadline = std::time::Instant::now() + Duration::from_secs(5);
+                while std::time::Instant::now() < deadline {
+                    match listener.accept() {
+                        Ok((mut stream, _)) => {
+                            let request = read_http_request(&mut stream)?;
+                            if let Ok(mut requests) = recorded_requests.lock() {
+                                requests.push(request);
+                            }
+                            let header = format!(
+                                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+                                exchange_body.len()
+                            );
+                            stream.write_all(header.as_bytes())?;
+                            stream.write_all(exchange_body.as_bytes())?;
+                            stream.flush()?;
+                            return Ok(());
+                        }
+                        Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
+                            thread::sleep(Duration::from_millis(20));
+                        }
+                        Err(error) => return Err(error),
+                    }
+                }
+                Ok(())
+            });
+            Ok(Self {
+                base_url: format!("http://{address}"),
+                requests,
+                join,
+            })
+        }
+
+        fn finish(self) -> Vec<String> {
+            self.join
+                .join()
+                .expect("fixture thread panicked")
+                .expect("fixture failed");
+            Arc::try_unwrap(self.requests)
+                .ok()
+                .and_then(|mutex| mutex.into_inner().ok())
+                .unwrap_or_default()
+        }
+    }
+
+    fn read_http_request(stream: &mut std::net::TcpStream) -> io::Result<String> {
+        let mut bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+        let mut body_length = None;
+        loop {
+            let read = stream.read(&mut chunk)?;
+            if read == 0 {
+                break;
+            }
+            bytes.extend_from_slice(&chunk[..read]);
+            if body_length.is_none()
+                && let Some(header_end) = bytes
+                    .windows(4)
+                    .position(|window| window == b"\r\n\r\n")
+                    .map(|position| position + 4)
+            {
+                let headers = String::from_utf8_lossy(&bytes[..header_end]);
+                let content_length = headers.lines().find_map(|line| {
+                    let (name, value) = line.split_once(':')?;
+                    name.eq_ignore_ascii_case("content-length")
+                        .then(|| value.trim().parse::<usize>().ok())
+                        .flatten()
+                });
+                body_length = content_length.or(Some(0));
+            }
+            if let (Some(header_end), Some(body_length)) = (find_header_end(&bytes), body_length)
+                && bytes.len() >= header_end + body_length
+            {
+                break;
+            }
+        }
+        Ok(String::from_utf8_lossy(&bytes).into_owned())
+    }
+
+    fn find_header_end(bytes: &[u8]) -> Option<usize> {
+        bytes
+            .windows(4)
+            .position(|window| window == b"\r\n\r\n")
+            .map(|position| position + 4)
+    }
+
+    fn device_client(base_url: &str) -> CodexOAuthClient {
+        CodexOAuthClient::new(OAuthConfig {
+            client_id: "client-1".into(),
+            authorization_url: format!("{base_url}/authorize"),
+            token_url: format!("{base_url}/token_exchange"),
+            scopes: vec![],
+        })
+        .expect("test operation should succeed")
+    }
+
+    fn device_authorization() -> DeviceAuthorization {
+        DeviceAuthorization {
+            verification_uri: "http://fixture/verify".into(),
+            user_code: "user-code".into(),
+            device_code: Secret::new("device-code"),
+            expires_in_seconds: 900,
+            interval_seconds: 1,
+        }
+    }
+
     #[test]
     fn store_round_trip_and_debug_redacts() {
         let s = MemoryCredentialStore::default();
@@ -1032,5 +1198,155 @@ mod tests {
         }
         assert!(logout(&path).await.expect("test operation should succeed"));
         assert!(!logout(&path).await.expect("test operation should succeed"));
+    }
+
+    #[tokio::test]
+    async fn auth_write_is_atomic_and_leaves_no_predictable_temp_files() {
+        let directory = tempfile::tempdir().expect("test operation should succeed");
+        let path = directory.path().join("auth.json");
+        let record = AuthRecord {
+            access_token: "first".into(),
+            refresh_token: None,
+            id_token: None,
+            account_id: None,
+            email: None,
+            expires_at_unix: None,
+        };
+        save_auth(&path, &record)
+            .await
+            .expect("test operation should succeed");
+        let replaced = AuthRecord {
+            access_token: "second".into(),
+            ..record.clone()
+        };
+        save_auth(&path, &replaced)
+            .await
+            .expect("test operation should succeed");
+        assert_eq!(
+            load_auth(&path)
+                .await
+                .expect("test operation should succeed")
+                .expect("auth exists")
+                .access_token,
+            "second"
+        );
+        let leftovers = fs::read_dir(directory.path())
+            .expect("test operation should succeed")
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_name().to_string_lossy().contains("tmp-"))
+            .count();
+        assert_eq!(leftovers, 0, "predictable temp files were left behind");
+    }
+
+    #[tokio::test]
+    async fn device_poll_retries_pending_then_exchanges() {
+        let fixture = match DeviceFlowServer::start(
+            vec![
+                ScriptedResponse {
+                    status: 400,
+                    body: r#"{"error":"authorization_pending"}"#,
+                },
+                ScriptedResponse {
+                    status: 400,
+                    body: r#"{"error":"authorization_pending"}"#,
+                },
+                ScriptedResponse {
+                    status: 200,
+                    body: r#"{"authorization_code":"auth-code","code_verifier":"verifier","code_challenge":"challenge"}"#,
+                },
+            ],
+            r#"{"access_token":"access-secret","refresh_token":"refresh-secret","id_token":"","expires_in_seconds":3600}"#,
+        ) {
+            Ok(fixture) => fixture,
+            Err(error) => panic!("could not start fixture: {error}"),
+        };
+        let client = device_client(&fixture.base_url);
+        let record = client
+            .complete_device_authorization(&device_authorization())
+            .await
+            .expect("pending polls must eventually complete the exchange");
+        assert_eq!(record.access_token, "access-secret");
+        assert_eq!(record.refresh_token.as_deref(), Some("refresh-secret"));
+        let requests = fixture.finish();
+        assert_eq!(requests.len(), 4, "two pending polls, one code, one exchange");
+        let first_poll = &requests[0];
+        assert!(
+            first_poll
+                .to_ascii_lowercase()
+                .contains("/api/accounts/deviceauth/token"),
+            "unexpected poll target: {requests:?}"
+        );
+        let (_, body) = first_poll
+            .split_once("\r\n\r\n")
+            .expect("poll request had no body");
+        assert_eq!(
+            body,
+            r#"{"device_auth_id":"device-code","user_code":"user-code"}"#
+        );
+    }
+
+    #[tokio::test]
+    async fn device_denial_fails_fast_without_polling() {
+        let fixture = DeviceFlowServer::start(
+            vec![ScriptedResponse {
+                status: 400,
+                body: r#"{"error":"access_denied"}"#,
+            }],
+            r#"{}"#,
+        )
+        .expect("test operation should succeed");
+        let client = device_client(&fixture.base_url);
+        let started = std::time::Instant::now();
+        let error = client
+            .complete_device_authorization(&device_authorization())
+            .await
+            .expect_err("access_denied must not keep polling");
+        assert!(matches!(error, AuthError::Denied));
+        assert!(
+            started.elapsed() < Duration::from_secs(1),
+            "denial must fail fast, not sleep through poll intervals"
+        );
+        let requests = fixture.finish();
+        assert_eq!(requests.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn device_expired_token_fails_fast() {
+        let fixture = DeviceFlowServer::start(
+            vec![ScriptedResponse {
+                status: 400,
+                body: r#"{"error":"expired_token"}"#,
+            }],
+            r#"{}"#,
+        )
+        .expect("test operation should succeed");
+        let client = device_client(&fixture.base_url);
+        let error = client
+            .complete_device_authorization(&device_authorization())
+            .await
+            .expect_err("expired_token must not keep polling");
+        assert!(matches!(error, AuthError::Expired));
+        let requests = fixture.finish();
+        assert_eq!(requests.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn device_unknown_error_surfaces_http_status() {
+        let fixture = DeviceFlowServer::start(
+            vec![ScriptedResponse {
+                status: 400,
+                body: r#"{"error":"server_error"}"#,
+            }],
+            r#"{}"#,
+        )
+        .expect("test operation should succeed");
+        let client = device_client(&fixture.base_url);
+        let error = client
+            .complete_device_authorization(&device_authorization())
+            .await
+            .expect_err("unexpected errors must surface instead of polling");
+        assert!(matches!(error, AuthError::Http(400)));
+        let requests = fixture.finish();
+        assert_eq!(requests.len(), 1);
     }
 }

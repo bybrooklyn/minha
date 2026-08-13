@@ -163,8 +163,9 @@ pub fn redact_secrets(input: &str) -> String {
         .map(|line| {
             let lower = line.to_ascii_lowercase();
             if let Some(separator) = line.find(['=', ':']) {
-                let key = lower[..separator].trim();
-                if [
+                let key = lower[..separator].trim().trim_matches('"');
+                let value = line[separator + 1..].trim();
+                let strong_key = [
                     "api_key",
                     "api-key",
                     "password",
@@ -173,16 +174,23 @@ pub fn redact_secrets(input: &str) -> String {
                     "authorization",
                 ]
                 .iter()
-                .any(|candidate| key.ends_with(candidate))
-                {
+                .any(|candidate| key.ends_with(candidate));
+                let credential_value = value.trim_matches('"').to_ascii_lowercase().starts_with("sk-");
+                if strong_key || (key.ends_with("key") && credential_value) {
                     return format!("{}<REDACTED>", &line[..=separator]);
                 }
             }
-            if lower.contains("authorization: bearer ")
+            if lower.trim_start().starts_with("bearer ")
                 && let Some(marker) = lower.find("bearer ")
             {
                 let marker = marker + "bearer ".len();
                 return format!("{}<REDACTED>", &line[..marker]);
+            }
+            let token = line
+                .split_whitespace()
+                .find(|token| token.len() > 3 && token.starts_with("sk-"));
+            if let Some(token) = token {
+                return line.replacen(token, "sk-<REDACTED>", 1);
             }
             line.to_owned()
         })
@@ -410,17 +418,35 @@ fn secret_reason(name: &str, bytes: &[u8]) -> Option<String> {
         return Some("secret-like filename".into());
     }
     let text = String::from_utf8_lossy(bytes).to_ascii_lowercase();
+    let credential_value = |value: &str| {
+        let value = value.trim_matches('"');
+        value.starts_with("sk-")
+            || value.starts_with("ghp_")
+            || value.starts_with("gho_")
+            || value.contains("-----BEGIN")
+    };
     if text.lines().any(|line| {
         line.find(['=', ':']).is_some_and(|separator| {
-            let key = line[..separator].trim().replace(['-', ' '], "_");
+            let key = line[..separator]
+                .trim()
+                .trim_matches('"')
+                .replace(['-', ' '], "_");
             let value = line[separator + 1..].trim();
-            !value.is_empty()
-                && ["api_key", "password", "token", "secret", "authorization"]
-                    .iter()
-                    .any(|candidate| key.ends_with(candidate))
+            let strong_key = ["api_key", "password", "token", "secret", "authorization"]
+                .iter()
+                .any(|candidate| key.ends_with(candidate));
+            (strong_key && !value.is_empty()) || (key.ends_with("key") && credential_value(value))
         })
     }) {
         return Some("contains a credential assignment".into());
+    }
+    if text.lines().any(|line| line.trim_start().starts_with("bearer ")) {
+        return Some("contains a bearer credential".into());
+    }
+    if text.split_whitespace().any(|token| {
+        token.len() > 3 && token.starts_with("sk-") && token[3..].chars().any(|c| c.is_alphanumeric())
+    }) {
+        return Some("contains a sk- prefixed credential".into());
     }
     [
         "api_key=",
@@ -481,6 +507,25 @@ mod tests {
             redact_secrets("api_key=hidden\nordinary"),
             "api_key=<REDACTED>\nordinary"
         );
+    }
+
+    #[test]
+    fn bare_bearer_and_key_json_credentials_are_rejected_and_redacted() {
+        assert!(contains_secret(
+            "notes",
+            b"Authorization: Bearer sk-ant-abcdef123\nrest"
+        ));
+        assert!(contains_secret("notes", b"Bearer sk-ant-abcdef123"));
+        assert!(contains_secret("notes", br#"{"key": "sk-abc123xyz"}"#));
+        assert!(contains_secret("notes", b"sk-abc123xyz"));
+        assert!(!contains_secret("notes", b"task-123 review the risk-item"));
+        assert!(!contains_secret("notes", b"ordinary text"));
+        assert_eq!(
+            redact_secrets("Bearer sk-ant-abcdef\nkeep"),
+            "Bearer <REDACTED>\nkeep"
+        );
+        assert_eq!(redact_secrets("note sk-abc123 ok"), "note sk-<REDACTED> ok");
+        assert_eq!(redact_secrets("task-123 fine"), "task-123 fine");
     }
 
     #[test]

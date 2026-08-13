@@ -271,6 +271,322 @@ pub struct Book {
     pub citations: Vec<Citation>,
 }
 
+/// The small, cited specialization unit that may enter a worker packet.
+///
+/// A card deliberately names one book or one section rather than copying a
+/// chapter map into every worker prompt. `source()` is stable enough to retain
+/// in a dispatch receipt and to show in the inspector.
+pub const BOOK_CARD_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct BookCardV1 {
+    pub schema_version: u16,
+    pub book_id: String,
+    pub book_version: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub section_id: Option<String>,
+    pub specialty: String,
+    pub summary: String,
+}
+
+impl BookCardV1 {
+    /// Make an index-level card. Callers should prefer this before asking for
+    /// a section because it carries only the book's durable specialty and
+    /// abstract.
+    pub fn glossary(book: &Book) -> Self {
+        Self {
+            schema_version: BOOK_CARD_SCHEMA_VERSION,
+            book_id: book.metadata.id.clone(),
+            book_version: book.metadata.version.clone(),
+            section_id: None,
+            specialty: book.metadata.title.clone(),
+            summary: book.metadata.abstract_text.clone(),
+        }
+    }
+
+    /// Make the smallest cited section card when a real knowledge gap remains
+    /// after the glossary card. It never returns the rest of the book.
+    pub fn section(book: &Book, section_id: &str) -> Option<Self> {
+        let section = book
+            .chapters
+            .iter()
+            .flat_map(|chapter| chapter.sections.iter())
+            .find(|section| section.id == section_id)?;
+        Some(Self {
+            schema_version: BOOK_CARD_SCHEMA_VERSION,
+            book_id: book.metadata.id.clone(),
+            book_version: book.metadata.version.clone(),
+            section_id: Some(section.id.clone()),
+            specialty: format!("{} / {}", book.metadata.title, section.title),
+            summary: section.summary.clone(),
+        })
+    }
+
+    /// The compact, versioned provenance string retained by dispatch receipts.
+    pub fn source(&self) -> String {
+        match self.section_id.as_deref() {
+            Some(section_id) => format!("{}@{}#{section_id}", self.book_id, self.book_version),
+            None => format!("{}@{}", self.book_id, self.book_version),
+        }
+    }
+
+    pub fn validate(&self) -> Result<(), BookCardError> {
+        if self.schema_version != BOOK_CARD_SCHEMA_VERSION {
+            return Err(BookCardError::UnsupportedVersion(self.schema_version));
+        }
+        if self.book_id.trim().is_empty() {
+            return Err(BookCardError::MissingBookId);
+        }
+        if self.book_version.trim().is_empty() {
+            return Err(BookCardError::MissingBookVersion);
+        }
+        if self.section_id.as_deref().is_some_and(|id| id.trim().is_empty()) {
+            return Err(BookCardError::InvalidSectionId);
+        }
+        if self.specialty.trim().is_empty() {
+            return Err(BookCardError::MissingSpecialty);
+        }
+        if self.summary.trim().is_empty() {
+            return Err(BookCardError::MissingSummary);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+pub enum BookCardError {
+    #[error("unsupported book card schema version: {0}")]
+    UnsupportedVersion(u16),
+    #[error("book card requires a book id")]
+    MissingBookId,
+    #[error("book card requires a book version")]
+    MissingBookVersion,
+    #[error("book card section id must not be empty")]
+    InvalidSectionId,
+    #[error("book card requires a specialty")]
+    MissingSpecialty,
+    #[error("book card requires a summary")]
+    MissingSummary,
+}
+
+/// The only three retrieval levels exposed to policy. A section is the
+/// narrow, detailed escalation; a whole book has a separate exceptional
+/// level so it cannot accidentally be selected by an ordinary detail request.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BookDetailLevelV1 {
+    Index,
+    Section,
+    Full,
+}
+
+impl BookDetailLevelV1 {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Index => "index",
+            Self::Section => "section",
+            Self::Full => "full",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "index" => Some(Self::Index),
+            "section" => Some(Self::Section),
+            "full" => Some(Self::Full),
+            _ => None,
+        }
+    }
+}
+
+/// Why a caller wants book material. This makes the repository-first rule a
+/// typed admission decision instead of an instruction hidden in prompt prose.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BookRetrievalReasonV1 {
+    NoGap,
+    TrueGap,
+    ExceptionalFull,
+}
+
+impl BookRetrievalReasonV1 {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::NoGap => "no_gap",
+            Self::TrueGap => "true_gap",
+            Self::ExceptionalFull => "exceptional_full",
+        }
+    }
+
+    /// Strict parser for the fixed books-tool schema. It intentionally accepts
+    /// no prose aliases, so a caller must state why it is escalating context.
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "no_gap" => Some(Self::NoGap),
+            "true_gap" => Some(Self::TrueGap),
+            "exceptional_full" => Some(Self::ExceptionalFull),
+            _ => None,
+        }
+    }
+}
+
+/// The narrowest detail a caller should request for its stated reason.
+pub const fn recommended_book_detail(reason: BookRetrievalReasonV1) -> BookDetailLevelV1 {
+    match reason {
+        BookRetrievalReasonV1::NoGap => BookDetailLevelV1::Index,
+        BookRetrievalReasonV1::TrueGap => BookDetailLevelV1::Section,
+        BookRetrievalReasonV1::ExceptionalFull => BookDetailLevelV1::Full,
+    }
+}
+
+/// Whether a requested level is allowed. In particular, detailed section
+/// retrieval needs a real gap and full-book retrieval needs an explicit
+/// exceptional admission.
+pub const fn allows_book_detail(reason: BookRetrievalReasonV1, detail: BookDetailLevelV1) -> bool {
+    match reason {
+        BookRetrievalReasonV1::NoGap => matches!(detail, BookDetailLevelV1::Index),
+        BookRetrievalReasonV1::TrueGap => {
+            matches!(detail, BookDetailLevelV1::Index | BookDetailLevelV1::Section)
+        }
+        BookRetrievalReasonV1::ExceptionalFull => true,
+    }
+}
+
+/// Parse a fixed tool reason and reject an escalation the reason does not
+/// justify. The executor can call this before any book content is read.
+pub fn validate_book_detail_admission(
+    reason: &str,
+    detail: BookDetailLevelV1,
+) -> Result<BookRetrievalReasonV1, BookDetailAdmissionError> {
+    let reason = BookRetrievalReasonV1::parse(reason)
+        .ok_or_else(|| BookDetailAdmissionError::UnknownReason(reason.to_owned()))?;
+    if !allows_book_detail(reason, detail) {
+        return Err(BookDetailAdmissionError::DetailNotAllowed { reason, detail });
+    }
+    Ok(reason)
+}
+
+/// Parse both fixed-schema strings. This is useful at an untyped tool boundary
+/// while keeping the policy itself typed everywhere else.
+pub fn validate_book_detail_strings(
+    reason: &str,
+    detail: &str,
+) -> Result<BookRetrievalReasonV1, BookDetailAdmissionError> {
+    let detail = BookDetailLevelV1::parse(detail)
+        .ok_or_else(|| BookDetailAdmissionError::UnknownDetail(detail.to_owned()))?;
+    validate_book_detail_admission(reason, detail)
+}
+
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+pub enum BookDetailAdmissionError {
+    #[error("unknown book retrieval reason: {0}")]
+    UnknownReason(String),
+    #[error("unknown book detail level: {0}")]
+    UnknownDetail(String),
+    #[error("book detail {detail:?} is not allowed for retrieval reason {reason:?}")]
+    DetailNotAllowed {
+        reason: BookRetrievalReasonV1,
+        detail: BookDetailLevelV1,
+    },
+}
+
+/// A deterministic visible identity for a card-selected specialist.
+pub const SPECIALIST_IDENTITY_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SpecialistIdentityV1 {
+    pub schema_version: u16,
+    /// A content-derived, stable identity key, not a random display nickname.
+    pub id: String,
+    pub role: String,
+    pub task_id: String,
+    pub display_name: String,
+    /// Stable sorted provenance for receipts and the agent inspector.
+    pub book_sources: Vec<String>,
+}
+
+impl SpecialistIdentityV1 {
+    /// Build an identity from role, task, and cards independently of the
+    /// caller's card ordering. Duplicate card sources are collapsed.
+    pub fn from_cards(
+        role: impl AsRef<str>,
+        task_id: impl AsRef<str>,
+        cards: &[BookCardV1],
+    ) -> Result<Self, SpecialistIdentityError> {
+        let role = role.as_ref().trim();
+        if role.is_empty() {
+            return Err(SpecialistIdentityError::MissingRole);
+        }
+        let task_id = task_id.as_ref().trim();
+        if task_id.is_empty() {
+            return Err(SpecialistIdentityError::MissingTaskId);
+        }
+
+        // A BTreeMap both sorts and makes duplicate sources independent of
+        // input order. If malformed callers supplied two labels for one source,
+        // selecting the lexical minimum keeps the result deterministic.
+        let mut specialties = BTreeMap::<String, String>::new();
+        for card in cards {
+            card.validate().map_err(SpecialistIdentityError::InvalidCard)?;
+            let source = card.source();
+            let specialty = card.specialty.trim().to_owned();
+            match specialties.get_mut(&source) {
+                Some(existing) if specialty < *existing => *existing = specialty,
+                Some(_) => {}
+                None => {
+                    specialties.insert(source, specialty);
+                }
+            }
+        }
+        let book_sources = specialties.keys().cloned().collect::<Vec<_>>();
+        let specialty_label = specialties.values().cloned().collect::<Vec<_>>().join(" + ");
+        let display_name = if specialty_label.is_empty() {
+            format!("{role} · {task_id}")
+        } else {
+            format!("{role} · {specialty_label} · {task_id}")
+        };
+
+        let mut hasher = Sha256::new();
+        hasher.update(b"minha.specialist.v1\0");
+        for part in std::iter::once(role)
+            .chain(std::iter::once(task_id))
+            .chain(book_sources.iter().map(String::as_str))
+        {
+            hasher.update(part.as_bytes());
+            hasher.update([0]);
+        }
+
+        Ok(Self {
+            schema_version: SPECIALIST_IDENTITY_SCHEMA_VERSION,
+            id: format!("specialist-v1:{:x}", hasher.finalize()),
+            role: role.to_owned(),
+            task_id: task_id.to_owned(),
+            display_name,
+            book_sources,
+        })
+    }
+}
+
+/// Sorted, deduplicated provenance suitable for `DispatchReceiptV1::book_sources`.
+pub fn book_sources(cards: &[BookCardV1]) -> Vec<String> {
+    cards
+        .iter()
+        .map(BookCardV1::source)
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+pub enum SpecialistIdentityError {
+    #[error("specialist identity requires a role")]
+    MissingRole,
+    #[error("specialist identity requires a task id")]
+    MissingTaskId,
+    #[error("invalid book card: {0}")]
+    InvalidCard(BookCardError),
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ManifestPack {
     pub id: String,
@@ -1109,5 +1425,85 @@ mod tests {
             assert!(book.metadata.token_budget.valid());
             assert!(book.compact_token_count() <= book.metadata.token_budget.detailed_tokens);
         }
+    }
+
+    #[test]
+    fn cards_are_section_scoped_and_specialist_identity_is_order_independent() {
+        let alpha = book("alpha", TrustState::Promoted);
+        let beta = book("beta", TrustState::Promoted);
+        let alpha_card = BookCardV1::section(&alpha, "section-1").expect("known test section");
+        let beta_card = BookCardV1::glossary(&beta);
+
+        assert_eq!(alpha_card.source(), "alpha@1.0.0#section-1");
+        assert!(BookCardV1::section(&alpha, "missing").is_none());
+
+        let forward = SpecialistIdentityV1::from_cards(
+            "implementer",
+            "parser",
+            &[alpha_card.clone(), beta_card.clone()],
+        )
+        .expect("valid specialist identity");
+        let reverse = SpecialistIdentityV1::from_cards(
+            "implementer",
+            "parser",
+            &[beta_card.clone(), alpha_card.clone(), alpha_card.clone()],
+        )
+        .expect("valid specialist identity");
+
+        assert_eq!(forward.id, reverse.id);
+        assert_eq!(forward.book_sources, vec!["alpha@1.0.0#section-1", "beta@1.0.0"]);
+        assert_eq!(forward.book_sources, book_sources(&[beta_card, alpha_card]));
+        assert!(forward.display_name.contains("alpha systems guide / Boundary"));
+        assert_ne!(
+            forward.id,
+            SpecialistIdentityV1::from_cards("implementer", "other-task", &[])
+                .expect("valid task identity")
+                .id
+        );
+    }
+
+    #[test]
+    fn detail_policy_requires_a_real_gap_and_an_exception_for_full_books() {
+        assert_eq!(
+            recommended_book_detail(BookRetrievalReasonV1::NoGap),
+            BookDetailLevelV1::Index
+        );
+        assert_eq!(
+            recommended_book_detail(BookRetrievalReasonV1::TrueGap),
+            BookDetailLevelV1::Section
+        );
+        assert_eq!(
+            recommended_book_detail(BookRetrievalReasonV1::ExceptionalFull),
+            BookDetailLevelV1::Full
+        );
+        assert!(!allows_book_detail(
+            BookRetrievalReasonV1::NoGap,
+            BookDetailLevelV1::Section
+        ));
+        assert!(allows_book_detail(
+            BookRetrievalReasonV1::TrueGap,
+            BookDetailLevelV1::Section
+        ));
+        assert!(!allows_book_detail(
+            BookRetrievalReasonV1::TrueGap,
+            BookDetailLevelV1::Full
+        ));
+        assert!(allows_book_detail(
+            BookRetrievalReasonV1::ExceptionalFull,
+            BookDetailLevelV1::Full
+        ));
+
+        assert_eq!(
+            validate_book_detail_strings("true_gap", "section"),
+            Ok(BookRetrievalReasonV1::TrueGap)
+        );
+        assert!(matches!(
+            validate_book_detail_strings("no_gap", "section"),
+            Err(BookDetailAdmissionError::DetailNotAllowed { .. })
+        ));
+        assert!(matches!(
+            validate_book_detail_strings("why", "section"),
+            Err(BookDetailAdmissionError::UnknownReason(_))
+        ));
     }
 }

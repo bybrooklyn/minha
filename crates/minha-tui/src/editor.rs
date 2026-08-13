@@ -35,12 +35,9 @@ impl EditorLayout {
                 cursor_position = Some((row, column));
             }
             if grapheme == "\n" {
+                // A newline always terminates the current row. Interior blank
+                // lines must stay visible: `"a\n\nb"` renders three rows.
                 lines[row].end = index;
-                if lines[row].text.is_empty() && lines[row].start == index && row > 0 {
-                    lines[row].start = index + grapheme.len();
-                    lines[row].end = index + grapheme.len();
-                    continue;
-                }
                 row += 1;
                 column = 0;
                 lines.push(VisualLine {
@@ -103,6 +100,11 @@ impl EditorLayout {
         for (offset, grapheme) in text[line.start..line.end].grapheme_indices(true) {
             let width = UnicodeWidthStr::width(grapheme).max(1);
             if column + width > target {
+                if column < target {
+                    // The target falls on the second half of a wide grapheme:
+                    // place the cursor after it, matching terminal behavior.
+                    return line.start + offset + grapheme.len();
+                }
                 return line.start + offset;
             }
             column += width;
@@ -133,10 +135,43 @@ mod tests {
     fn layout_tracks_graphemes_newlines_and_exact_width_cursor() {
         let layout = EditorLayout::new("a界\ne\u{301}x", "a界\ne\u{301}x".len(), 5);
         assert_eq!(layout.lines[0].text, "a界");
-        assert_eq!(layout.lines[1].text, "e\u{301}x");
-        assert_eq!((layout.cursor_row, layout.cursor_column), (1, 2));
+        assert_eq!(layout.lines[1].text, "");
+        assert_eq!(layout.lines[2].text, "e\u{301}x");
+        assert_eq!((layout.cursor_row, layout.cursor_column), (2, 2));
 
         let exact = EditorLayout::new("abcd", 4, 6);
         assert_eq!((exact.cursor_row, exact.cursor_column), (1, 0));
+    }
+
+    #[test]
+    fn interior_blank_lines_stay_visible() {
+        let layout = EditorLayout::new("a\n\nb", 4, 20);
+        assert_eq!(
+            layout
+                .lines
+                .iter()
+                .map(|line| line.text.as_str())
+                .collect::<Vec<_>>(),
+            ["a", "", "b"]
+        );
+        assert_eq!((layout.cursor_row, layout.cursor_column), (2, 1));
+        let trailing = EditorLayout::new("a\n", 2, 20);
+        assert_eq!(
+            trailing
+                .lines
+                .iter()
+                .map(|line| line.text.as_str())
+                .collect::<Vec<_>>(),
+            ["a", ""]
+        );
+    }
+
+    #[test]
+    fn click_on_second_half_of_wide_char_places_cursor_after_it() {
+        let text = "a界";
+        let layout = EditorLayout::new(text, text.len(), 20);
+        assert_eq!(layout.byte_at_column(text, 0, 2), text.len());
+        assert_eq!(layout.byte_at_column(text, 0, 1), 1);
+        assert_eq!(layout.byte_at_column(text, 0, 3), text.len());
     }
 }

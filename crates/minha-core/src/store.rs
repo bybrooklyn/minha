@@ -2,13 +2,21 @@
 
 use crate::cache::{CacheClass, ObservedInputManifest};
 use crate::facts::{BoardEntry, BoardKind, BoardScope, BoardStatus};
-use crate::memory::{MemoryHit, MemoryRecord, MemoryScope, MemorySettings};
-use crate::protocol::{
-    AgentState, EventAgentId, EventEnvelope, ExitState, IncidentSeverity, IncidentView,
-    IssueClarificationView, MIN_TYPED_PROTOCOL_VERSION, Mode, PlanTaskState, RunId, RuntimeEvent, TodoItem,
-    TodoState,
+use crate::fairness::{
+    FAIRNESS_SCHEMA_VERSION, FairnessCandidateV1, FairnessKeyV1, FairnessSelectionV1, FairnessStateV1,
+    PROVIDER_HEALTH_SCHEMA_VERSION, ProviderHealthStatusV1, ProviderHealthV1, RoutingInspectorV1,
+    WDRR_QUANTUM, choose_equal_weight_wdrr, exponential_cooldown_seconds, normalized_token_work,
 };
-use crate::provider::ModelDescriptor;
+use crate::memory::{MemoryHit, MemoryRecord, MemoryScope, MemorySettings};
+use crate::office::{OfficeEnvelopeV1, PrivateRoom, RUN_ROOM_ID, Recipient};
+use crate::protocol::{
+    AgentState, DISPATCH_RECEIPT_SCHEMA_VERSION, DISPATCH_RECEIPT_V2_SCHEMA_VERSION, DispatchReceiptV1,
+    DispatchReceiptV2, EventAgentId, EventEnvelope, ExitState, IncidentSeverity, IncidentView,
+    IssueClarificationView, MICROTASK_CONTRACT_SCHEMA_VERSION, MIN_TYPED_PROTOCOL_VERSION,
+    MicrotaskContractV1, Mode, PlanTaskState, RunId, RuntimeEvent, TodoItem, TodoState,
+};
+use crate::provider::{ModelDescriptor, ProviderId, redact_provider_detail};
+use crate::usage::{TokenUsage, USAGE_LEDGER_SCHEMA_VERSION, UsageKindV1, UsageLedgerEntryV1, UsageStateV1};
 use chrono::{DateTime, Utc};
 use parking_lot::Mutex;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
@@ -20,6 +28,7 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
+    time::Duration,
 };
 use thiserror::Error;
 use tokio::sync::broadcast;
@@ -48,6 +57,8 @@ pub enum StoreError {
     LeaseConflict(String),
     #[error("invalid stored coordination value: {0}")]
     Coordination(String),
+    #[error("{sender} is not a member of private room {room}")]
+    RoomAccessDenied { sender: String, room: String },
     #[error("invalid memory: {0}")]
     Memory(String),
 }
@@ -223,6 +234,8 @@ impl Store {
         let mode: String = connection.query_row("PRAGMA journal_mode = WAL", [], |row| row.get(0))?;
         let version: i64 = connection.query_row("PRAGMA user_version", [], |row| row.get(0))?;
         if version == SCHEMA_VERSION {
+            ensure_usage_ledger(&connection)?;
+            ensure_coordination_receipts(&connection)?;
             debug_assert!(mode == "wal" || mode == "memory");
             return Ok(());
         }
@@ -233,9 +246,12 @@ impl Store {
             });
         }
         if version < 3 {
-            // v2 was an unqualified prototype. The v3 contract intentionally
-            // starts clean so no stringly event can masquerade as replayable
-            // session state.
+            // Fresh bootstrap only: `open` archives every on-disk database
+            // whose user_version is neither 0 nor the current schema, so the
+            // in-place upgrade chain below never runs against old data. The
+            // v2..v9 markers were pre-production prototypes; any such file
+            // is renamed to a timestamped .bak and this branch creates a
+            // clean v1 database from scratch.
             connection.execute_batch(
                 "BEGIN IMMEDIATE;
                  DROP TABLE IF EXISTS messages;
@@ -281,7 +297,6 @@ impl Store {
                  CREATE INDEX IF NOT EXISTS events_by_time ON events(occurred_at);
                  CREATE INDEX IF NOT EXISTS runs_by_updated ON runs(updated_at DESC);
                  CREATE INDEX IF NOT EXISTS runs_active_by_updated ON runs(archived, updated_at DESC);
-                 PRAGMA user_version = 3;
                  COMMIT;",
             )?;
         }
@@ -340,6 +355,30 @@ impl Store {
                    FOREIGN KEY (run_id, prerequisite_id) REFERENCES tasks(run_id, task_id) ON DELETE CASCADE,
                    FOREIGN KEY (run_id, dependent_id) REFERENCES tasks(run_id, task_id) ON DELETE CASCADE
                  );
+                 CREATE TABLE IF NOT EXISTS task_contracts (
+                   run_id TEXT NOT NULL,
+                   task_id TEXT NOT NULL,
+                   schema_version INTEGER NOT NULL,
+                   contract_json TEXT NOT NULL,
+                   created_at TEXT NOT NULL,
+                   updated_at TEXT NOT NULL,
+                   PRIMARY KEY (run_id, task_id),
+                   FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
+                 );
+                 CREATE TABLE IF NOT EXISTS dispatch_receipts (
+                   receipt_id TEXT PRIMARY KEY,
+                   run_id TEXT NOT NULL,
+                   task_id TEXT NOT NULL,
+                   generation INTEGER NOT NULL,
+                   schema_version INTEGER NOT NULL,
+                   receipt_json TEXT NOT NULL,
+                   created_at TEXT NOT NULL,
+                   FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
+                 );
+                 CREATE INDEX IF NOT EXISTS task_contracts_by_run
+                   ON task_contracts(run_id, task_id);
+                 CREATE INDEX IF NOT EXISTS dispatch_receipts_by_run
+                   ON dispatch_receipts(run_id, task_id, generation, created_at);
                  CREATE TABLE IF NOT EXISTS leases (
                    run_id TEXT NOT NULL,
                    resource TEXT NOT NULL,
@@ -380,17 +419,20 @@ impl Store {
                    PRIMARY KEY (entry_id, revision),
                    FOREIGN KEY (entry_id) REFERENCES board_entries(entry_id) ON DELETE CASCADE
                  );
-                 CREATE TABLE IF NOT EXISTS usage_turns (
-                   usage_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                   run_id TEXT NOT NULL,
-                   agent_id TEXT,
-                   model TEXT NOT NULL,
-                   input_tokens INTEGER NOT NULL,
-                   output_tokens INTEGER NOT NULL,
-                   context_tokens INTEGER,
-                   occurred_at TEXT NOT NULL,
-                   FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
-                 );
+                  CREATE TABLE IF NOT EXISTS usage_turns (
+                    usage_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    run_id TEXT NOT NULL,
+                    agent_id TEXT,
+                    model TEXT NOT NULL,
+                    input_tokens INTEGER NOT NULL,
+                    output_tokens INTEGER NOT NULL,
+                    context_tokens INTEGER,
+                    cached_input_tokens INTEGER NOT NULL DEFAULT 0,
+                    cache_write_tokens INTEGER NOT NULL DEFAULT 0,
+                    reasoning_output_tokens INTEGER NOT NULL DEFAULT 0,
+                    occurred_at TEXT NOT NULL,
+                    FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
+                  );
                  CREATE TABLE IF NOT EXISTS model_catalogs (
                    workspace_id TEXT PRIMARY KEY,
                    etag TEXT,
@@ -404,16 +446,12 @@ impl Store {
                  CREATE INDEX IF NOT EXISTS board_by_run ON board_entries(run_id, status, updated_at DESC);
                  CREATE INDEX IF NOT EXISTS board_by_workspace ON board_entries(workspace_id, scope, status, updated_at DESC);
                  CREATE INDEX IF NOT EXISTS usage_by_run ON usage_turns(run_id, occurred_at);
-                 PRAGMA user_version = 4;
                  COMMIT;",
             )?;
         }
         if version < 5 {
             connection.execute_batch(
                 "BEGIN IMMEDIATE;
-                 ALTER TABLE usage_turns ADD COLUMN cached_input_tokens INTEGER NOT NULL DEFAULT 0;
-                 ALTER TABLE usage_turns ADD COLUMN cache_write_tokens INTEGER NOT NULL DEFAULT 0;
-                 ALTER TABLE usage_turns ADD COLUMN reasoning_output_tokens INTEGER NOT NULL DEFAULT 0;
                  CREATE TABLE IF NOT EXISTS cache_entries (
                    cache_key TEXT PRIMARY KEY,
                    workspace_id TEXT NOT NULL,
@@ -437,6 +475,7 @@ impl Store {
                    payload_json TEXT NOT NULL,
                    occurred_at TEXT NOT NULL,
                    expires_at TEXT,
+                   room_sequence INTEGER NOT NULL DEFAULT 0,
                    FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
                  );
                  CREATE TABLE IF NOT EXISTS office_artifacts (
@@ -487,26 +526,24 @@ impl Store {
                  CREATE INDEX IF NOT EXISTS hive_by_run_time ON hive_messages(run_id, occurred_at);
                  CREATE INDEX IF NOT EXISTS incidents_by_run_time ON incidents(run_id, occurred_at);
                  CREATE INDEX IF NOT EXISTS books_by_trust ON book_index(trust, updated_at);
-                 PRAGMA user_version = 5;
                  COMMIT;",
             )?;
         }
         if version < 6 {
             connection.execute_batch(
                 "BEGIN IMMEDIATE;
-                 CREATE TABLE IF NOT EXISTS cache_stats (
-                   workspace_id TEXT PRIMARY KEY,
-                   hits INTEGER NOT NULL DEFAULT 0,
-                   misses INTEGER NOT NULL DEFAULT 0,
-                   writes INTEGER NOT NULL DEFAULT 0,
-                   bypasses INTEGER NOT NULL DEFAULT 0,
-                   bytes_read INTEGER NOT NULL DEFAULT 0,
-                   bytes_written INTEGER NOT NULL DEFAULT 0,
-                   saved_input_tokens INTEGER NOT NULL DEFAULT 0,
-                   FOREIGN KEY (workspace_id) REFERENCES workspaces(workspace_id) ON DELETE CASCADE
-                 );
-                 PRAGMA user_version = 6;
-                 COMMIT;",
+                  CREATE TABLE IF NOT EXISTS cache_stats (
+                    workspace_id TEXT PRIMARY KEY,
+                    hits INTEGER NOT NULL DEFAULT 0,
+                    misses INTEGER NOT NULL DEFAULT 0,
+                    writes INTEGER NOT NULL DEFAULT 0,
+                    bypasses INTEGER NOT NULL DEFAULT 0,
+                    bytes_read INTEGER NOT NULL DEFAULT 0,
+                    bytes_written INTEGER NOT NULL DEFAULT 0,
+                    saved_input_tokens INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY (workspace_id) REFERENCES workspaces(workspace_id) ON DELETE CASCADE
+                  );
+                  COMMIT;",
             )?;
         }
         if version < 7 {
@@ -521,10 +558,9 @@ impl Store {
                    updated_at TEXT NOT NULL,
                    FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
                  );
-                 CREATE INDEX IF NOT EXISTS issue_intakes_by_status
-                   ON issue_intakes(status, updated_at DESC);
-                 PRAGMA user_version = 7;
-                 COMMIT;",
+                  CREATE INDEX IF NOT EXISTS issue_intakes_by_status
+                    ON issue_intakes(status, updated_at DESC);
+                  COMMIT;",
             )?;
         }
         if version < 8 {
@@ -583,41 +619,12 @@ impl Store {
                  );
                  CREATE INDEX IF NOT EXISTS memories_by_scope
                    ON memories(scope, workspace_id, run_id, tombstone, pinned, updated_at DESC);
-                 PRAGMA user_version = 8;
                  COMMIT;",
             )?;
         }
         if version < 9 {
             connection.execute_batch(
                 "BEGIN IMMEDIATE;
-                 CREATE TABLE IF NOT EXISTS runs (
-                   run_id TEXT PRIMARY KEY,
-                   title TEXT NOT NULL,
-                   goal TEXT NOT NULL,
-                   mode TEXT NOT NULL,
-                   state TEXT NOT NULL,
-                   model TEXT,
-                   created_at TEXT NOT NULL,
-                   updated_at TEXT NOT NULL,
-                   input_tokens INTEGER NOT NULL DEFAULT 0,
-                   output_tokens INTEGER NOT NULL DEFAULT 0,
-                   summary TEXT,
-                   pending_question TEXT,
-                   archived INTEGER NOT NULL DEFAULT 0,
-                   parent_run_id TEXT
-                 );
-                 CREATE TABLE IF NOT EXISTS hive_messages (
-                   message_id TEXT PRIMARY KEY,
-                   run_id TEXT NOT NULL,
-                   room_id TEXT NOT NULL,
-                   sender_id TEXT NOT NULL,
-                   recipient TEXT NOT NULL,
-                   kind TEXT NOT NULL,
-                   payload_json TEXT NOT NULL,
-                   occurred_at TEXT NOT NULL,
-                   expires_at TEXT,
-                   FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
-                 );
                  CREATE TABLE IF NOT EXISTS office_rooms (
                    run_id TEXT NOT NULL,
                    room_id TEXT NOT NULL,
@@ -648,41 +655,17 @@ impl Store {
                    PRIMARY KEY (run_id, room_id, consumer_id),
                    FOREIGN KEY (run_id, room_id) REFERENCES office_rooms(run_id, room_id) ON DELETE CASCADE
                  );
-                 INSERT OR IGNORE INTO office_rooms
-                   (run_id, room_id, kind, purpose, owner_id, state, created_at)
-                 SELECT run_id, room_id,
-                   CASE WHEN room_id = 'run' THEN 'run' ELSE 'temporary' END,
-                   CASE WHEN room_id = 'run' THEN 'Run coordination' ELSE room_id END,
-                   MIN(sender_id), 'open', MIN(occurred_at)
-                 FROM hive_messages GROUP BY run_id, room_id;
-                 INSERT OR IGNORE INTO office_room_members
-                   (run_id, room_id, member_id, joined_at)
-                 SELECT run_id, room_id, sender_id, MIN(occurred_at)
-                 FROM hive_messages GROUP BY run_id, room_id, sender_id;
-                 INSERT OR IGNORE INTO office_room_members
-                   (run_id, room_id, member_id, joined_at)
-                 SELECT run_id, room_id, recipient, MIN(occurred_at)
-                 FROM hive_messages GROUP BY run_id, room_id, recipient;
-                 ALTER TABLE hive_messages ADD COLUMN room_sequence INTEGER NOT NULL DEFAULT 0;
-                 UPDATE hive_messages AS message
-                 SET room_sequence = (
-                   SELECT COUNT(*) FROM hive_messages AS prior
-                   WHERE prior.run_id = message.run_id
-                     AND prior.room_id = message.room_id
-                     AND (prior.occurred_at < message.occurred_at
-                       OR (prior.occurred_at = message.occurred_at AND prior.message_id <= message.message_id))
-                 );
                  CREATE UNIQUE INDEX IF NOT EXISTS hive_by_room_sequence
                    ON hive_messages(run_id, room_id, room_sequence);
                  CREATE INDEX IF NOT EXISTS office_rooms_by_state
                    ON office_rooms(run_id, state, created_at);
-                 PRAGMA user_version = 9;
                  COMMIT;",
             )?;
         }
-        // Keep the additive v8 contract self-healing for databases opened by
-        // early v8 development builds that predated the normalized entity
-        // table. This is intentionally idempotent and does not rewrite data.
+        // Final additive tables, idempotent for safety. This batch is the
+        // only place the database version is set: the chain above is a fresh
+        // bootstrap (see the version < 3 branch), and every on-disk database
+        // older than the current schema is archived before migration runs.
         connection.execute_batch(
             "CREATE TABLE IF NOT EXISTS memory_entities (
                memory_id TEXT NOT NULL,
@@ -730,8 +713,50 @@ impl Store {
                PRIMARY KEY (run_id, dedupe_key),
                FOREIGN KEY (message_id) REFERENCES hive_messages(message_id) ON DELETE CASCADE
              );
+             CREATE TABLE IF NOT EXISTS usage_ledger (
+               entry_key TEXT PRIMARY KEY,
+               run_id TEXT NOT NULL,
+               schema_version INTEGER NOT NULL,
+               kind TEXT NOT NULL,
+               state TEXT NOT NULL,
+               provider TEXT NOT NULL,
+               model TEXT NOT NULL,
+               agent_id TEXT,
+               provider_response_id TEXT,
+               input_tokens INTEGER NOT NULL,
+               output_tokens INTEGER NOT NULL,
+               cached_input_tokens INTEGER NOT NULL DEFAULT 0,
+               cache_write_tokens INTEGER NOT NULL DEFAULT 0,
+               reasoning_output_tokens INTEGER NOT NULL DEFAULT 0,
+               context_tokens INTEGER,
+               occurred_at TEXT NOT NULL,
+               FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
+             );
+             CREATE INDEX IF NOT EXISTS usage_ledger_by_run
+               ON usage_ledger(run_id, occurred_at);
+             CREATE UNIQUE INDEX IF NOT EXISTS usage_ledger_provider_response
+               ON usage_ledger(provider, provider_response_id)
+               WHERE provider_response_id IS NOT NULL;
+             INSERT OR IGNORE INTO usage_ledger
+               (entry_key, run_id, schema_version, kind, state, provider, model, agent_id,
+                provider_response_id, input_tokens, output_tokens, cached_input_tokens,
+                cache_write_tokens, reasoning_output_tokens, context_tokens, occurred_at)
+             SELECT 'legacy:' || usage_id, run_id, 1, 'legacy_unverified', 'legacy_unverified',
+                    CASE
+                      WHEN model LIKE 'deepseek/%' OR model LIKE 'deepseek-%' THEN 'deepseek'
+                      WHEN model LIKE 'xiaomi/%' THEN 'xiaomi_mimo'
+                      WHEN model LIKE 'chatgpt/%' THEN 'chatgpt_codex'
+                      ELSE 'chatgpt_codex'
+                    END,
+                    model, agent_id, NULL, input_tokens, output_tokens, cached_input_tokens,
+                    cache_write_tokens, reasoning_output_tokens, context_tokens, occurred_at
+             FROM usage_turns;
              PRAGMA user_version = 1;",
         )?;
+        // New databases pass through the bootstrap batch above rather than
+        // the early `version == SCHEMA_VERSION` return, so run the same
+        // additive coordination repair here as well.
+        ensure_coordination_receipts(&connection)?;
         debug_assert!(mode == "wal" || mode == "memory");
         Ok(())
     }
@@ -1227,6 +1252,657 @@ impl Store {
         Ok(())
     }
 
+    /// Return local provider health. A missing row is intentionally `unknown`:
+    /// it is neither an unlimited quota nor an exhausted one.
+    pub fn provider_health(
+        &self,
+        workspace_id: &str,
+        provider: &str,
+    ) -> Result<ProviderHealthV1, StoreError> {
+        let connection = self.connection.lock();
+        let row = connection
+            .query_row(
+                "SELECT schema_version, status, cooldown_until, consecutive_failures, detail, updated_at
+                 FROM provider_health_state WHERE workspace_id = ?1 AND provider = ?2",
+                params![workspace_id, provider],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, Option<DateTime<Utc>>>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, String>(4)?,
+                        row.get::<_, DateTime<Utc>>(5)?,
+                    ))
+                },
+            )
+            .optional()?;
+        row.map(
+            |(schema_version, status, cooldown_until, failures, detail, updated_at)| {
+                provider_health_from_values(
+                    workspace_id.to_owned(),
+                    provider.to_owned(),
+                    schema_version,
+                    status,
+                    cooldown_until,
+                    failures,
+                    detail,
+                    updated_at,
+                )
+            },
+        )
+        .transpose()?
+        .map_or_else(|| Ok(ProviderHealthV1::unknown(workspace_id, provider)), Ok)
+    }
+
+    /// All stored health observations for a workspace, in a deterministic
+    /// provider order. Callers that need a complete known-provider view should
+    /// use `routing_inspector`, which fills missing rows as `unknown`.
+    pub fn provider_healths(&self, workspace_id: &str) -> Result<Vec<ProviderHealthV1>, StoreError> {
+        let connection = self.connection.lock();
+        let mut statement = connection.prepare(
+            "SELECT provider, schema_version, status, cooldown_until, consecutive_failures, detail, updated_at
+             FROM provider_health_state WHERE workspace_id = ?1 ORDER BY provider",
+        )?;
+        let rows = statement.query_map([workspace_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, Option<DateTime<Utc>>>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, DateTime<Utc>>(6)?,
+            ))
+        })?;
+        rows.map(|row| {
+            let (provider, schema_version, status, cooldown_until, failures, detail, updated_at) = row?;
+            provider_health_from_values(
+                workspace_id.to_owned(),
+                provider,
+                schema_version,
+                status,
+                cooldown_until,
+                failures,
+                detail,
+                updated_at,
+            )
+        })
+        .collect()
+    }
+
+    /// Persist a specific health state. The detail is compacted before storage
+    /// so raw provider bodies, headers, and secret-bearing diagnostics never
+    /// become routing state.
+    pub fn set_provider_health(
+        &self,
+        workspace_id: &str,
+        provider: &str,
+        status: ProviderHealthStatusV1,
+        cooldown_until: Option<DateTime<Utc>>,
+        consecutive_failures: u32,
+        detail: &str,
+    ) -> Result<ProviderHealthV1, StoreError> {
+        if workspace_id.trim().is_empty() || provider.trim().is_empty() {
+            return Err(StoreError::Coordination(
+                "provider health requires workspace and provider identities".into(),
+            ));
+        }
+        let now = Utc::now();
+        let detail = compact_routing_detail(detail);
+        self.connection.lock().execute(
+            "INSERT INTO provider_health_state
+             (workspace_id, provider, schema_version, status, cooldown_until, consecutive_failures, detail, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             ON CONFLICT(workspace_id, provider) DO UPDATE SET
+               schema_version = excluded.schema_version,
+               status = excluded.status,
+               cooldown_until = excluded.cooldown_until,
+               consecutive_failures = excluded.consecutive_failures,
+               detail = excluded.detail,
+               updated_at = excluded.updated_at",
+            params![
+                workspace_id,
+                provider,
+                i64::from(PROVIDER_HEALTH_SCHEMA_VERSION),
+                status.as_str(),
+                cooldown_until,
+                i64::from(consecutive_failures),
+                detail,
+                now,
+            ],
+        )?;
+        Ok(ProviderHealthV1 {
+            schema_version: PROVIDER_HEALTH_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_owned(),
+            provider: provider.to_owned(),
+            status,
+            cooldown_until,
+            consecutive_failures,
+            detail,
+            updated_at: now,
+        })
+    }
+
+    /// A successful catalog refresh remediates a prior unsupported/auth state
+    /// and clears transient failure history. It does not interpret a missing
+    /// quota endpoint as a capacity claim.
+    pub fn record_provider_catalog_success(
+        &self,
+        workspace_id: &str,
+        provider: &str,
+    ) -> Result<ProviderHealthV1, StoreError> {
+        self.set_provider_health(
+            workspace_id,
+            provider,
+            ProviderHealthStatusV1::Healthy,
+            None,
+            0,
+            "catalog refreshed successfully",
+        )
+    }
+
+    /// Unsupported/authentication states deliberately have no inferred retry
+    /// deadline: the next successful catalog refresh or credential repair is
+    /// the remediation boundary.
+    pub fn record_provider_remediation_needed(
+        &self,
+        workspace_id: &str,
+        provider: &str,
+        status: ProviderHealthStatusV1,
+        detail: &str,
+    ) -> Result<ProviderHealthV1, StoreError> {
+        if !matches!(
+            status,
+            ProviderHealthStatusV1::Unsupported | ProviderHealthStatusV1::AuthenticationRequired
+        ) {
+            return Err(StoreError::Coordination(
+                "remediation state must be unsupported or authentication_required".into(),
+            ));
+        }
+        self.set_provider_health(workspace_id, provider, status, None, 0, detail)
+    }
+
+    /// Record a retryable provider failure. A parsed Retry-After wins; when it
+    /// is absent, the locally inferred cooldown doubles from 15 seconds and
+    /// caps at five minutes.
+    pub fn record_provider_transient_failure(
+        &self,
+        workspace_id: &str,
+        provider: &str,
+        retry_after: Option<Duration>,
+        detail: &str,
+    ) -> Result<ProviderHealthV1, StoreError> {
+        if workspace_id.trim().is_empty() || provider.trim().is_empty() {
+            return Err(StoreError::Coordination(
+                "provider health requires workspace and provider identities".into(),
+            ));
+        }
+        let mut connection = self.connection.lock();
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let prior_failures = transaction
+            .query_row(
+                "SELECT consecutive_failures FROM provider_health_state
+                 WHERE workspace_id = ?1 AND provider = ?2",
+                params![workspace_id, provider],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()?
+            .unwrap_or(0)
+            .max(0) as u32;
+        let consecutive_failures = prior_failures.saturating_add(1);
+        let seconds = retry_after
+            .map(|duration| duration.as_secs().min(i64::MAX as u64) as i64)
+            .unwrap_or_else(|| exponential_cooldown_seconds(consecutive_failures));
+        let now = Utc::now();
+        let cooldown_until = now + chrono::Duration::seconds(seconds);
+        let detail = compact_routing_detail(detail);
+        transaction.execute(
+            "INSERT INTO provider_health_state
+             (workspace_id, provider, schema_version, status, cooldown_until, consecutive_failures, detail, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             ON CONFLICT(workspace_id, provider) DO UPDATE SET
+               schema_version = excluded.schema_version,
+               status = excluded.status,
+               cooldown_until = excluded.cooldown_until,
+               consecutive_failures = excluded.consecutive_failures,
+               detail = excluded.detail,
+               updated_at = excluded.updated_at",
+            params![
+                workspace_id,
+                provider,
+                i64::from(PROVIDER_HEALTH_SCHEMA_VERSION),
+                ProviderHealthStatusV1::CoolingDown.as_str(),
+                cooldown_until,
+                i64::from(consecutive_failures),
+                detail,
+                now,
+            ],
+        )?;
+        transaction.commit()?;
+        Ok(ProviderHealthV1 {
+            schema_version: PROVIDER_HEALTH_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_owned(),
+            provider: provider.to_owned(),
+            status: ProviderHealthStatusV1::CoolingDown,
+            cooldown_until: Some(cooldown_until),
+            consecutive_failures,
+            detail,
+            updated_at: now,
+        })
+    }
+
+    /// Mark a successful provider turn healthy. This is intentionally distinct
+    /// from balance telemetry, which may remain unavailable/unknown.
+    pub fn record_provider_turn_success(
+        &self,
+        workspace_id: &str,
+        provider: &str,
+    ) -> Result<ProviderHealthV1, StoreError> {
+        self.set_provider_health(
+            workspace_id,
+            provider,
+            ProviderHealthStatusV1::Healthy,
+            None,
+            0,
+            "provider turn completed",
+        )
+    }
+
+    /// Atomically credit every eligible route by the fixed quantum, select the
+    /// largest resulting deficit with a stable provider/model tie-break, and
+    /// reserve estimated work until real usage is recorded. Repeating the same
+    /// receipt ID returns the original admission without adding another round.
+    #[allow(clippy::too_many_arguments)]
+    pub fn admit_equal_weight_route(
+        &self,
+        workspace_id: &str,
+        role: &str,
+        run_id: RunId,
+        agent_id: EventAgentId,
+        receipt_id: &str,
+        candidates: &[FairnessCandidateV1],
+        estimated_work: u64,
+    ) -> Result<FairnessSelectionV1, StoreError> {
+        if workspace_id.trim().is_empty() || role.trim().is_empty() || receipt_id.trim().is_empty() {
+            return Err(StoreError::Coordination(
+                "fair routing requires workspace, role, and receipt identities".into(),
+            ));
+        }
+        let mut candidates = candidates.to_vec();
+        candidates.sort();
+        candidates.dedup();
+        if candidates.is_empty()
+            || candidates
+                .iter()
+                .any(|candidate| candidate.provider.trim().is_empty() || candidate.model.trim().is_empty())
+        {
+            return Err(StoreError::Coordination(
+                "fair routing requires at least one provider/model candidate".into(),
+            ));
+        }
+        let mut connection = self.connection.lock();
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let existing = transaction
+            .query_row(
+                "SELECT workspace_id, role, provider, model, estimated_work, deficit_before, deficit_after
+                 FROM routing_admissions WHERE receipt_id = ?1",
+                [receipt_id],
+                |row| {
+                    Ok(FairnessSelectionV1 {
+                        schema_version: FAIRNESS_SCHEMA_VERSION,
+                        key: FairnessKeyV1::new(
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, String>(3)?,
+                        ),
+                        quantum: WDRR_QUANTUM,
+                        estimated_work: row.get::<_, i64>(4)?.max(0) as u64,
+                        deficit_before: row.get(5)?,
+                        deficit_after: row.get(6)?,
+                    })
+                },
+            )
+            .optional()?;
+        if let Some(existing) = existing {
+            transaction.commit()?;
+            return Ok(existing);
+        }
+        let mut deficits = Vec::with_capacity(candidates.len());
+        for candidate in &candidates {
+            let deficit = transaction
+                .query_row(
+                    "SELECT deficit FROM routing_fairness_states
+                     WHERE workspace_id = ?1 AND role = ?2 AND provider = ?3 AND model = ?4",
+                    params![workspace_id, role, candidate.provider, candidate.model],
+                    |row| row.get::<_, i64>(0),
+                )
+                .optional()?
+                .unwrap_or(0);
+            deficits.push((candidate.clone(), deficit));
+        }
+        let selection = choose_equal_weight_wdrr(workspace_id, role, deficits.clone(), estimated_work)
+            .ok_or_else(|| StoreError::Coordination("no eligible fair route".into()))?;
+        let now = Utc::now();
+        for (candidate, deficit) in deficits {
+            let credited = deficit.saturating_add(WDRR_QUANTUM.min(i64::MAX as u64) as i64);
+            transaction.execute(
+                "INSERT INTO routing_fairness_states
+                 (workspace_id, role, provider, model, schema_version, deficit, dispatched, settled_work, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, 0, ?7)
+                 ON CONFLICT(workspace_id, role, provider, model) DO UPDATE SET
+                   schema_version = excluded.schema_version,
+                   deficit = excluded.deficit,
+                   updated_at = excluded.updated_at",
+                params![
+                    workspace_id,
+                    role,
+                    candidate.provider,
+                    candidate.model,
+                    i64::from(FAIRNESS_SCHEMA_VERSION),
+                    credited,
+                    now,
+                ],
+            )?;
+        }
+        transaction.execute(
+            "UPDATE routing_fairness_states SET deficit = ?5, dispatched = dispatched + 1, updated_at = ?6
+             WHERE workspace_id = ?1 AND role = ?2 AND provider = ?3 AND model = ?4",
+            params![
+                selection.key.workspace_id,
+                selection.key.role,
+                selection.key.provider,
+                selection.key.model,
+                selection.deficit_after,
+                now,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO routing_admissions
+             (receipt_id, run_id, agent_id, workspace_id, role, provider, model, estimated_work,
+              deficit_before, deficit_after, settlement_started, settled_work, cancelled, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 0, 0, 0, ?11, ?11)",
+            params![
+                receipt_id,
+                run_id.to_string(),
+                agent_id.to_string(),
+                selection.key.workspace_id,
+                selection.key.role,
+                selection.key.provider,
+                selection.key.model,
+                signed_work(selection.estimated_work),
+                selection.deficit_before,
+                selection.deficit_after,
+                now,
+            ],
+        )?;
+        for candidate in &candidates {
+            transaction.execute(
+                "INSERT INTO routing_admission_candidates (receipt_id, provider, model)
+                 VALUES (?1, ?2, ?3)",
+                params![receipt_id, candidate.provider, candidate.model],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(selection)
+    }
+
+    /// Charge a fair admission only after its canonical usage entry was
+    /// recorded. Missing/zero telemetry is left as a conservative reservation
+    /// rather than being treated as free/unlimited provider capacity.
+    pub fn settle_fair_route_usage(
+        &self,
+        run_id: RunId,
+        agent_id: EventAgentId,
+        entry_key: &str,
+        usage: TokenUsage,
+    ) -> Result<bool, StoreError> {
+        let actual_work = normalized_token_work(usage);
+        if actual_work == 0 {
+            return Ok(false);
+        }
+        let mut connection = self.connection.lock();
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let admission = transaction
+            .query_row(
+                "SELECT receipt_id, workspace_id, role, provider, model, estimated_work,
+                        settlement_started, settled_work, cancelled
+                 FROM routing_admissions WHERE run_id = ?1 AND agent_id = ?2",
+                params![run_id.to_string(), agent_id.to_string()],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, String>(4)?,
+                        row.get::<_, i64>(5)?,
+                        row.get::<_, i64>(6)?,
+                        row.get::<_, i64>(7)?,
+                        row.get::<_, i64>(8)?,
+                    ))
+                },
+            )
+            .optional()?;
+        let Some((
+            receipt_id,
+            workspace_id,
+            role,
+            provider,
+            model,
+            estimated_work,
+            settlement_started,
+            settled_work,
+            cancelled,
+        )) = admission
+        else {
+            transaction.commit()?;
+            return Ok(false);
+        };
+        if cancelled != 0 {
+            transaction.commit()?;
+            return Ok(false);
+        }
+        let inserted = transaction.execute(
+            "INSERT OR IGNORE INTO routing_usage_entries (entry_key, receipt_id, normalized_work, occurred_at)
+             VALUES (?1, ?2, ?3, ?4)",
+            params![entry_key, receipt_id, signed_work(actual_work), Utc::now()],
+        )?;
+        if inserted == 0 {
+            transaction.commit()?;
+            return Ok(false);
+        }
+        let (deficit, total_work): (i64, i64) = transaction.query_row(
+            "SELECT deficit, settled_work FROM routing_fairness_states
+             WHERE workspace_id = ?1 AND role = ?2 AND provider = ?3 AND model = ?4",
+            params![workspace_id, role, provider, model],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        // Admission debited an estimate. On the first recorded real usage,
+        // restore that estimate, then charge only actual normalized work.
+        let corrected = if settlement_started == 0 {
+            deficit.saturating_add(estimated_work.max(0))
+        } else {
+            deficit
+        };
+        let new_deficit = corrected.saturating_sub(signed_work(actual_work));
+        let new_total = total_work.saturating_add(signed_work(actual_work));
+        let new_admission_work = settled_work.max(0).saturating_add(signed_work(actual_work));
+        let now = Utc::now();
+        transaction.execute(
+            "UPDATE routing_fairness_states SET deficit = ?5, settled_work = ?6, updated_at = ?7
+             WHERE workspace_id = ?1 AND role = ?2 AND provider = ?3 AND model = ?4",
+            params![workspace_id, role, provider, model, new_deficit, new_total, now],
+        )?;
+        transaction.execute(
+            "UPDATE routing_admissions SET settlement_started = 1, settled_work = ?2, updated_at = ?3
+             WHERE receipt_id = ?1",
+            params![receipt_id, new_admission_work, now],
+        )?;
+        transaction.commit()?;
+        Ok(true)
+    }
+
+    /// Release a route admission that never produced a canonical usage entry.
+    /// This covers preflight/budget/provider failures without fabricating work;
+    /// after any recorded usage it is intentionally a no-op.
+    pub fn cancel_fair_route_admission(
+        &self,
+        run_id: RunId,
+        agent_id: EventAgentId,
+    ) -> Result<bool, StoreError> {
+        let mut connection = self.connection.lock();
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let admission = transaction
+            .query_row(
+                "SELECT receipt_id, workspace_id, role, provider, model, estimated_work, settlement_started, cancelled
+                 FROM routing_admissions WHERE run_id = ?1 AND agent_id = ?2",
+                params![run_id.to_string(), agent_id.to_string()],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, String>(4)?,
+                        row.get::<_, i64>(5)?,
+                        row.get::<_, i64>(6)?,
+                        row.get::<_, i64>(7)?,
+                    ))
+                },
+            )
+            .optional()?;
+        let Some((receipt_id, workspace_id, role, provider, model, estimated_work, started, cancelled)) =
+            admission
+        else {
+            transaction.commit()?;
+            return Ok(false);
+        };
+        if started != 0 || cancelled != 0 {
+            transaction.commit()?;
+            return Ok(false);
+        }
+        let mut statement = transaction.prepare(
+            "SELECT provider, model FROM routing_admission_candidates
+             WHERE receipt_id = ?1 ORDER BY provider, model",
+        )?;
+        let mut candidates = statement
+            .query_map([&receipt_id], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        drop(statement);
+        // The candidate table is additive. A defensive fallback keeps an
+        // interrupted early prototype row cancellable, although new
+        // admissions always persist every credited candidate above.
+        if candidates.is_empty() {
+            candidates.push((provider.clone(), model.clone()));
+        }
+        let now = Utc::now();
+        for (candidate_provider, candidate_model) in candidates {
+            let (deficit, dispatched): (i64, i64) = transaction.query_row(
+                "SELECT deficit, dispatched FROM routing_fairness_states
+                 WHERE workspace_id = ?1 AND role = ?2 AND provider = ?3 AND model = ?4",
+                params![workspace_id, role, candidate_provider, candidate_model],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )?;
+            // Admission added one fixed quantum to every eligible route. A
+            // cancelled preflight removes that complete provisional round;
+            // the selected route also gets its provisional estimate back.
+            let selected = candidate_provider == provider && candidate_model == model;
+            let deficit = deficit.saturating_sub(WDRR_QUANTUM as i64);
+            let deficit = if selected {
+                deficit.saturating_add(estimated_work.max(0))
+            } else {
+                deficit
+            };
+            let dispatched = if selected {
+                dispatched.saturating_sub(1).max(0)
+            } else {
+                dispatched
+            };
+            transaction.execute(
+                "UPDATE routing_fairness_states
+                 SET deficit = ?5, dispatched = ?6, updated_at = ?7
+                 WHERE workspace_id = ?1 AND role = ?2 AND provider = ?3 AND model = ?4",
+                params![
+                    workspace_id,
+                    role,
+                    candidate_provider,
+                    candidate_model,
+                    deficit,
+                    dispatched,
+                    now,
+                ],
+            )?;
+        }
+        transaction.execute(
+            "UPDATE routing_admissions SET cancelled = 1, updated_at = ?2 WHERE receipt_id = ?1",
+            params![receipt_id, now],
+        )?;
+        transaction.commit()?;
+        Ok(true)
+    }
+
+    pub fn fairness_states(
+        &self,
+        workspace_id: &str,
+        role: Option<&str>,
+    ) -> Result<Vec<FairnessStateV1>, StoreError> {
+        let connection = self.connection.lock();
+        let mut statement = connection.prepare(
+            "SELECT role, provider, model, schema_version, deficit, dispatched, settled_work, updated_at
+             FROM routing_fairness_states
+             WHERE workspace_id = ?1 AND (?2 IS NULL OR role = ?2)
+             ORDER BY role, provider, model",
+        )?;
+        let rows = statement.query_map(params![workspace_id, role], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, i64>(6)?,
+                row.get::<_, DateTime<Utc>>(7)?,
+            ))
+        })?;
+        rows.map(|row| {
+            let (role, provider, model, schema_version, deficit, dispatched, settled_work, updated_at) = row?;
+            if schema_version != i64::from(FAIRNESS_SCHEMA_VERSION) {
+                return Err(StoreError::Coordination(format!(
+                    "unsupported fairness schema {schema_version}"
+                )));
+            }
+            Ok(FairnessStateV1 {
+                schema_version: FAIRNESS_SCHEMA_VERSION,
+                key: FairnessKeyV1::new(workspace_id, role, provider, model),
+                deficit,
+                dispatched: dispatched.max(0) as u64,
+                settled_work: settled_work.max(0) as u64,
+                updated_at,
+            })
+        })
+        .collect()
+    }
+
+    /// Compact persistent state for a `/routing` inspector. Missing provider
+    /// rows are shown as unknown and remain eligible unless another policy
+    /// excludes them.
+    pub fn routing_inspector(&self, workspace_id: &str) -> Result<RoutingInspectorV1, StoreError> {
+        let fairness = self.fairness_states(workspace_id, None)?;
+        let mut providers = self.provider_healths(workspace_id)?;
+        for provider in ProviderId::all() {
+            if !providers.iter().any(|state| state.provider == provider.key()) {
+                providers.push(ProviderHealthV1::unknown(workspace_id, provider.key()));
+            }
+        }
+        providers.sort_by(|left, right| left.provider.cmp(&right.provider));
+        Ok(RoutingInspectorV1 { fairness, providers })
+    }
+
     pub fn update_provider_balance_high_water(
         &self,
         workspace_id: &str,
@@ -1235,6 +1911,17 @@ impl Store {
         current: f64,
     ) -> Result<f64, StoreError> {
         let connection = self.connection.lock();
+        // Provider-controlled values must stay finite and non-negative: NaN
+        // binds as NULL (breaking the read below) and a negative high-water
+        // permanently zeroes the reserve percentage.
+        if !current.is_finite() || current < 0.0 {
+            return Ok(connection.query_row(
+                "SELECT COALESCE(MAX(high_water_balance), 0) FROM provider_balance_state
+                 WHERE workspace_id = ?1 AND provider = ?2 AND currency = ?3",
+                params![workspace_id, provider, currency],
+                |row| row.get(0),
+            )?);
+        }
         connection.execute(
             "INSERT INTO provider_balance_state
                (workspace_id, provider, currency, current_balance, high_water_balance, updated_at)
@@ -1340,10 +2027,13 @@ impl Store {
         })
     }
 
+    /// Attach a run to a workspace. The first attachment wins: re-opening a
+    /// database from a moved or renamed root must not silently re-point runs
+    /// at the new workspace id, which would orphan their board entries,
+    /// memories, and cache rows.
     pub fn attach_run_workspace(&self, run_id: RunId, workspace_id: &str) -> Result<(), StoreError> {
         self.connection.lock().execute(
-            "INSERT INTO run_workspaces (run_id, workspace_id) VALUES (?1, ?2)
-             ON CONFLICT(run_id) DO UPDATE SET workspace_id = excluded.workspace_id",
+            "INSERT OR IGNORE INTO run_workspaces (run_id, workspace_id) VALUES (?1, ?2)",
             params![run_id.to_string(), workspace_id],
         )?;
         Ok(())
@@ -1801,6 +2491,68 @@ impl Store {
         Ok(count.max(0) as u64)
     }
 
+    /// Load an existing private room and its agent membership, or `None` when
+    /// the room has not been created yet.
+    fn load_private_room(
+        transaction: &rusqlite::Transaction<'_>,
+        run_id: RunId,
+        room_id: &str,
+    ) -> Result<Option<PrivateRoom>, StoreError> {
+        let Some(created_at) = transaction
+            .query_row(
+                "SELECT created_at FROM office_rooms WHERE run_id = ?1 AND room_id = ?2",
+                params![run_id.to_string(), room_id],
+                |row| row.get::<_, DateTime<Utc>>(0),
+            )
+            .optional()?
+        else {
+            return Ok(None);
+        };
+        let mut statement = transaction
+            .prepare("SELECT member_id FROM office_room_members WHERE run_id = ?1 AND room_id = ?2")?;
+        let members = statement
+            .query_map(params![run_id.to_string(), room_id], |row| {
+                row.get::<_, String>(0)
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Some(PrivateRoom::from_wire_members(
+            room_id,
+            room_id,
+            created_at,
+            members.iter().map(String::as_str),
+        )))
+    }
+
+    /// Persist the canonical typed office delta. This is the only writer for
+    /// new coordinator/TUI messages; `insert_hive_message` below remains a
+    /// decode-era compatibility boundary for historic rows and tests.
+    pub fn insert_office_envelope(
+        &self,
+        run_id: RunId,
+        envelope: &OfficeEnvelopeV1,
+        expires_at: Option<DateTime<Utc>>,
+    ) -> Result<String, StoreError> {
+        envelope
+            .validate()
+            .map_err(|error| StoreError::Coordination(format!("invalid office envelope: {error}")))?;
+        let sender = format!("agent:{}", envelope.sender);
+        let recipient = envelope.recipient.to_wire();
+        let payload = serde_json::to_value(envelope)?;
+        self.insert_hive_message(
+            run_id,
+            &envelope.id,
+            &envelope.room_id,
+            &sender,
+            &recipient,
+            envelope.kind.as_str(),
+            &payload,
+            expires_at,
+        )
+    }
+
+    /// Legacy raw-payload writer retained only for historic data and migration
+    /// compatibility. New code must construct [`OfficeEnvelopeV1`] and call
+    /// [`Store::insert_office_envelope`].
     #[allow(clippy::too_many_arguments)]
     pub fn insert_hive_message(
         &self,
@@ -1815,6 +2567,7 @@ impl Store {
     ) -> Result<String, StoreError> {
         let normalized = payload
             .get("body")
+            .or_else(|| payload.get("summary"))
             .and_then(serde_json::Value::as_str)
             .unwrap_or_default()
             .split_whitespace()
@@ -1825,13 +2578,45 @@ impl Store {
             .get("task_id")
             .and_then(serde_json::Value::as_str)
             .unwrap_or_default();
-        let refs = payload.get("refs").cloned().unwrap_or_default();
+        let refs = payload
+            .get("refs")
+            .or_else(|| payload.get("artifact_refs"))
+            .cloned()
+            .unwrap_or_default();
+        let evidence = payload
+            .get("evidence_receipts")
+            .or_else(|| payload.get("evidence"))
+            .cloned()
+            .unwrap_or_default();
+        // Sender is part of the identity: two different workers posting the
+        // same normalized finding are distinct messages, not duplicates.
         let dedupe_key = format!(
             "{:x}",
-            Sha256::digest(format!("{recipient}\0{kind}\0{task_scope}\0{normalized}\0{refs}").as_bytes())
+            Sha256::digest(
+                format!("{sender_id}\0{recipient}\0{kind}\0{task_scope}\0{normalized}\0{refs}\0{evidence}")
+                    .as_bytes()
+            )
         );
         let mut connection = self.connection.lock();
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        // Room scoping is real, not decorative. `run` is the implicit room that
+        // every agent in the run belongs to. Any other room id is a private
+        // room: whoever sends first creates it and admits the recipient, and
+        // from then on only an existing member may post into it. The read side
+        // (`hive_inbox`) applies the mirror-image filter, so a message tagged
+        // with a private room cannot reach a non-member.
+        if room_id != RUN_ROOM_ID
+            && let Some(room) = Self::load_private_room(&transaction, run_id, room_id)?
+        {
+            let sender =
+                Recipient::parse(sender_id).unwrap_or_else(|| Recipient::Agent(sender_id.to_owned()));
+            if !room.permits(&sender) {
+                return Err(StoreError::RoomAccessDenied {
+                    sender: sender_id.to_owned(),
+                    room: room_id.to_owned(),
+                });
+            }
+        }
         transaction.execute(
             "INSERT OR IGNORE INTO office_rooms
              (run_id, room_id, kind, purpose, owner_id, state, created_at)
@@ -1839,8 +2624,12 @@ impl Store {
             params![
                 run_id.to_string(),
                 room_id,
-                if room_id == "run" { "run" } else { "temporary" },
-                if room_id == "run" {
+                if room_id == RUN_ROOM_ID {
+                    "run"
+                } else {
+                    "temporary"
+                },
+                if room_id == RUN_ROOM_ID {
                     "Run coordination"
                 } else {
                     room_id
@@ -1994,11 +2783,25 @@ impl Store {
     ) -> Result<Vec<serde_json::Value>, StoreError> {
         let mut connection = self.connection.lock();
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        // The room filter is what makes `room` a real delivery scope: traffic
+        // in the implicit run room is visible to everyone in the run, but a
+        // message tagged with a private room is only readable by a member of
+        // that room. Without it a `group:all` post into a "private" room would
+        // reach every agent, which is exactly what the room label promises it
+        // will not do.
         let mut statement = transaction.prepare(
             "SELECT message_id, room_id, sender_id, recipient, kind, payload_json, occurred_at
              FROM hive_messages
              WHERE run_id = ?1 AND (recipient = ?2 OR recipient = 'group:all')
                AND (expires_at IS NULL OR expires_at > ?3)
+               AND (
+                 room_id = ?5
+                 OR EXISTS (
+                   SELECT 1 FROM office_room_members m
+                   WHERE m.run_id = ?1 AND m.room_id = hive_messages.room_id
+                     AND m.member_id = ?2
+                 )
+               )
                AND NOT EXISTS (
                  SELECT 1 FROM hive_consumed c
                  WHERE c.message_id = hive_messages.message_id AND c.recipient = ?2
@@ -2006,7 +2809,13 @@ impl Store {
              ORDER BY occurred_at, message_id LIMIT ?4",
         )?;
         let rows = statement.query_map(
-            params![run_id.to_string(), recipient, Utc::now(), limit.min(100) as i64],
+            params![
+                run_id.to_string(),
+                recipient,
+                Utc::now(),
+                limit.min(100) as i64,
+                RUN_ROOM_ID
+            ],
             |row| {
                 Ok((
                     row.get::<_, String>(0)?,
@@ -2047,6 +2856,25 @@ impl Store {
         Ok(messages)
     }
 
+    /// Decode unread office rows into their compact versioned form. Historic
+    /// raw rows are accepted only through `OfficeEnvelopeV1`'s decode-only
+    /// compatibility path; callers never receive a reason to write raw JSON.
+    pub fn office_inbox(
+        &self,
+        run_id: RunId,
+        recipient: &str,
+        limit: usize,
+    ) -> Result<Vec<OfficeEnvelopeV1>, StoreError> {
+        self.hive_inbox(run_id, recipient, limit)?
+            .into_iter()
+            .map(|message| {
+                OfficeEnvelopeV1::from_legacy_raw(&message).map_err(|error| {
+                    StoreError::Coordination(format!("could not decode office message: {error}"))
+                })
+            })
+            .collect()
+    }
+
     pub fn put_office_artifact(
         &self,
         run_id: RunId,
@@ -2056,7 +2884,8 @@ impl Store {
         provenance: &serde_json::Value,
     ) -> Result<String, StoreError> {
         let digest = format!("{:x}", Sha256::digest(body));
-        self.connection.lock().execute(
+        let connection = self.connection.lock();
+        connection.execute(
             "INSERT INTO office_artifacts
              (artifact_id, run_id, kind, digest, body, provenance_json, created_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
@@ -2071,7 +2900,14 @@ impl Store {
                 Utc::now()
             ],
         )?;
-        Ok(digest)
+        // The first write wins; return the digest of the stored body so a
+        // caller verifying the returned digest against a later fetch never
+        // sees a mismatch.
+        Ok(connection.query_row(
+            "SELECT digest FROM office_artifacts WHERE artifact_id = ?1",
+            [artifact_id],
+            |row| row.get::<_, String>(0),
+        )?)
     }
 
     pub fn office_health(&self, run_id: RunId) -> Result<(u64, u64, u64), StoreError> {
@@ -2105,7 +2941,7 @@ impl Store {
         ) = connection.query_row(
             "SELECT COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0),
                     COALESCE(SUM(cached_input_tokens), 0), COALESCE(SUM(cache_write_tokens), 0),
-                    COALESCE(SUM(reasoning_output_tokens), 0) FROM usage_turns",
+                    COALESCE(SUM(reasoning_output_tokens), 0) FROM usage_ledger",
             [],
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
         )?;
@@ -2116,7 +2952,7 @@ impl Store {
                         "SELECT COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0),
                             COALESCE(SUM(cached_input_tokens), 0), COALESCE(SUM(cache_write_tokens), 0),
                             COALESCE(SUM(reasoning_output_tokens), 0)
-                     FROM usage_turns WHERE run_id = ?1",
+                     FROM usage_ledger WHERE run_id = ?1",
                         [run_id.to_string()],
                         |row| {
                             Ok((
@@ -2147,14 +2983,21 @@ impl Store {
         })
     }
 
-    pub fn deepseek_cost_totals(&self, run_id: Option<RunId>) -> Result<ProviderCostTotals, StoreError> {
+    /// Cost derived from the canonical ledger and a fixed, timestamped
+    /// provider price table.  This is a local projection, not account quota
+    /// telemetry; providers without a known table remain explicitly unpriced.
+    pub fn provider_cost_totals(
+        &self,
+        provider: ProviderId,
+        run_id: Option<RunId>,
+    ) -> Result<ProviderCostTotals, StoreError> {
         let connection = self.connection.lock();
         let mut statement = connection.prepare(
             "SELECT model, input_tokens, output_tokens, cached_input_tokens
-             FROM usage_turns WHERE (?1 IS NULL OR run_id = ?1)",
+             FROM usage_ledger WHERE provider = ?1 AND (?2 IS NULL OR run_id = ?2)",
         )?;
         let run_id = run_id.map(|id| id.to_string());
-        let rows = statement.query_map([run_id], |row| {
+        let rows = statement.query_map(params![provider.key(), run_id], |row| {
             Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, i64>(1)?.max(0) as u64,
@@ -2165,50 +3008,340 @@ impl Store {
         let mut totals = ProviderCostTotals::default();
         for row in rows {
             let (model, input, output, cached_input) = row?;
-            if !model.starts_with("deepseek/") && !model.starts_with("deepseek-") {
-                continue;
+            match provider {
+                ProviderId::DeepSeek => {
+                    let Some(pricing) = crate::deepseek::pricing_for_model(&model) else {
+                        totals.unpriced_turns = totals.unpriced_turns.saturating_add(1);
+                        continue;
+                    };
+                    totals.estimated_usd +=
+                        crate::deepseek::estimate_cost_usd(&model, input, cached_input, output)
+                            .unwrap_or(0.0);
+                    totals.cache_savings_usd += cached_input.min(input) as f64
+                        * (pricing.cache_miss_input_per_million - pricing.cache_hit_input_per_million)
+                        / 1_000_000.0;
+                    totals.priced_turns = totals.priced_turns.saturating_add(1);
+                }
+                ProviderId::XiaomiMiMo => {
+                    let Some(pricing) = crate::mimo::pricing_for_model(&model) else {
+                        totals.unpriced_turns = totals.unpriced_turns.saturating_add(1);
+                        continue;
+                    };
+                    totals.estimated_usd +=
+                        crate::mimo::estimate_cost_usd(&model, input, cached_input, output).unwrap_or(0.0);
+                    totals.cache_savings_usd += cached_input.min(input) as f64
+                        * (pricing.cache_miss_input_per_million - pricing.cache_hit_input_per_million)
+                        / 1_000_000.0;
+                    totals.priced_turns = totals.priced_turns.saturating_add(1);
+                }
+                ProviderId::ChatGptCodex => {
+                    totals.unpriced_turns = totals.unpriced_turns.saturating_add(1);
+                }
             }
-            let Some(pricing) = crate::deepseek::pricing_for_model(&model) else {
-                totals.unpriced_turns = totals.unpriced_turns.saturating_add(1);
-                continue;
-            };
-            totals.estimated_usd +=
-                crate::deepseek::estimate_cost_usd(&model, input, cached_input, output).unwrap_or(0.0);
-            totals.cache_savings_usd += cached_input.min(input) as f64
-                * (pricing.cache_miss_input_per_million - pricing.cache_hit_input_per_million)
-                / 1_000_000.0;
-            totals.priced_turns = totals.priced_turns.saturating_add(1);
         }
         Ok(totals)
     }
 
-    pub fn record_usage_turn(
+    /// Compatibility shorthand retained for existing callers.
+    pub fn deepseek_cost_totals(&self, run_id: Option<RunId>) -> Result<ProviderCostTotals, StoreError> {
+        self.provider_cost_totals(ProviderId::DeepSeek, run_id)
+    }
+
+    pub fn xiaomi_mimo_cost_totals(&self, run_id: Option<RunId>) -> Result<ProviderCostTotals, StoreError> {
+        self.provider_cost_totals(ProviderId::XiaomiMiMo, run_id)
+    }
+
+    /// Settle one observed provider boundary. The entry key is the canonical
+    /// idempotency key: a repeated response must not change either the ledger
+    /// or the compatibility run counters.
+    pub fn record_usage_entry(&self, entry: &UsageLedgerEntryV1) -> Result<bool, StoreError> {
+        if entry.schema_version != USAGE_LEDGER_SCHEMA_VERSION {
+            return Err(StoreError::Coordination(format!(
+                "unsupported usage ledger schema {}",
+                entry.schema_version
+            )));
+        }
+        let mut connection = self.connection.lock();
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let inserted = transaction.execute(
+            "INSERT OR IGNORE INTO usage_ledger
+             (entry_key, run_id, schema_version, kind, state, provider, model, agent_id,
+              provider_response_id, input_tokens, output_tokens, cached_input_tokens,
+              cache_write_tokens, reasoning_output_tokens, context_tokens, occurred_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+            params![
+                entry.entry_key,
+                entry.run_id,
+                i64::from(entry.schema_version),
+                entry.kind.as_str(),
+                entry.state.as_str(),
+                entry.provider,
+                entry.model,
+                entry.agent_id,
+                entry.provider_response_id,
+                entry.usage.input as i64,
+                entry.usage.output as i64,
+                entry.usage.cached_input as i64,
+                entry.usage.cache_write as i64,
+                entry.usage.reasoning_output as i64,
+                entry.context_tokens.map(|value| value as i64),
+                Utc::now(),
+            ],
+        )?;
+        if inserted == 1 {
+            transaction.execute(
+                "UPDATE runs
+                 SET input_tokens = input_tokens + ?2,
+                     output_tokens = output_tokens + ?3,
+                     updated_at = ?4
+                 WHERE run_id = ?1",
+                params![
+                    entry.run_id,
+                    entry.usage.input as i64,
+                    entry.usage.output as i64,
+                    Utc::now(),
+                ],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(inserted == 1)
+    }
+
+    /// Replace the current plan's compact contracts atomically. Dispatch
+    /// receipts are deliberately retained as historical evidence.
+    pub fn replace_task_contracts(
         &self,
         run_id: RunId,
-        agent_id: Option<EventAgentId>,
-        model: &str,
-        usage: crate::usage::TokenUsage,
-        context_tokens: Option<u64>,
+        contracts: &[MicrotaskContractV1],
     ) -> Result<(), StoreError> {
+        for contract in contracts {
+            validate_microtask_contract(contract)?;
+        }
+        let mut connection = self.connection.lock();
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        transaction.execute(
+            "DELETE FROM task_contracts WHERE run_id = ?1",
+            [run_id.to_string()],
+        )?;
+        for contract in contracts {
+            transaction.execute(
+                "INSERT INTO task_contracts
+                 (run_id, task_id, schema_version, contract_json, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
+                params![
+                    run_id.to_string(),
+                    contract.task_id,
+                    i64::from(contract.schema_version),
+                    serde_json::to_string(contract)?,
+                    Utc::now(),
+                ],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
+    /// Insert or refresh the contract for a recovered persisted task. The
+    /// task ID is stable across resumes, so this remains a narrow repair.
+    pub fn upsert_task_contract(
+        &self,
+        run_id: RunId,
+        contract: &MicrotaskContractV1,
+    ) -> Result<(), StoreError> {
+        validate_microtask_contract(contract)?;
         self.connection.lock().execute(
-            "INSERT INTO usage_turns
-             (run_id, agent_id, model, input_tokens, output_tokens, cached_input_tokens,
-              cache_write_tokens, reasoning_output_tokens, context_tokens, occurred_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            "INSERT INTO task_contracts
+             (run_id, task_id, schema_version, contract_json, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?5)
+             ON CONFLICT(run_id, task_id) DO UPDATE SET
+               schema_version = excluded.schema_version,
+               contract_json = excluded.contract_json,
+               updated_at = excluded.updated_at",
             params![
                 run_id.to_string(),
-                agent_id.map(|id| id.to_string()),
-                model,
-                usage.input as i64,
-                usage.output as i64,
-                usage.cached_input as i64,
-                usage.cache_write as i64,
-                usage.reasoning_output as i64,
-                context_tokens.map(|value| value as i64),
-                Utc::now()
+                contract.task_id,
+                i64::from(contract.schema_version),
+                serde_json::to_string(contract)?,
+                Utc::now(),
             ],
         )?;
         Ok(())
+    }
+
+    pub fn task_contract(
+        &self,
+        run_id: RunId,
+        task_id: &str,
+    ) -> Result<Option<MicrotaskContractV1>, StoreError> {
+        let connection = self.connection.lock();
+        let json = connection
+            .query_row(
+                "SELECT contract_json FROM task_contracts WHERE run_id = ?1 AND task_id = ?2",
+                params![run_id.to_string(), task_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        json.map(|json| {
+            let contract = serde_json::from_str::<MicrotaskContractV1>(&json)?;
+            validate_microtask_contract(&contract)?;
+            Ok(contract)
+        })
+        .transpose()
+    }
+
+    pub fn task_contracts(&self, run_id: RunId) -> Result<Vec<MicrotaskContractV1>, StoreError> {
+        let connection = self.connection.lock();
+        let mut statement = connection
+            .prepare("SELECT contract_json FROM task_contracts WHERE run_id = ?1 ORDER BY task_id")?;
+        statement
+            .query_map([run_id.to_string()], |row| row.get::<_, String>(0))?
+            .map(|row| {
+                let contract = serde_json::from_str::<MicrotaskContractV1>(&row?)?;
+                validate_microtask_contract(&contract)?;
+                Ok(contract)
+            })
+            .collect()
+    }
+
+    /// Persist a dispatch receipt before the provider call. A repeated call
+    /// with the same deterministic receipt ID is harmless and reports false.
+    pub fn record_dispatch_receipt(
+        &self,
+        run_id: RunId,
+        receipt: &DispatchReceiptV1,
+    ) -> Result<bool, StoreError> {
+        validate_dispatch_receipt_v1(receipt)?;
+        let inserted = self.connection.lock().execute(
+            "INSERT OR IGNORE INTO dispatch_receipts
+             (receipt_id, run_id, task_id, generation, schema_version, receipt_json, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                receipt.receipt_id,
+                run_id.to_string(),
+                receipt.task_id,
+                receipt.generation as i64,
+                i64::from(receipt.schema_version),
+                serde_json::to_string(receipt)?,
+                receipt.issued_at,
+            ],
+        )?;
+        Ok(inserted == 1)
+    }
+
+    /// Persist a V2 routing receipt. The V1 method remains for event/TUI and
+    /// caller compatibility; V2 is the durable source for fair-route details.
+    pub fn record_dispatch_receipt_v2(
+        &self,
+        run_id: RunId,
+        receipt: &DispatchReceiptV2,
+    ) -> Result<bool, StoreError> {
+        validate_dispatch_receipt_v2(receipt)?;
+        let inserted = self.connection.lock().execute(
+            "INSERT OR IGNORE INTO dispatch_receipts
+             (receipt_id, run_id, task_id, generation, schema_version, receipt_json, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                receipt.receipt_id,
+                run_id.to_string(),
+                receipt.task_id,
+                receipt.generation as i64,
+                i64::from(receipt.schema_version),
+                serde_json::to_string(receipt)?,
+                receipt.issued_at,
+            ],
+        )?;
+        Ok(inserted == 1)
+    }
+
+    /// Add compact, actually-used book-card provenance to the current worker
+    /// receipt. Receipt creation remains pre-dispatch; this narrow amendment
+    /// records a later real-gap lookup without inventing a preloaded book.
+    pub fn append_dispatch_book_sources(
+        &self,
+        run_id: RunId,
+        task_id: &str,
+        agent_id: EventAgentId,
+        sources: &[String],
+    ) -> Result<Option<DispatchReceiptV1>, StoreError> {
+        let mut additions = sources
+            .iter()
+            .map(|source| source.trim())
+            .filter(|source| !source.is_empty())
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
+        additions.sort();
+        additions.dedup();
+        if additions.is_empty() {
+            return Ok(None);
+        }
+        let mut connection = self.connection.lock();
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let mut statement = transaction.prepare(
+            "SELECT receipt_id, receipt_json FROM dispatch_receipts
+             WHERE run_id = ?1 AND task_id = ?2
+             ORDER BY generation DESC, created_at DESC, receipt_id DESC",
+        )?;
+        let rows = statement
+            .query_map(params![run_id.to_string(), task_id], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        drop(statement);
+        let decoded = rows
+            .into_iter()
+            .map(|(receipt_id, json)| Ok((receipt_id, serde_json::from_str::<DispatchReceiptV2>(&json)?)))
+            .collect::<Result<Vec<_>, StoreError>>()?;
+        let Some((receipt_id, mut receipt)) = decoded
+            .into_iter()
+            .find(|(_, receipt)| receipt.agent_id == agent_id)
+        else {
+            transaction.commit()?;
+            return Ok(None);
+        };
+        let before = receipt.book_sources.len();
+        receipt.book_sources.extend(additions);
+        receipt.book_sources.sort();
+        receipt.book_sources.dedup();
+        if receipt.book_sources.len() == before {
+            transaction.commit()?;
+            return Ok(None);
+        }
+        validate_dispatch_receipt_v2(&receipt)?;
+        transaction.execute(
+            "UPDATE dispatch_receipts SET schema_version = ?3, receipt_json = ?4
+             WHERE receipt_id = ?1 AND run_id = ?2",
+            params![
+                receipt_id,
+                run_id.to_string(),
+                i64::from(DISPATCH_RECEIPT_V2_SCHEMA_VERSION),
+                serde_json::to_string(&receipt)?,
+            ],
+        )?;
+        transaction.commit()?;
+        Ok(Some(receipt.to_v1()))
+    }
+
+    /// V1 compatibility projection for the existing TUI/event consumers. V2
+    /// rows are decoded then projected, while literal old V1 JSON remains
+    /// readable without a destructive migration.
+    pub fn dispatch_receipts(&self, run_id: RunId) -> Result<Vec<DispatchReceiptV1>, StoreError> {
+        self.dispatch_receipts_v2(run_id)
+            .map(|receipts| receipts.iter().map(DispatchReceiptV2::to_v1).collect())
+    }
+
+    pub fn dispatch_receipts_v2(&self, run_id: RunId) -> Result<Vec<DispatchReceiptV2>, StoreError> {
+        let connection = self.connection.lock();
+        let mut statement = connection.prepare(
+            "SELECT receipt_json FROM dispatch_receipts WHERE run_id = ?1 ORDER BY created_at, receipt_id",
+        )?;
+        statement
+            .query_map([run_id.to_string()], |row| row.get::<_, String>(0))?
+            .map(|row| {
+                let receipt = serde_json::from_str::<DispatchReceiptV2>(&row?)?;
+                validate_dispatch_receipt_v2(&receipt)?;
+                Ok(receipt)
+            })
+            .collect()
     }
 
     pub fn replace_tasks(&self, run_id: RunId, tasks: &[TaskRecord]) -> Result<(), StoreError> {
@@ -2216,6 +3349,10 @@ impl Store {
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         transaction.execute(
             "DELETE FROM task_dependencies WHERE run_id = ?1",
+            [run_id.to_string()],
+        )?;
+        transaction.execute(
+            "DELETE FROM task_contracts WHERE run_id = ?1",
             [run_id.to_string()],
         )?;
         transaction.execute("DELETE FROM tasks WHERE run_id = ?1", [run_id.to_string()])?;
@@ -2809,10 +3946,26 @@ impl Store {
     }
 
     pub fn add_usage(&self, id: RunId, input: u64, output: u64) -> Result<(), StoreError> {
-        self.connection.lock().execute(
-            "UPDATE runs SET input_tokens = input_tokens + ?2, output_tokens = output_tokens + ?3, updated_at = ?4 WHERE run_id = ?1",
-            params![id.to_string(), input as i64, output as i64, Utc::now()],
-        )?;
+        // Compatibility entry point for older callers. It intentionally uses
+        // a fresh unattributed entry rather than bypassing the canonical
+        // ledger, so every user-visible total has one source of truth.
+        let _ = self.record_usage_entry(&UsageLedgerEntryV1 {
+            schema_version: USAGE_LEDGER_SCHEMA_VERSION,
+            entry_key: format!("legacy-api:{id}:{}", uuid::Uuid::now_v7()),
+            run_id: id.to_string(),
+            kind: UsageKindV1::LegacyUnverified,
+            state: UsageStateV1::LegacyUnverified,
+            provider: "legacy".into(),
+            model: "legacy/unattributed".into(),
+            agent_id: None,
+            provider_response_id: None,
+            usage: TokenUsage {
+                input,
+                output,
+                ..TokenUsage::default()
+            },
+            context_tokens: None,
+        })?;
         Ok(())
     }
 
@@ -2993,6 +4146,260 @@ impl Store {
         })
         .collect()
     }
+}
+
+/// Additive repair for databases created before the canonical usage ledger.
+///
+/// `SCHEMA_VERSION` intentionally remains at one because older numbered
+/// prototypes are archived rather than migrated. Current v1 databases,
+/// however, are compatible and must retain their runs and historical usage.
+/// This bootstrap is therefore idempotent and is run on every v1 open.
+fn ensure_usage_ledger(connection: &Connection) -> Result<(), StoreError> {
+    connection.execute_batch(
+        "CREATE TABLE IF NOT EXISTS usage_ledger (
+           entry_key TEXT PRIMARY KEY,
+           run_id TEXT NOT NULL,
+           schema_version INTEGER NOT NULL,
+           kind TEXT NOT NULL,
+           state TEXT NOT NULL,
+           provider TEXT NOT NULL,
+           model TEXT NOT NULL,
+           agent_id TEXT,
+           provider_response_id TEXT,
+           input_tokens INTEGER NOT NULL,
+           output_tokens INTEGER NOT NULL,
+           cached_input_tokens INTEGER NOT NULL DEFAULT 0,
+           cache_write_tokens INTEGER NOT NULL DEFAULT 0,
+           reasoning_output_tokens INTEGER NOT NULL DEFAULT 0,
+           context_tokens INTEGER,
+           occurred_at TEXT NOT NULL,
+           FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
+         );
+         CREATE INDEX IF NOT EXISTS usage_ledger_by_run
+           ON usage_ledger(run_id, occurred_at);
+         CREATE UNIQUE INDEX IF NOT EXISTS usage_ledger_provider_response
+           ON usage_ledger(provider, provider_response_id)
+           WHERE provider_response_id IS NOT NULL;
+         INSERT OR IGNORE INTO usage_ledger
+           (entry_key, run_id, schema_version, kind, state, provider, model, agent_id,
+            provider_response_id, input_tokens, output_tokens, cached_input_tokens,
+            cache_write_tokens, reasoning_output_tokens, context_tokens, occurred_at)
+         SELECT 'legacy:' || usage_id, run_id, 1, 'legacy_unverified', 'legacy_unverified',
+                CASE
+                  WHEN model LIKE 'deepseek/%' OR model LIKE 'deepseek-%' THEN 'deepseek'
+                  WHEN model LIKE 'xiaomi/%' THEN 'xiaomi_mimo'
+                  WHEN model LIKE 'chatgpt/%' THEN 'chatgpt_codex'
+                  ELSE 'chatgpt_codex'
+                END,
+                model, agent_id, NULL, input_tokens, output_tokens, cached_input_tokens,
+                cache_write_tokens, reasoning_output_tokens, context_tokens, occurred_at
+         FROM usage_turns;",
+    )?;
+    Ok(())
+}
+
+/// Additive tables for compact coordinator contracts and audit receipts.
+/// They deliberately reference the run, rather than a mutable task row, so a
+/// later re-plan cannot erase the evidence for a dispatch that already ran.
+fn ensure_coordination_receipts(connection: &Connection) -> Result<(), StoreError> {
+    connection.execute_batch(
+        "CREATE TABLE IF NOT EXISTS task_contracts (
+           run_id TEXT NOT NULL,
+           task_id TEXT NOT NULL,
+           schema_version INTEGER NOT NULL,
+           contract_json TEXT NOT NULL,
+           created_at TEXT NOT NULL,
+           updated_at TEXT NOT NULL,
+           PRIMARY KEY (run_id, task_id),
+           FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
+         );
+         CREATE TABLE IF NOT EXISTS dispatch_receipts (
+           receipt_id TEXT PRIMARY KEY,
+           run_id TEXT NOT NULL,
+           task_id TEXT NOT NULL,
+           generation INTEGER NOT NULL,
+           schema_version INTEGER NOT NULL,
+           receipt_json TEXT NOT NULL,
+           created_at TEXT NOT NULL,
+           FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
+         );
+         CREATE INDEX IF NOT EXISTS task_contracts_by_run
+           ON task_contracts(run_id, task_id);
+         CREATE INDEX IF NOT EXISTS dispatch_receipts_by_run
+           ON dispatch_receipts(run_id, task_id, generation, created_at);
+         CREATE TABLE IF NOT EXISTS routing_fairness_states (
+           workspace_id TEXT NOT NULL,
+           role TEXT NOT NULL,
+           provider TEXT NOT NULL,
+           model TEXT NOT NULL,
+           schema_version INTEGER NOT NULL,
+           deficit INTEGER NOT NULL,
+           dispatched INTEGER NOT NULL DEFAULT 0,
+           settled_work INTEGER NOT NULL DEFAULT 0,
+           updated_at TEXT NOT NULL,
+           PRIMARY KEY (workspace_id, role, provider, model)
+         );
+         CREATE TABLE IF NOT EXISTS routing_admissions (
+           receipt_id TEXT PRIMARY KEY,
+           run_id TEXT NOT NULL,
+           agent_id TEXT NOT NULL,
+           workspace_id TEXT NOT NULL,
+           role TEXT NOT NULL,
+           provider TEXT NOT NULL,
+           model TEXT NOT NULL,
+           estimated_work INTEGER NOT NULL,
+           deficit_before INTEGER NOT NULL,
+           deficit_after INTEGER NOT NULL,
+           settlement_started INTEGER NOT NULL DEFAULT 0,
+           settled_work INTEGER NOT NULL DEFAULT 0,
+           cancelled INTEGER NOT NULL DEFAULT 0,
+           created_at TEXT NOT NULL,
+           updated_at TEXT NOT NULL,
+           UNIQUE (run_id, agent_id),
+           FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE CASCADE
+         );
+         CREATE TABLE IF NOT EXISTS routing_admission_candidates (
+           receipt_id TEXT NOT NULL,
+           provider TEXT NOT NULL,
+           model TEXT NOT NULL,
+           PRIMARY KEY (receipt_id, provider, model),
+           FOREIGN KEY (receipt_id) REFERENCES routing_admissions(receipt_id) ON DELETE CASCADE
+         );
+         CREATE TABLE IF NOT EXISTS routing_usage_entries (
+           entry_key TEXT PRIMARY KEY,
+           receipt_id TEXT NOT NULL,
+           normalized_work INTEGER NOT NULL,
+           occurred_at TEXT NOT NULL,
+           FOREIGN KEY (receipt_id) REFERENCES routing_admissions(receipt_id) ON DELETE CASCADE
+         );
+         CREATE TABLE IF NOT EXISTS provider_health_state (
+           workspace_id TEXT NOT NULL,
+           provider TEXT NOT NULL,
+           schema_version INTEGER NOT NULL,
+           status TEXT NOT NULL,
+           cooldown_until TEXT,
+           consecutive_failures INTEGER NOT NULL DEFAULT 0,
+           detail TEXT NOT NULL DEFAULT '',
+           updated_at TEXT NOT NULL,
+           PRIMARY KEY (workspace_id, provider)
+         );
+         CREATE INDEX IF NOT EXISTS routing_admissions_by_run
+           ON routing_admissions(run_id, agent_id, created_at);
+         CREATE INDEX IF NOT EXISTS routing_admission_candidates_by_receipt
+           ON routing_admission_candidates(receipt_id, provider, model);
+         CREATE INDEX IF NOT EXISTS routing_fairness_by_workspace
+           ON routing_fairness_states(workspace_id, role, provider, model);
+         CREATE INDEX IF NOT EXISTS provider_health_by_workspace
+           ON provider_health_state(workspace_id, provider);",
+    )?;
+    Ok(())
+}
+
+fn validate_microtask_contract(contract: &MicrotaskContractV1) -> Result<(), StoreError> {
+    if contract.schema_version != MICROTASK_CONTRACT_SCHEMA_VERSION {
+        return Err(StoreError::Coordination(format!(
+            "unsupported microtask contract schema {}",
+            contract.schema_version
+        )));
+    }
+    if contract.task_id.trim().is_empty()
+        || contract.goal.trim().is_empty()
+        || contract.lease_resources.is_empty()
+        || contract.acceptance_check.trim().is_empty()
+    {
+        return Err(StoreError::Coordination(
+            "microtask contracts require task, goal, lease, and acceptance check".into(),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_dispatch_receipt_v1(receipt: &DispatchReceiptV1) -> Result<(), StoreError> {
+    if receipt.schema_version != DISPATCH_RECEIPT_SCHEMA_VERSION {
+        return Err(StoreError::Coordination(format!(
+            "unsupported dispatch receipt schema {}",
+            receipt.schema_version
+        )));
+    }
+    if receipt.receipt_id.trim().is_empty()
+        || receipt.task_id.trim().is_empty()
+        || receipt.role.trim().is_empty()
+        || receipt.provider.trim().is_empty()
+        || receipt.model.trim().is_empty()
+        || receipt.lease_resources.is_empty()
+        || receipt.acceptance_check.trim().is_empty()
+        || receipt.session_target_tokens == 0
+        || receipt.parallelism_reason.trim().is_empty()
+    {
+        return Err(StoreError::Coordination(
+            "dispatch receipts require identity, contract, budget, and admission evidence".into(),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_dispatch_receipt_v2(receipt: &DispatchReceiptV2) -> Result<(), StoreError> {
+    if receipt.schema_version != DISPATCH_RECEIPT_V2_SCHEMA_VERSION {
+        return Err(StoreError::Coordination(format!(
+            "unsupported dispatch receipt schema {}",
+            receipt.schema_version
+        )));
+    }
+    validate_dispatch_receipt_v1(&receipt.to_v1())?;
+    if receipt.routing.schema_version != 1 || receipt.routing.policy.trim().is_empty() {
+        return Err(StoreError::Coordination(
+            "dispatch receipt routing evidence must be versioned and non-empty".into(),
+        ));
+    }
+    Ok(())
+}
+
+fn signed_work(value: u64) -> i64 {
+    value.min(i64::MAX as u64) as i64
+}
+
+fn compact_routing_detail(detail: &str) -> String {
+    let compact = detail.split_whitespace().collect::<Vec<_>>().join(" ");
+    let compact = redact_provider_detail(&compact);
+    let mut bounded = compact.chars().take(512).collect::<String>();
+    if compact.chars().count() > bounded.chars().count() {
+        bounded.push('…');
+    }
+    if bounded.is_empty() {
+        "provider state changed without a diagnostic".into()
+    } else {
+        bounded
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn provider_health_from_values(
+    workspace_id: String,
+    provider: String,
+    schema_version: i64,
+    status: String,
+    cooldown_until: Option<DateTime<Utc>>,
+    consecutive_failures: i64,
+    detail: String,
+    updated_at: DateTime<Utc>,
+) -> Result<ProviderHealthV1, StoreError> {
+    if schema_version != i64::from(PROVIDER_HEALTH_SCHEMA_VERSION) {
+        return Err(StoreError::Coordination(format!(
+            "unsupported provider health schema {schema_version}"
+        )));
+    }
+    let status = ProviderHealthStatusV1::parse(&status)
+        .ok_or_else(|| StoreError::Coordination(format!("unsupported provider health status {status}")))?;
+    Ok(ProviderHealthV1 {
+        schema_version: PROVIDER_HEALTH_SCHEMA_VERSION,
+        workspace_id,
+        provider,
+        status,
+        cooldown_until,
+        consecutive_failures: consecutive_failures.max(0) as u32,
+        detail,
+        updated_at,
+    })
 }
 
 fn archive_prototype_database(path: &Path) -> Result<Option<PathBuf>, StoreError> {
@@ -3427,6 +4834,53 @@ mod tests {
     }
 
     #[test]
+    fn current_v1_databases_gain_the_usage_ledger_without_data_reset() {
+        let dir = tempdir().expect("temporary directory");
+        let path = dir.path().join("current-v1.sqlite3");
+        let store = Store::open(&path).expect("fresh current database");
+        let run = store.create_run("legacy usage", Mode::Batch).expect("run");
+        {
+            let connection = store.connection.lock();
+            connection
+                .execute(
+                    "INSERT INTO usage_turns
+                     (run_id, model, input_tokens, output_tokens, context_tokens, occurred_at)
+                     VALUES (?1, 'deepseek/deepseek-v4-flash', 17, 5, 22, ?2)",
+                    params![run.id.to_string(), Utc::now()],
+                )
+                .expect("legacy usage fixture");
+            connection
+                .execute_batch(
+                    "DROP TABLE usage_ledger;
+                     DROP TABLE task_contracts;
+                     DROP TABLE dispatch_receipts;",
+                )
+                .expect("simulate a current v1 database from before additive extensions");
+        }
+        drop(store);
+
+        let reopened = Store::open(&path).expect("additive v1 repair");
+        assert_eq!(
+            reopened.usage_totals(Some(run.id)).expect("backfilled totals"),
+            UsageTotals {
+                session_input: 17,
+                session_output: 5,
+                lifetime_input: 17,
+                lifetime_output: 5,
+                ..UsageTotals::default()
+            }
+        );
+        assert!(
+            reopened
+                .task_contracts(run.id)
+                .expect("coordination tables were added")
+                .is_empty()
+        );
+        assert!(reopened.run(run.id).expect("run lookup").is_some());
+        assert_eq!(reopened.schema_version().expect("schema marker"), SCHEMA_VERSION);
+    }
+
+    #[test]
     fn provider_balance_high_water_is_durable_and_monotonic() {
         let dir = tempdir().expect("temporary directory");
         let path = dir.path().join("balance.sqlite3");
@@ -3449,6 +4903,24 @@ mod tests {
             reopened
                 .update_provider_balance_high_water("workspace", "deepseek", "USD", 12.0)
                 .expect("higher balance"),
+            12.0
+        );
+        assert_eq!(
+            reopened
+                .update_provider_balance_high_water("workspace", "deepseek", "USD", f64::NAN)
+                .expect("NaN balance is rejected without corrupting state"),
+            12.0
+        );
+        assert_eq!(
+            reopened
+                .update_provider_balance_high_water("workspace", "deepseek", "USD", f64::INFINITY)
+                .expect("infinity balance is rejected"),
+            12.0
+        );
+        assert_eq!(
+            reopened
+                .update_provider_balance_high_water("workspace", "deepseek", "USD", -1.0)
+                .expect("negative balance is rejected"),
             12.0
         );
     }
@@ -3531,7 +5003,7 @@ mod tests {
     }
 
     #[test]
-    fn v5_database_adds_durable_cache_metrics() {
+    fn v5_prototype_database_is_archived_and_fresh_schema_has_cache_metrics() {
         let directory = tempdir().expect("temporary directory");
         let path = directory.path().join("v5.sqlite3");
         let connection = Connection::open(&path).expect("v5 database");
@@ -3551,10 +5023,15 @@ mod tests {
             )
             .expect("cache_stats table");
         assert_eq!(table, "cache_stats");
+        let archived = std::fs::read_dir(directory.path())
+            .expect("archive directory")
+            .filter_map(Result::ok)
+            .any(|entry| entry.file_name().to_string_lossy().contains("prototype-v5-"));
+        assert!(archived);
     }
 
     #[test]
-    fn v6_database_adds_durable_issue_intakes() {
+    fn v6_prototype_database_is_archived_and_fresh_schema_has_issue_intakes() {
         let directory = tempdir().expect("temporary directory");
         let path = directory.path().join("v6.sqlite3");
         let connection = Connection::open(&path).expect("v6 database");
@@ -3575,6 +5052,11 @@ mod tests {
             )
             .expect("issue_intakes table");
         assert_eq!(table, "issue_intakes");
+        let archived = std::fs::read_dir(directory.path())
+            .expect("archive directory")
+            .filter_map(Result::ok)
+            .any(|entry| entry.file_name().to_string_lossy().contains("prototype-v6-"));
+        assert!(archived);
     }
 
     #[test]
@@ -3876,16 +5358,243 @@ mod tests {
                 .expect("advanced TUI cursor")
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn typed_office_envelopes_are_deduplicated_and_legacy_rows_decode() {
+        let store = Store::in_memory().expect("in-memory store");
+        let run = store.create_run("typed office", Mode::Batch).expect("run");
+        let envelope = OfficeEnvelopeV1 {
+            schema_version: crate::office::OFFICE_ENVELOPE_SCHEMA_VERSION,
+            id: "typed-1".into(),
+            room_id: RUN_ROOM_ID.into(),
+            sender: "worker-a".into(),
+            recipient: Recipient::Agent("worker-b".into()),
+            kind: crate::office::CoordinationKind::Finding,
+            task_id: Some("parser".into()),
+            summary: "Parser uses the wrong bound".into(),
+            artifact_refs: vec!["artifact:abc".into()],
+            evidence: vec![crate::office::EvidenceReceiptV1 {
+                schema_version: crate::office::EVIDENCE_RECEIPT_SCHEMA_VERSION,
+                conclusion: "bound is off by one".into(),
+                locator: "src/parser.rs:42".into(),
+                evidence_digest: "sha256:abc".into(),
+                excerpt: "limit excludes the final byte".into(),
+            }],
+            requested_action: Some("repair bound".into()),
+            sent_at: Utc::now(),
+        };
+        let first = store
+            .insert_office_envelope(run.id, &envelope, None)
+            .expect("typed message");
+        let mut replay = envelope.clone();
+        replay.id = "typed-2".into();
+        let duplicate = store
+            .insert_office_envelope(run.id, &replay, None)
+            .expect("typed duplicate");
+        assert_eq!(first, duplicate);
+        let inbox = store
+            .office_inbox(run.id, "agent:worker-b", 20)
+            .expect("typed inbox");
+        assert_eq!(inbox.len(), 1);
+        assert_eq!(inbox[0].sender, "worker-a");
+        assert_eq!(inbox[0].summary, envelope.summary);
+        assert_eq!(inbox[0].evidence, envelope.evidence);
+    }
+
+    #[test]
+    fn private_rooms_scope_delivery_and_reject_non_members() {
+        let store = Store::in_memory().expect("in-memory store");
+        let run = store.create_run("room scoping", Mode::Batch).expect("run");
+        let payload = json!({"body": "only for the two of us", "task_id": "parser"});
+        // a opens a private room with b; both become members.
+        store
+            .insert_hive_message(
+                run.id,
+                "message-1",
+                "room-ab",
+                "agent:a",
+                "agent:b",
+                "finding",
+                &payload,
+                None,
+            )
+            .expect("member send");
+        // c is not in room-ab, so a broadcast tagged with that room must not
+        // reach it even though `group:all` matches every recipient string.
+        store
+            .insert_hive_message(
+                run.id,
+                "message-2",
+                "room-ab",
+                "agent:a",
+                "group:all",
+                "progress",
+                &json!({"body": "private broadcast"}),
+                None,
+            )
+            .expect("member broadcast");
         assert_eq!(
             store
-                .office_room_messages(run.id, "run", "auditor", 20)
-                .expect("independent auditor cursor")
+                .hive_inbox(run.id, "agent:b", 20)
+                .expect("member inbox")
+                .len(),
+            2,
+            "a member reads both the direct message and the room broadcast"
+        );
+        assert!(
+            store
+                .hive_inbox(run.id, "agent:c", 20)
+                .expect("non-member inbox")
+                .is_empty(),
+            "a non-member must not read private-room traffic"
+        );
+        // A non-member cannot post into the room either.
+        assert!(matches!(
+            store.insert_hive_message(
+                run.id,
+                "message-3",
+                "room-ab",
+                "agent:c",
+                "agent:b",
+                "finding",
+                &json!({"body": "intruding"}),
+                None,
+            ),
+            Err(StoreError::RoomAccessDenied { .. })
+        ));
+        // The rejected send left nothing behind.
+        assert!(
+            store
+                .hive_inbox(run.id, "agent:b", 20)
+                .expect("inbox after rejection")
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn run_room_stays_shared_by_everyone_in_the_run() {
+        let store = Store::in_memory().expect("in-memory store");
+        let run = store.create_run("run room", Mode::Batch).expect("run");
+        // `run` has no explicit membership: an agent that never sent anything
+        // still receives the shared broadcast.
+        store
+            .insert_hive_message(
+                run.id,
+                "message-1",
+                "run",
+                "agent:a",
+                "group:all",
+                "progress",
+                &json!({"body": "starting the parser sweep"}),
+                None,
+            )
+            .expect("run broadcast");
+        assert_eq!(
+            store
+                .hive_inbox(run.id, "agent:never-spoke", 20)
+                .expect("silent agent inbox")
                 .len(),
             1
         );
+    }
+
+    #[test]
+    fn hive_dedup_is_per_sender_not_per_body() {
+        let store = Store::in_memory().expect("in-memory store");
+        let run = store.create_run("hive sender test", Mode::Batch).expect("run");
+        let payload = json!({"body":"Parser uses the wrong bound","task_id":"parser"});
+        let first = store
+            .insert_hive_message(
+                run.id,
+                "message-1",
+                "run",
+                "agent:a",
+                "agent:b",
+                "finding",
+                &payload,
+                None,
+            )
+            .expect("first sender");
+        let second = store
+            .insert_hive_message(
+                run.id,
+                "message-2",
+                "run",
+                "agent:c",
+                "agent:b",
+                "finding",
+                &payload,
+                None,
+            )
+            .expect("second sender");
+        assert_ne!(first, second, "distinct senders must not deduplicate");
+        let same_sender = store
+            .insert_hive_message(
+                run.id,
+                "message-3",
+                "run",
+                "agent:a",
+                "agent:b",
+                "finding",
+                &payload,
+                None,
+            )
+            .expect("same sender duplicate");
+        assert_eq!(first, same_sender, "same sender still deduplicates");
+        assert_eq!(
+            store
+                .office_room_messages(run.id, "run", "tui", 20)
+                .expect("room messages")
+                .len(),
+            2
+        );
+    }
+
+    #[test]
+    fn run_workspace_attachment_is_first_write_wins() {
+        let store = Store::in_memory().expect("in-memory store");
+        let run = store.create_run("attach test", Mode::Batch).expect("run");
+        let original = tempdir().expect("original root");
+        let moved = tempdir().expect("moved root");
+        let original_id = store
+            .ensure_workspace(original.path())
+            .expect("original workspace")
+            .id;
+        let moved_id = store.ensure_workspace(moved.path()).expect("moved workspace").id;
         store
-            .close_office_room(run.id, "run", "coordination complete")
-            .expect("close room");
+            .attach_run_workspace(run.id, &original_id)
+            .expect("first attachment");
+        store
+            .attach_run_workspace(run.id, &moved_id)
+            .expect("re-attachment attempt");
+        assert_eq!(
+            store.workspace_for_run(run.id).expect("workspace lookup"),
+            Some(original_id)
+        );
+    }
+
+    #[test]
+    fn artifact_put_returns_the_digest_of_the_stored_body() {
+        let store = Store::in_memory().expect("in-memory store");
+        let run = store.create_run("artifact test", Mode::Batch).expect("run");
+        let first = store
+            .put_office_artifact(run.id, "artifact-1", "evidence", b"first version", &json!({}))
+            .expect("first artifact");
+        let second = store
+            .put_office_artifact(run.id, "artifact-1", "evidence", b"second version", &json!({}))
+            .expect("conflicting artifact");
+        assert_eq!(first, second, "returned digest must match the stored body");
+        let stored: String = store
+            .connection
+            .lock()
+            .query_row(
+                "SELECT digest FROM office_artifacts WHERE artifact_id = 'artifact-1'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("stored digest");
+        assert_eq!(stored, second);
     }
 
     #[test]
@@ -4122,24 +5831,29 @@ mod tests {
             vec![model]
         );
 
-        store
-            .add_usage(run.id, 13, 5)
-            .expect("test operation should succeed");
-        store
-            .record_usage_turn(
-                run.id,
-                Some(agent_id),
-                "gpt-5.3-codex-spark",
-                crate::usage::TokenUsage {
-                    input: 13,
-                    output: 5,
-                    cached_input: 3,
-                    cache_write: 1,
-                    reasoning_output: 2,
-                },
-                Some(18),
-            )
-            .expect("test operation should succeed");
+        assert!(
+            store
+                .record_usage_entry(&UsageLedgerEntryV1 {
+                    schema_version: USAGE_LEDGER_SCHEMA_VERSION,
+                    entry_key: "test:model-turn".into(),
+                    run_id: run.id.to_string(),
+                    kind: UsageKindV1::ModelTurn,
+                    state: UsageStateV1::Settled,
+                    provider: "chatgpt_codex".into(),
+                    model: "gpt-5.3-codex-spark".into(),
+                    agent_id: Some(agent_id.to_string()),
+                    provider_response_id: None,
+                    usage: TokenUsage {
+                        input: 13,
+                        output: 5,
+                        cached_input: 3,
+                        cache_write: 1,
+                        reasoning_output: 2,
+                    },
+                    context_tokens: Some(18),
+                })
+                .expect("test operation should succeed")
+        );
         assert_eq!(
             store
                 .usage_totals(Some(run.id))
@@ -4158,26 +5872,551 @@ mod tests {
             }
         );
 
-        store
-            .record_usage_turn(
-                run.id,
-                Some(agent_id),
-                "deepseek/deepseek-v4-flash",
-                crate::usage::TokenUsage {
-                    input: 1_000_000,
-                    output: 1_000_000,
-                    cached_input: 500_000,
-                    cache_write: 0,
-                    reasoning_output: 0,
-                },
-                Some(1_000_000),
-            )
-            .expect("record DeepSeek usage");
+        assert!(
+            store
+                .record_usage_entry(&UsageLedgerEntryV1 {
+                    schema_version: USAGE_LEDGER_SCHEMA_VERSION,
+                    entry_key: "test:deepseek-turn".into(),
+                    run_id: run.id.to_string(),
+                    kind: UsageKindV1::ModelTurn,
+                    state: UsageStateV1::Settled,
+                    provider: "deepseek".into(),
+                    model: "deepseek/deepseek-v4-flash".into(),
+                    agent_id: Some(agent_id.to_string()),
+                    provider_response_id: Some("deepseek-response-1".into()),
+                    usage: TokenUsage {
+                        input: 1_000_000,
+                        output: 1_000_000,
+                        cached_input: 500_000,
+                        cache_write: 0,
+                        reasoning_output: 0,
+                    },
+                    context_tokens: Some(1_000_000),
+                })
+                .expect("record DeepSeek usage")
+        );
         let cost = store.deepseek_cost_totals(Some(run.id)).expect("DeepSeek cost");
         assert!((cost.estimated_usd - 0.3514).abs() < f64::EPSILON);
         assert!((cost.cache_savings_usd - 0.0686).abs() < f64::EPSILON);
         assert_eq!(cost.priced_turns, 1);
         assert_eq!(cost.unpriced_turns, 0);
+    }
+
+    #[test]
+    fn xiaomi_mimo_costs_use_the_canonical_ledger_and_reference_price_table() {
+        let store = Store::in_memory().expect("in-memory store");
+        let run = store.create_run("mimo ledger", Mode::Batch).expect("run");
+        assert!(
+            store
+                .record_usage_entry(&UsageLedgerEntryV1 {
+                    schema_version: USAGE_LEDGER_SCHEMA_VERSION,
+                    entry_key: "test:mimo-turn".into(),
+                    run_id: run.id.to_string(),
+                    kind: UsageKindV1::ModelTurn,
+                    state: UsageStateV1::Settled,
+                    provider: "xiaomi_mimo".into(),
+                    model: "xiaomi/mimo-v2.5-pro".into(),
+                    agent_id: None,
+                    provider_response_id: Some("mimo-response-1".into()),
+                    usage: TokenUsage {
+                        input: 1_000_000,
+                        output: 100_000,
+                        cached_input: 250_000,
+                        cache_write: 0,
+                        reasoning_output: 0,
+                    },
+                    context_tokens: Some(1_000_000),
+                })
+                .expect("record MiMo usage")
+        );
+
+        let cost = store.xiaomi_mimo_cost_totals(Some(run.id)).expect("MiMo cost");
+        assert!((cost.estimated_usd - 0.41415).abs() < f64::EPSILON);
+        assert!((cost.cache_savings_usd - 0.10785).abs() < f64::EPSILON);
+        assert_eq!(cost.priced_turns, 1);
+        assert_eq!(cost.unpriced_turns, 0);
+    }
+
+    #[test]
+    fn usage_ledger_settlement_is_idempotent_and_updates_compatibility_counters_once() {
+        let store = Store::in_memory().expect("in-memory store");
+        let run = store.create_run("ledger", Mode::Batch).expect("run");
+        let usage = TokenUsage {
+            input: 11,
+            output: 7,
+            cached_input: 3,
+            cache_write: 2,
+            reasoning_output: 5,
+        };
+        for _ in 0..2 {
+            let inserted = store
+                .record_usage_entry(&UsageLedgerEntryV1 {
+                    schema_version: USAGE_LEDGER_SCHEMA_VERSION,
+                    entry_key: "provider-response:deepseek:once".into(),
+                    run_id: run.id.to_string(),
+                    kind: UsageKindV1::ModelTurn,
+                    state: UsageStateV1::Settled,
+                    provider: "deepseek".into(),
+                    model: "deepseek/deepseek-v4-flash".into(),
+                    agent_id: None,
+                    provider_response_id: Some("once".into()),
+                    usage,
+                    context_tokens: Some(18),
+                })
+                .expect("record usage");
+            if !inserted {
+                break;
+            }
+        }
+        assert_eq!(
+            store.usage_totals(Some(run.id)).expect("totals"),
+            UsageTotals {
+                session_input: 11,
+                session_output: 7,
+                session_cached_input: 3,
+                session_cache_write: 2,
+                session_reasoning_output: 5,
+                lifetime_input: 11,
+                lifetime_output: 7,
+                lifetime_cached_input: 3,
+                lifetime_cache_write: 2,
+                lifetime_reasoning_output: 5,
+            }
+        );
+        let loaded = store.run(run.id).expect("run").expect("stored run");
+        assert_eq!((loaded.input_tokens, loaded.output_tokens), (11, 7));
+    }
+
+    #[test]
+    fn task_contracts_and_dispatch_receipts_are_durable_and_idempotent() {
+        let store = Store::in_memory().expect("in-memory store");
+        let run = store.create_run("contracts", Mode::Batch).expect("run");
+        let now = Utc::now();
+        let task = TaskRecord {
+            run_id: run.id,
+            task_id: "parser".into(),
+            objective: "repair parser boundary".into(),
+            state: PlanTaskState::Pending,
+            paths: vec!["src/parser.rs".into()],
+            dependencies: Vec::new(),
+            assigned_agent_id: None,
+            attempt: 0,
+            max_attempts: 2,
+            generation: 0,
+            last_error: None,
+            created_at: now,
+            updated_at: now,
+        };
+        store
+            .replace_tasks(run.id, std::slice::from_ref(&task))
+            .expect("tasks");
+        let contract = MicrotaskContractV1 {
+            schema_version: MICROTASK_CONTRACT_SCHEMA_VERSION,
+            task_id: task.task_id.clone(),
+            goal: task.objective.clone(),
+            lease_resources: vec!["path:src/parser.rs".into()],
+            acceptance_check: "cargo test -p minha-core parser".into(),
+        };
+        store
+            .replace_task_contracts(run.id, std::slice::from_ref(&contract))
+            .expect("contract");
+        assert_eq!(
+            store.task_contract(run.id, "parser").expect("contract lookup"),
+            Some(contract.clone())
+        );
+
+        let mut receipt = DispatchReceiptV1 {
+            schema_version: DISPATCH_RECEIPT_SCHEMA_VERSION,
+            receipt_id: format!("dispatch:{}:parser:0:agent", run.id),
+            task_id: "parser".into(),
+            generation: 0,
+            agent_id: EventAgentId::new(),
+            role: "Spark worker parser".into(),
+            provider: "chatgpt_codex".into(),
+            model: "chatgpt/gpt-5.3-codex-spark".into(),
+            candidates: Vec::new(),
+            lease_resources: contract.lease_resources.clone(),
+            acceptance_check: contract.acceptance_check.clone(),
+            estimated_input_tokens: 240,
+            session_used_tokens: 12,
+            session_target_tokens: 25_000,
+            budget_pressure: "normal".into(),
+            parallelism_reason: "path-disjoint task admitted after local speedup review".into(),
+            book_sources: Vec::new(),
+            issued_at: now,
+        };
+        assert!(
+            store
+                .record_dispatch_receipt(run.id, &receipt)
+                .expect("first receipt")
+        );
+        assert!(
+            !store
+                .record_dispatch_receipt(run.id, &receipt)
+                .expect("duplicate receipt")
+        );
+        let amended = store
+            .append_dispatch_book_sources(run.id, "parser", receipt.agent_id, &["rust@1.0.0#bounds".into()])
+            .expect("append actual book source")
+            .expect("receipt was amended");
+        assert_eq!(amended.book_sources, vec!["rust@1.0.0#bounds"]);
+        assert!(
+            store
+                .append_dispatch_book_sources(
+                    run.id,
+                    "parser",
+                    receipt.agent_id,
+                    &["rust@1.0.0#bounds".into()],
+                )
+                .expect("idempotent source append")
+                .is_none()
+        );
+        receipt.book_sources = vec!["rust@1.0.0#bounds".into()];
+        assert_eq!(
+            store.dispatch_receipts(run.id).expect("receipt lookup"),
+            vec![receipt]
+        );
+    }
+
+    #[test]
+    fn persisted_v1_dispatch_receipts_reopen_as_v2_without_losing_the_v1_projection() {
+        let directory = tempdir().expect("temporary directory");
+        let path = directory.path().join("receipts.sqlite3");
+        let (run_id, receipt) = {
+            let store = Store::open(&path).expect("store");
+            let run = store
+                .create_run("receipt compatibility", Mode::Batch)
+                .expect("run");
+            let receipt = DispatchReceiptV1 {
+                schema_version: DISPATCH_RECEIPT_SCHEMA_VERSION,
+                receipt_id: format!("dispatch:{}:legacy:0:agent", run.id),
+                task_id: "legacy".into(),
+                generation: 0,
+                agent_id: EventAgentId::new(),
+                role: "Spark worker legacy".into(),
+                provider: "chatgpt_codex".into(),
+                model: "chatgpt/gpt-5.3-codex-spark".into(),
+                candidates: vec![crate::protocol::RoutingCandidateV1 {
+                    provider: "chatgpt_codex".into(),
+                    model: "chatgpt/gpt-5.3-codex-spark".into(),
+                    eligible: true,
+                    reason: "legacy candidate".into(),
+                }],
+                lease_resources: vec!["path:src/lib.rs".into()],
+                acceptance_check: "cargo test -p minha-core".into(),
+                estimated_input_tokens: 321,
+                session_used_tokens: 12,
+                session_target_tokens: 25_000,
+                budget_pressure: "normal".into(),
+                parallelism_reason: "legacy worker dispatch".into(),
+                book_sources: Vec::new(),
+                issued_at: Utc::now(),
+            };
+            assert!(
+                store
+                    .record_dispatch_receipt(run.id, &receipt)
+                    .expect("legacy receipt")
+            );
+            (run.id, receipt)
+        };
+
+        let reopened = Store::open(&path).expect("reopen store");
+        let receipts = reopened.dispatch_receipts_v2(run_id).expect("v2 receipt lookup");
+        assert_eq!(receipts.len(), 1);
+        assert_eq!(receipts[0].schema_version, DISPATCH_RECEIPT_V2_SCHEMA_VERSION);
+        assert_eq!(receipts[0].routing.policy, "legacy_untracked");
+        assert_eq!(receipts[0].to_v1(), receipt);
+        assert_eq!(
+            reopened.dispatch_receipts(run_id).expect("v1 projection"),
+            vec![receipt]
+        );
+    }
+
+    #[test]
+    fn v2_dispatch_receipts_preserve_routing_evidence_and_v1_projection() {
+        let store = Store::in_memory().expect("in-memory store");
+        let run = store.create_run("routing receipt", Mode::Batch).expect("run");
+        let mut receipt = DispatchReceiptV2::from(DispatchReceiptV1 {
+            schema_version: DISPATCH_RECEIPT_SCHEMA_VERSION,
+            receipt_id: format!("dispatch:{}:worker:0:agent", run.id),
+            task_id: "worker".into(),
+            generation: 0,
+            agent_id: EventAgentId::new(),
+            role: "DeepSeek worker worker".into(),
+            provider: "deepseek".into(),
+            model: "deepseek/deepseek-v4-flash".into(),
+            candidates: Vec::new(),
+            lease_resources: vec!["path:src/runtime.rs".into()],
+            acceptance_check: "cargo test -p minha-core routing".into(),
+            estimated_input_tokens: 512,
+            session_used_tokens: 44,
+            session_target_tokens: 25_000,
+            budget_pressure: "normal".into(),
+            parallelism_reason: "independent task".into(),
+            book_sources: Vec::new(),
+            issued_at: Utc::now(),
+        });
+        receipt.candidates = vec![crate::protocol::RoutingCandidateV2 {
+            provider: "deepseek".into(),
+            model: "deepseek/deepseek-v4-flash".into(),
+            eligible: true,
+            reason: "eligible by provider health".into(),
+            health: ProviderHealthStatusV1::Healthy,
+            cooldown_until: None,
+            reserve: "normal".into(),
+            pinned: false,
+        }];
+        receipt.routing = crate::protocol::DispatchRoutingV1 {
+            schema_version: 1,
+            policy: "equal_weight_wdrr".into(),
+            quantum: WDRR_QUANTUM,
+            estimated_work: 512,
+            deficit_before: 20,
+            deficit_after: 99_508,
+            user_pin: false,
+            reserve_override: None,
+            cooldown_override: None,
+            health: ProviderHealthStatusV1::Healthy,
+        };
+        assert!(
+            store
+                .record_dispatch_receipt_v2(run.id, &receipt)
+                .expect("v2 receipt")
+        );
+        assert!(
+            !store
+                .record_dispatch_receipt_v2(run.id, &receipt)
+                .expect("duplicate v2 receipt")
+        );
+        assert_eq!(
+            store.dispatch_receipts_v2(run.id).expect("v2 lookup"),
+            vec![receipt.clone()]
+        );
+        let projected = store.dispatch_receipts(run.id).expect("v1 lookup");
+        assert_eq!(projected, vec![receipt.to_v1()]);
+        assert_eq!(projected[0].schema_version, DISPATCH_RECEIPT_SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn equal_weight_routing_persists_credit_and_settles_normalized_work_once() {
+        let directory = tempdir().expect("temporary directory");
+        let path = directory.path().join("fairness.sqlite3");
+        let workspace = "workspace";
+        let candidates = vec![
+            FairnessCandidateV1::new("chatgpt_codex", "chatgpt/gpt-5.3-codex-spark"),
+            FairnessCandidateV1::new("deepseek", "deepseek/deepseek-v4-flash"),
+        ];
+        let first_agent = EventAgentId::new();
+        let first_run_id = {
+            let store = Store::open(&path).expect("store");
+            let run = store.create_run("fairness one", Mode::Batch).expect("run");
+            let selection = store
+                .admit_equal_weight_route(
+                    workspace,
+                    "worker",
+                    run.id,
+                    first_agent,
+                    "dispatch:first",
+                    &candidates,
+                    100,
+                )
+                .expect("first admission");
+            assert_eq!(selection.key.provider, "chatgpt_codex");
+            let usage = TokenUsage {
+                input: 100,
+                cached_input: 20,
+                output: 3,
+                reasoning_output: 4,
+                cache_write: 900,
+            };
+            assert!(
+                store
+                    .settle_fair_route_usage(run.id, first_agent, "usage:first", usage)
+                    .expect("first settlement")
+            );
+            assert!(
+                !store
+                    .settle_fair_route_usage(run.id, first_agent, "usage:first", usage)
+                    .expect("idempotent settlement")
+            );
+            run.id
+        };
+
+        let reopened = Store::open(&path).expect("reopen store");
+        assert!(reopened.run(first_run_id).expect("first run lookup").is_some());
+        let second_run = reopened.create_run("fairness two", Mode::Batch).expect("run");
+        let second = reopened
+            .admit_equal_weight_route(
+                workspace,
+                "worker",
+                second_run.id,
+                EventAgentId::new(),
+                "dispatch:second",
+                &candidates,
+                100,
+            )
+            .expect("second admission");
+        assert_eq!(second.key.provider, "deepseek");
+        let states = reopened
+            .fairness_states(workspace, Some("worker"))
+            .expect("states");
+        let chatgpt = states
+            .iter()
+            .find(|state| state.key.provider == "chatgpt_codex")
+            .expect("chatgpt state");
+        assert_eq!(chatgpt.settled_work, 133);
+        assert_eq!(chatgpt.dispatched, 1);
+    }
+
+    #[test]
+    fn cancelled_fair_admission_rolls_back_the_complete_provisional_round() {
+        let store = Store::in_memory().expect("in-memory store");
+        let run = store.create_run("cancelled fairness", Mode::Batch).expect("run");
+        let candidates = vec![
+            FairnessCandidateV1::new("chatgpt_codex", "chatgpt/gpt-5.3-codex-spark"),
+            FairnessCandidateV1::new("deepseek", "deepseek/deepseek-v4-flash"),
+        ];
+        let agent = EventAgentId::new();
+        let first = store
+            .admit_equal_weight_route(
+                "workspace",
+                "worker",
+                run.id,
+                agent,
+                "dispatch:cancelled",
+                &candidates,
+                321,
+            )
+            .expect("admission");
+        assert_eq!(first.key.provider, "chatgpt_codex");
+        assert!(
+            store
+                .cancel_fair_route_admission(run.id, agent)
+                .expect("cancel admission")
+        );
+        assert!(
+            !store
+                .cancel_fair_route_admission(run.id, agent)
+                .expect("cancellation remains idempotent")
+        );
+        let states = store
+            .fairness_states("workspace", Some("worker"))
+            .expect("fairness states");
+        assert_eq!(states.len(), 2);
+        assert!(
+            states
+                .iter()
+                .all(|state| { state.deficit == 0 && state.dispatched == 0 && state.settled_work == 0 })
+        );
+        let second = store
+            .admit_equal_weight_route(
+                "workspace",
+                "worker",
+                run.id,
+                EventAgentId::new(),
+                "dispatch:after-cancel",
+                &candidates,
+                321,
+            )
+            .expect("admission after cancellation");
+        assert_eq!(
+            second.key.provider, "chatgpt_codex",
+            "the original stable tie must be restored after cancellation"
+        );
+        let connection = store.connection.lock();
+        let cancelled: i64 = connection
+            .query_row(
+                "SELECT cancelled FROM routing_admissions WHERE receipt_id = 'dispatch:cancelled'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("cancelled admission row");
+        let candidate_count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM routing_admission_candidates WHERE receipt_id = 'dispatch:cancelled'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("candidate audit rows");
+        assert_eq!(cancelled, 1);
+        assert_eq!(candidate_count, 2);
+    }
+
+    #[test]
+    fn provider_health_uses_retry_after_fallback_and_exposes_unknown_inspector_rows() {
+        let store = Store::in_memory().expect("in-memory store");
+        let workspace = "workspace";
+        let unknown = store
+            .provider_health(workspace, ProviderId::XiaomiMiMo.key())
+            .expect("unknown provider health");
+        assert_eq!(unknown.status, ProviderHealthStatusV1::Unknown);
+        assert!(unknown.cooldown_until.is_none());
+        let redacted = store
+            .set_provider_health(
+                workspace,
+                ProviderId::ChatGptCodex.key(),
+                ProviderHealthStatusV1::Healthy,
+                None,
+                0,
+                "provider said api_key=sk-not-for-routing-state",
+            )
+            .expect("redacted provider health");
+        assert!(!redacted.detail.contains("sk-not-for-routing-state"));
+
+        let first = store
+            .record_provider_transient_failure(workspace, "deepseek", None, "temporary failure")
+            .expect("fallback cooldown");
+        assert_eq!(first.status, ProviderHealthStatusV1::CoolingDown);
+        assert_eq!(first.consecutive_failures, 1);
+        let second = store
+            .record_provider_transient_failure(workspace, "deepseek", None, "temporary failure")
+            .expect("second fallback cooldown");
+        assert_eq!(second.consecutive_failures, 2);
+        assert!(second.cooldown_until > first.cooldown_until);
+        let retry_after = store
+            .record_provider_transient_failure(
+                workspace,
+                "deepseek",
+                Some(Duration::from_secs(77)),
+                "rate limited",
+            )
+            .expect("retry-after cooldown");
+        assert_eq!(retry_after.consecutive_failures, 3);
+        let until = retry_after.cooldown_until.expect("cooldown deadline");
+        let seconds = until.signed_duration_since(retry_after.updated_at).num_seconds();
+        assert!(
+            (76..=77).contains(&seconds),
+            "unexpected retry-after deadline: {seconds}"
+        );
+
+        let unsupported = store
+            .record_provider_remediation_needed(
+                workspace,
+                "deepseek",
+                ProviderHealthStatusV1::Unsupported,
+                "catalog rejected model",
+            )
+            .expect("unsupported state");
+        assert_eq!(unsupported.status, ProviderHealthStatusV1::Unsupported);
+        let recovered = store
+            .record_provider_catalog_success(workspace, "deepseek")
+            .expect("catalog recovery");
+        assert_eq!(recovered.status, ProviderHealthStatusV1::Healthy);
+
+        let inspector = store.routing_inspector(workspace).expect("routing inspector");
+        assert!(
+            inspector
+                .providers
+                .iter()
+                .any(|state| state.provider == ProviderId::XiaomiMiMo.key()
+                    && state.status == ProviderHealthStatusV1::Unknown)
+        );
+        assert!(
+            inspector
+                .providers
+                .iter()
+                .any(|state| state.provider == "deepseek" && state.status == ProviderHealthStatusV1::Healthy)
+        );
     }
 
     #[test]

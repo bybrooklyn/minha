@@ -11,9 +11,14 @@ use minha_core::{
     },
     deepseek::{DEEPSEEK_PRICING_SOURCE, DEEPSEEK_PRICING_VERSION, DeepSeekClient, estimate_cost_usd},
     memory::{MemoryRecord, MemoryScope},
+    mimo::{
+        MIMO_PRICING_SOURCE, MIMO_PRICING_VERSION, MiMoClient, XIAOMI_MIMO_BASE_URL,
+        estimate_cost_usd as estimate_mimo_cost_usd,
+    },
     provider::DEEPSEEK_BASE_URL,
     provider_credentials::{
-        default_path as provider_credentials_path, load_deepseek_key, remove_deepseek, save_deepseek_key,
+        default_path as provider_credentials_path, load_deepseek_key, load_xiaomi_mimo, remove_deepseek,
+        remove_xiaomi_mimo, save_deepseek_key, save_xiaomi_mimo,
     },
     store::state_name,
     worktree::GitRepo,
@@ -22,7 +27,8 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,
-    path::PathBuf,
+    fs,
+    path::{Component, Path, PathBuf},
     process::{Command, ExitCode},
 };
 
@@ -101,6 +107,8 @@ enum CommandLine {
     Version,
     /// Check or install the latest checksum-verified GitHub Release.
     Update(UpdateArgs),
+    /// Stage a supplied, bounded maintenance patch for human review; never applies or publishes it.
+    Maintain(MaintainArgs),
 }
 
 #[derive(Args, Debug)]
@@ -163,6 +171,13 @@ struct UpdateArgs {
 }
 
 #[derive(Args, Debug)]
+struct MaintainArgs {
+    /// A supplied unified patch. Minha only stages it for review; it never generates or applies a patch here.
+    #[arg(long, value_name = "PATCH")]
+    patch: PathBuf,
+}
+
+#[derive(Args, Debug)]
 struct LoginArgs {
     #[arg(long, default_value = "default", help = "Profile name to create or update")]
     profile: String,
@@ -197,7 +212,12 @@ struct ProviderArgs {
 #[derive(Subcommand, Debug)]
 enum ProviderCommand {
     /// Add a provider credential using a no-echo prompt.
-    Add { name: String },
+    Add {
+        name: String,
+        /// HTTPS base URL for a Xiaomi MiMo Token Plan or custom console endpoint.
+        #[arg(long)]
+        base_url: Option<String>,
+    },
     /// List configured providers without exposing credentials.
     List,
     /// Test provider authentication without making a model generation request.
@@ -280,7 +300,12 @@ async fn main() -> ExitCode {
     let json_output = cli.json;
     let jsonl = cli.jsonl;
     let result = dispatch(cli.command, json_output, jsonl).await;
-    emit(json_output || jsonl, result)
+    if jsonl {
+        // The stream already ended with a typed run_complete event; only the
+        // exit code remains.
+        return ExitCode::from(result.code);
+    }
+    emit(json_output, result)
 }
 
 struct ResultData {
@@ -322,6 +347,16 @@ async fn dispatch(command: Option<CommandLine>, json_output: bool, jsonl: bool) 
                         })
                     }));
                 }
+                if let Some(path) = provider_credentials_path()
+                    && load_xiaomi_mimo(&path).ok().flatten().is_some()
+                {
+                    available.extend(["mimo-v2.5", "mimo-v2.5-pro"].map(|slug| {
+                        json!({
+                            "provider":"xiaomi_mimo", "slug":slug, "context_window":1_048_576_u64,
+                            "quota":"unavailable_by_api"
+                        })
+                    }));
+                }
                 Ok(success(ExitState::Succeeded, json!({"models": available})))
             })
             .await
@@ -356,6 +391,7 @@ async fn dispatch(command: Option<CommandLine>, json_output: bool, jsonl: bool) 
             }),
         ),
         CommandLine::Update(args) => update(args),
+        CommandLine::Maintain(args) => maintain(args),
     }
 }
 
@@ -364,7 +400,7 @@ async fn provider(args: ProviderArgs) -> ResultData {
         return failure("could not determine the user configuration directory".into());
     };
     match args.command {
-        ProviderCommand::Add { name } if name.eq_ignore_ascii_case("deepseek") => {
+        ProviderCommand::Add { name, .. } if name.eq_ignore_ascii_case("deepseek") => {
             let key = match rpassword::prompt_password("DeepSeek API key: ") {
                 Ok(key) => key,
                 Err(error) => return failure(format!("could not read API key: {error}")),
@@ -377,17 +413,47 @@ async fn provider(args: ProviderArgs) -> ResultData {
                 Err(error) => failure(error.to_string()),
             }
         }
-        ProviderCommand::List => match load_deepseek_key(&path) {
-            Ok(key) => success(
+        ProviderCommand::Add { name, base_url } if is_xiaomi_mimo_name(&name) => {
+            let key = match rpassword::prompt_password("Xiaomi MiMo API key: ") {
+                Ok(key) => key,
+                Err(error) => return failure(format!("could not read API key: {error}")),
+            };
+            if key.trim_start().starts_with("tp-") && base_url.is_none() {
+                return blocked_data(
+                    "MiMo Token Plan keys require --base-url; copy the region-specific HTTPS endpoint from the Xiaomi console",
+                );
+            }
+            match save_xiaomi_mimo(&path, &key, base_url.as_deref()) {
+                Ok(()) => success(
+                    ExitState::Succeeded,
+                    json!({
+                        "provider":"xiaomi_mimo",
+                        "configured":true,
+                        "base_url": base_url.unwrap_or_else(|| XIAOMI_MIMO_BASE_URL.into()),
+                        "quota":"unavailable_by_api"
+                    }),
+                ),
+                Err(error) => failure(error.to_string()),
+            }
+        }
+        ProviderCommand::List => match (load_deepseek_key(&path), load_xiaomi_mimo(&path)) {
+            (Ok(deepseek), Ok(mimo)) => success(
                 ExitState::Succeeded,
                 json!({
                     "providers":[
                         {"id":"chatgpt_codex","authentication":"oauth"},
-                        {"id":"deepseek","authentication":"api_key","configured":key.is_some()}
+                        {"id":"deepseek","authentication":"api_key","configured":deepseek.is_some()},
+                        {
+                            "id":"xiaomi_mimo",
+                            "authentication":"api_key",
+                            "configured":mimo.is_some(),
+                            "base_url":mimo.as_ref().map(|credential| credential.base_url.as_str()),
+                            "quota":"unavailable_by_api"
+                        }
                     ]
                 }),
             ),
-            Err(error) => failure(error.to_string()),
+            (Err(error), _) | (_, Err(error)) => failure(error.to_string()),
         },
         ProviderCommand::Test { name } if name.eq_ignore_ascii_case("deepseek") => {
             let key = match load_deepseek_key(&path) {
@@ -421,10 +487,46 @@ async fn provider(args: ProviderArgs) -> ResultData {
                 Err(error) => failure(error.to_string()),
             }
         }
-        ProviderCommand::Add { name } | ProviderCommand::Test { name } | ProviderCommand::Remove { name } => {
-            blocked_data(&format!("unsupported provider `{name}`"))
+        ProviderCommand::Test { name } if is_xiaomi_mimo_name(&name) => {
+            let credential = match load_xiaomi_mimo(&path) {
+                Ok(Some(credential)) => credential,
+                Ok(None) => {
+                    return blocked_data("Xiaomi MiMo is not configured; run `minha provider add xiaomi`");
+                }
+                Err(error) => return failure(error.to_string()),
+            };
+            let client = MiMoClient::new(credential.base_url, credential.api_key);
+            match client.test_connection().await {
+                Ok(()) => success(
+                    ExitState::Succeeded,
+                    json!({
+                        "provider":"xiaomi_mimo",
+                        "healthy":true,
+                        "quota":"unavailable_by_api",
+                        "quota_detail":"Provider does not expose remaining quota by API"
+                    }),
+                ),
+                Err(error) => failure(error.to_string()),
+            }
         }
+        ProviderCommand::Remove { name } if is_xiaomi_mimo_name(&name) => match remove_xiaomi_mimo(&path) {
+            Ok(removed) => success(
+                ExitState::Succeeded,
+                json!({"provider":"xiaomi_mimo","removed":removed}),
+            ),
+            Err(error) => failure(error.to_string()),
+        },
+        ProviderCommand::Add { name, .. }
+        | ProviderCommand::Test { name }
+        | ProviderCommand::Remove { name } => blocked_data(&format!("unsupported provider `{name}`")),
     }
+}
+
+fn is_xiaomi_mimo_name(name: &str) -> bool {
+    matches!(
+        name.trim().to_ascii_lowercase().as_str(),
+        "xiaomi" | "mimo" | "xiaomi_mimo"
+    )
 }
 
 async fn memory(args: MemoryArgs) -> ResultData {
@@ -576,6 +678,147 @@ fn update(args: UpdateArgs) -> ResultData {
         Ok(result) => success(ExitState::Succeeded, json!(result)),
         Err(error) => failure(error),
     }
+}
+
+const MAX_MAINTENANCE_PATCH_BYTES: usize = 512 * 1024;
+
+/// The maintenance command is intentionally a reviewable staging lane, not a
+/// self-modifying agent. It accepts only a patch supplied by the human, rejects
+/// high-risk domains, and writes the unchanged patch into a private local
+/// review directory. There is no model call, apply, commit, push, or release.
+fn maintain(args: MaintainArgs) -> ResultData {
+    match stage_maintenance_patch(&current_dir(), &args.patch) {
+        Ok(path) => success(
+            ExitState::Succeeded,
+            json!({
+                "schema_version": 1,
+                "staged_patch": path,
+                "applied": false,
+                "next_step": "review and apply the patch manually if it is acceptable"
+            }),
+        ),
+        Err(error) => blocked_data(&error),
+    }
+}
+
+fn stage_maintenance_patch(root: &Path, supplied: &Path) -> Result<PathBuf, String> {
+    let root = fs::canonicalize(root).map_err(|error| format!("could not resolve workspace: {error}"))?;
+    let supplied =
+        fs::canonicalize(supplied).map_err(|error| format!("could not resolve supplied patch: {error}"))?;
+    if !supplied.is_file() {
+        return Err("supplied maintenance patch is not a regular file".into());
+    }
+    let metadata = fs::metadata(&supplied).map_err(|error| format!("could not inspect patch: {error}"))?;
+    if metadata.len() == 0 || metadata.len() > MAX_MAINTENANCE_PATCH_BYTES as u64 {
+        return Err(format!(
+            "supplied maintenance patch must be 1..={MAX_MAINTENANCE_PATCH_BYTES} bytes"
+        ));
+    }
+    let patch = fs::read_to_string(&supplied)
+        .map_err(|error| format!("could not read supplied patch as UTF-8 text: {error}"))?;
+    validate_maintenance_patch(&patch)?;
+    let staging = root.join(".minha").join("maintenance");
+    fs::create_dir_all(&staging).map_err(|error| format!("could not create maintenance staging: {error}"))?;
+    let staged = staging.join(format!("{}.patch", uuid::Uuid::now_v7()));
+    fs::write(&staged, patch).map_err(|error| format!("could not stage maintenance patch: {error}"))?;
+    Ok(staged)
+}
+
+fn validate_maintenance_patch(patch: &str) -> Result<(), String> {
+    let lower = patch.to_ascii_lowercase();
+    const FORBIDDEN_CONTENT: &[&str] = &[
+        "migrations/",
+        "migration/",
+        "create table",
+        "alter table",
+        "drop table",
+        "pragma user_version",
+        "api_key",
+        "access_token",
+        "refresh_token",
+        "password",
+        "private_key",
+        "credentials",
+        ".env",
+        "git commit",
+        "git push",
+        "git merge",
+        "git rebase",
+        "git reset",
+        "git tag",
+        "gh pr",
+        "gh release",
+        "cargo publish",
+        "npm publish",
+        "release ",
+        "publish ",
+        "curl ",
+        "wget ",
+        "ssh ",
+        "scp ",
+        "rsync ",
+    ];
+    if let Some(marker) = FORBIDDEN_CONTENT.iter().find(|marker| lower.contains(**marker)) {
+        return Err(format!(
+            "maintenance patch touches a prohibited migration, credential, VCS, remote, or release surface ({marker})"
+        ));
+    }
+    let mut saw_diff = false;
+    for line in patch.lines() {
+        if let Some(paths) = line.strip_prefix("diff --git ") {
+            saw_diff = true;
+            for path in paths.split_whitespace().take(2) {
+                validate_maintenance_patch_path(path)?;
+            }
+        } else if let Some(path) = line.strip_prefix("--- ").or_else(|| line.strip_prefix("+++ ")) {
+            let path = path
+                .split('\t')
+                .next()
+                .unwrap_or_default()
+                .split_whitespace()
+                .next()
+                .unwrap_or_default();
+            validate_maintenance_patch_path(path)?;
+        } else if let Some(path) = line
+            .strip_prefix("rename from ")
+            .or_else(|| line.strip_prefix("rename to "))
+            .or_else(|| line.strip_prefix("copy from "))
+            .or_else(|| line.strip_prefix("copy to "))
+        {
+            validate_maintenance_patch_path(path.trim())?;
+        }
+    }
+    if !saw_diff {
+        return Err("maintenance patch must contain a unified diff header".into());
+    }
+    Ok(())
+}
+
+fn validate_maintenance_patch_path(raw: &str) -> Result<(), String> {
+    if raw == "/dev/null" {
+        return Ok(());
+    }
+    let path = raw
+        .strip_prefix("a/")
+        .or_else(|| raw.strip_prefix("b/"))
+        .unwrap_or(raw);
+    let candidate = Path::new(path);
+    if candidate.is_absolute()
+        || candidate
+            .components()
+            .any(|component| component == Component::ParentDir)
+        || candidate
+            .components()
+            .any(|component| matches!(component, Component::RootDir | Component::Prefix(_)))
+    {
+        return Err(format!("maintenance patch path escapes the workspace: {raw}"));
+    }
+    if path.starts_with(".git/") || path.starts_with(".minha/") {
+        return Err(format!(
+            "maintenance patch may not modify protected local state: {raw}"
+        ));
+    }
+    Ok(())
 }
 
 async fn tui(_json_output: bool) -> ResultData {
@@ -732,18 +975,47 @@ where
     loop {
         tokio::select! {
             result = events.recv() => {
-                if let Ok(event) = result {
-                    println!("{}", serde_json::to_string(&event).unwrap_or_else(|_| "{\"type\":\"serialization_error\"}".into()));
+                match result {
+                    Ok(event) => {
+                        println!("{}", serde_json::to_string(&event).unwrap_or_else(|_| "{\"type\":\"serialization_error\"}".into()));
+                    }
+                    // The event channel closed while the run kept working;
+                    // stop polling it instead of busy-spinning.
+                    Err(_) => {
+                        let outcome = task.await
+                            .map_err(|error| HarnessError::Io(std::io::Error::other(error.to_string())))??;
+                        print_run_complete(&outcome);
+                        return Ok(outcome);
+                    }
                 }
             }
             result = &mut task => {
                 while let Ok(event) = events.try_recv() {
                     println!("{}", serde_json::to_string(&event).unwrap_or_else(|_| "{\"type\":\"serialization_error\"}".into()));
                 }
-                return result.map_err(|error| HarnessError::Io(std::io::Error::other(error.to_string())))?;
+                let outcome = result
+                    .map_err(|error| HarnessError::Io(std::io::Error::other(error.to_string())))??;
+                print_run_complete(&outcome);
+                return Ok(outcome);
             }
         }
     }
+}
+
+/// The JSONL stream is fully typed; the final outcome is emitted as a typed
+/// event too so per-line consumers never see a differently-shaped envelope.
+fn print_run_complete(outcome: &RunOutcome) {
+    println!("{}", run_complete_event(outcome));
+}
+
+fn run_complete_event(outcome: &RunOutcome) -> serde_json::Value {
+    serde_json::json!({
+        "type": "run_complete",
+        "run_id": outcome.run_id.to_string(),
+        "state": state_name(outcome.state),
+        "model": outcome.model,
+        "text": outcome.text,
+    })
 }
 
 async fn answer(args: AnswerArgs) -> ResultData {
@@ -887,6 +1159,7 @@ async fn inspect(args: RunArgs, kind: InspectKind) -> ResultData {
                 let mut last_incident = None;
                 let mut catalog_fetched_at = None;
                 let mut projected_next_deepseek_usd = 0.0;
+                let mut projected_next_mimo_usd = 0.0;
                 for event in &events {
                     match &event.event {
                         minha_core::protocol::RuntimeEvent::ContextUsage {
@@ -900,6 +1173,13 @@ async fn inspect(args: RunArgs, kind: InspectKind) -> ResultData {
                             projected_next_deepseek_usd +=
                                 estimate_cost_usd(model, *forecast_tokens, 0, *output_allowance)
                                     .unwrap_or(0.0);
+                            projected_next_mimo_usd += estimate_mimo_cost_usd(
+                                model,
+                                *forecast_tokens,
+                                0,
+                                *output_allowance,
+                            )
+                            .unwrap_or(0.0);
                         }
                         minha_core::protocol::RuntimeEvent::ProviderState { provider, .. } => {
                             providers.insert(provider.clone(), event.payload());
@@ -917,6 +1197,7 @@ async fn inspect(args: RunArgs, kind: InspectKind) -> ResultData {
                 let todo_details = h.store.todo_rollup_details(run.id, 3)?;
                 let memory = h.store.memory_settings(h.workspace_id())?;
                 let deepseek_cost = h.store.deepseek_cost_totals(Some(run.id))?;
+                let mimo_cost = h.store.xiaomi_mimo_cost_totals(Some(run.id))?;
                 json!({
                     "run": run,
                     "usage": usage,
@@ -947,6 +1228,17 @@ async fn inspect(args: RunArgs, kind: InspectKind) -> ResultData {
                         "unpriced_turns": deepseek_cost.unpriced_turns,
                         "pricing_version": DEEPSEEK_PRICING_VERSION,
                         "pricing_source": DEEPSEEK_PRICING_SOURCE,
+                    },
+                    "xiaomi_mimo_cost": {
+                        "estimated_usd": mimo_cost.estimated_usd,
+                        "projected_usd": mimo_cost.estimated_usd + projected_next_mimo_usd,
+                        "projected_next_turn_assumption": "current per-agent forecast, cache miss, full output allowance",
+                        "cache_savings_usd": mimo_cost.cache_savings_usd,
+                        "priced_turns": mimo_cost.priced_turns,
+                        "unpriced_turns": mimo_cost.unpriced_turns,
+                        "pricing_version": MIMO_PRICING_VERSION,
+                        "pricing_source": MIMO_PRICING_SOURCE,
+                        "quota": "unavailable_by_api",
                     },
                     "memory": memory,
                     "last_incident": last_incident,
@@ -1254,5 +1546,59 @@ mod tests {
             ["goal-1=wrong result".to_owned(), "scope-1=tui".to_owned()]
         );
         assert!(args.text.is_none());
+    }
+
+    #[test]
+    fn jsonl_final_event_is_typed_run_complete() {
+        let outcome = RunOutcome {
+            run_id: RunId::new(),
+            state: ExitState::Succeeded,
+            kind: RunKind::Implement,
+            model: Some("gpt-5.6-spark".into()),
+            text: "done".into(),
+            question: None,
+            clarification: None,
+            usage: Default::default(),
+            agents_used: 1,
+            worktrees: Vec::new(),
+        };
+        assert_eq!(
+            run_complete_event(&outcome),
+            json!({
+                "type": "run_complete",
+                "run_id": outcome.run_id.to_string(),
+                "state": "succeeded",
+                "model": "gpt-5.6-spark",
+                "text": "done",
+            })
+        );
+    }
+
+    #[test]
+    fn maintenance_stages_only_a_supplied_safe_patch() {
+        let workspace = tempfile::tempdir().expect("workspace");
+        let supplied = tempfile::NamedTempFile::new().expect("supplied patch");
+        let patch = "diff --git a/src/lib.rs b/src/lib.rs\n--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -1 +1 @@\n-old\n+new\n";
+        fs::write(supplied.path(), patch).expect("write patch");
+        let staged = stage_maintenance_patch(workspace.path(), supplied.path()).expect("stage patch");
+        let staging = workspace
+            .path()
+            .canonicalize()
+            .expect("canonical workspace")
+            .join(".minha/maintenance");
+        assert!(staged.starts_with(staging));
+        assert_eq!(fs::read_to_string(staged).expect("read staged patch"), patch);
+    }
+
+    #[test]
+    fn maintenance_rejects_unsafe_or_non_diff_supplied_patches() {
+        for patch in [
+            "not a patch\n",
+            "diff --git a/.env b/.env\n--- a/.env\n+++ b/.env\n@@ -1 +1 @@\n-x\n+y\n",
+            "diff --git a/migrations/1.sql b/migrations/1.sql\n--- a/migrations/1.sql\n+++ b/migrations/1.sql\n@@ -1 +1 @@\n-x\n+y\n",
+            "diff --git a/ok.rs b/ok.rs\n--- a/ok.rs\n+++ b/ok.rs\n@@ -1 +1 @@\n-git status\n+git push origin main\n",
+        ] {
+            assert!(validate_maintenance_patch(patch).is_err(), "accepted: {patch:?}");
+        }
     }
 }

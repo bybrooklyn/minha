@@ -82,6 +82,11 @@ pub fn discover_instructions(
                 continue;
             }
             let key = fs::canonicalize(&path)?;
+            // A checked-in symlink can point outside the workspace; reading
+            // through it would feed arbitrary host files into the model.
+            if !key.starts_with(&root) {
+                continue;
+            }
             if name == "CLAUDE.md" && agents_key.as_ref() == Some(&key) {
                 continue;
             }
@@ -320,6 +325,19 @@ mod tests {
         let found = discover_instructions(temp.path(), temp.path()).expect("test operation should succeed");
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].name, "AGENTS.md");
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn symlinked_instruction_outside_the_workspace_is_skipped() {
+        let temp = tempfile::tempdir().expect("test operation should succeed");
+        let outside = tempfile::tempdir().expect("test operation should succeed");
+        fs::write(outside.path().join("secret.md"), "ssh private key material")
+            .expect("test operation should succeed");
+        symlink(outside.path().join("secret.md"), temp.path().join("AGENTS.md"))
+            .expect("test operation should succeed");
+        let found = discover_instructions(temp.path(), temp.path()).expect("test operation should succeed");
+        assert!(found.is_empty(), "escaped instruction was loaded: {found:?}");
     }
 
     #[test]

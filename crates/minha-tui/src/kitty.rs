@@ -1,4 +1,4 @@
-use crate::ui::RasterSurface;
+use crate::ui::{RasterSurface, truecolor};
 use base64::Engine;
 use crossterm::cursor::{MoveTo, RestorePosition, SavePosition};
 use crossterm::{queue, terminal};
@@ -6,7 +6,8 @@ use ratatui::backend::CrosstermBackend;
 use std::collections::HashSet;
 use std::io::{self, Write};
 
-const CANVAS: [u8; 3] = [5, 12, 24];
+#[cfg(test)]
+const DEFAULT_CANVAS: [u8; 3] = [5, 12, 24];
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum Corner {
@@ -20,37 +21,30 @@ pub(crate) struct SurfaceRenderer {
     active: &'static str,
     cell_width: u16,
     cell_height: u16,
+    canvas: [u8; 3],
     transmitted: HashSet<([u8; 3], Corner)>,
     placements: Vec<(u32, u32)>,
 }
 
 impl SurfaceRenderer {
-    pub(crate) fn new(requested: &str, theme: &str) -> Self {
-        let window = terminal::window_size().ok();
-        let (cell_width, cell_height) = window
-            .filter(|window| window.columns > 0 && window.rows > 0)
-            .map(|window| (window.width / window.columns, window.height / window.rows))
-            .unwrap_or_default();
-        let known_graphics_terminal = std::env::var("TERM_PROGRAM").is_ok_and(|value| {
-            matches!(
-                value.to_ascii_lowercase().as_str(),
-                "ghostty" | "kitty" | "wezterm"
-            )
-        }) || std::env::var_os("KITTY_WINDOW_ID").is_some();
+    pub(crate) fn new(requested: &str, theme: &str, canvas: [u8; 3]) -> Self {
+        let (cell_width, cell_height) = terminal_cell_geometry();
         let light_auto = theme == "auto"
             && std::env::var("COLORFGBG")
                 .ok()
                 .and_then(|value| value.rsplit(';').next()?.parse::<u8>().ok())
                 .is_some_and(|background| background >= 8);
-        let concrete_dark_canvas = theme == "dark" || (theme == "auto" && !light_auto);
-        let kitty = concrete_dark_canvas
-            && (matches!(requested, "kitty") || (requested == "auto" && known_graphics_terminal));
+        let kitty = kitty_is_safe(
+            requested,
+            theme,
+            truecolor(),
+            light_auto,
+            known_graphics_terminal(),
+        );
+        let terminal_is_dumb = std::env::var("TERM").is_ok_and(|term| term == "dumb");
         let active = if kitty && cell_width > 0 && cell_height > 0 {
             "kitty"
-        } else if requested == "square"
-            || theme == "no_color"
-            || std::env::var("TERM").is_ok_and(|term| term == "dumb")
-        {
+        } else if requested == "square" || theme == "no_color" || terminal_is_dumb {
             "square"
         } else {
             "quadrant"
@@ -59,6 +53,7 @@ impl SurfaceRenderer {
             active,
             cell_width,
             cell_height,
+            canvas,
             transmitted: HashSet::new(),
             placements: Vec::new(),
         }
@@ -66,6 +61,33 @@ impl SurfaceRenderer {
 
     pub(crate) const fn active_name(&self) -> &'static str {
         self.active
+    }
+
+    /// Refresh the pixel dimensions of one terminal cell after a resize.
+    /// Kitty images are rasterized at the old cell size, so retaining their
+    /// transmission cache would visibly stretch or misalign rounded corners
+    /// after a font, DPI, or terminal-size change. Existing placements remain
+    /// queued for deletion by the next render pass.
+    pub(crate) fn refresh_geometry(&mut self) -> bool {
+        if self.active != "kitty" {
+            return false;
+        }
+        let (cell_width, cell_height) = terminal_cell_geometry();
+        self.update_cell_geometry(cell_width, cell_height)
+    }
+
+    fn update_cell_geometry(&mut self, cell_width: u16, cell_height: u16) -> bool {
+        if self.active != "kitty"
+            || cell_width == 0
+            || cell_height == 0
+            || (self.cell_width == cell_width && self.cell_height == cell_height)
+        {
+            return false;
+        }
+        self.cell_width = cell_width;
+        self.cell_height = cell_height;
+        self.transmitted.clear();
+        true
     }
 
     pub(crate) fn render<W: Write>(
@@ -106,8 +128,13 @@ impl SurfaceRenderer {
             for (corner, (x, y)) in corners.into_iter().zip(positions) {
                 let image_id = image_id(surface.fill, corner);
                 if self.transmitted.insert((surface.fill, corner)) {
-                    let payload =
-                        rounded_corner_rgba(self.cell_width, self.cell_height, CANVAS, surface.fill, corner);
+                    let payload = rounded_corner_rgba(
+                        self.cell_width,
+                        self.cell_height,
+                        self.canvas,
+                        surface.fill,
+                        corner,
+                    );
                     let encoded = base64::engine::general_purpose::STANDARD.encode(payload);
                     write!(
                         backend,
@@ -129,12 +156,53 @@ impl SurfaceRenderer {
     }
 }
 
+fn known_graphics_terminal() -> bool {
+    std::env::var("TERM_PROGRAM").is_ok_and(|value| {
+        matches!(
+            value.to_ascii_lowercase().as_str(),
+            "ghostty" | "kitty" | "wezterm"
+        )
+    }) || std::env::var_os("KITTY_WINDOW_ID").is_some()
+}
+
+/// Kitty images use literal RGBA pixels while regular Ratatui cells follow the
+/// terminal palette. AUTO retains the established Ghostty/Kitty/WezTerm path;
+/// other terminals use the matching quadrant-cell fallback.
+fn kitty_is_safe(
+    requested: &str,
+    theme: &str,
+    truecolor: bool,
+    light_auto: bool,
+    known_graphics_terminal: bool,
+) -> bool {
+    let concrete_dark_canvas = theme == "dark" || theme == "imported" || (theme == "auto" && !light_auto);
+    truecolor
+        && concrete_dark_canvas
+        && (requested == "kitty" || (requested == "auto" && known_graphics_terminal))
+}
+
+fn terminal_cell_geometry() -> (u16, u16) {
+    terminal::window_size()
+        .ok()
+        .filter(|window| window.columns > 0 && window.rows > 0)
+        .map(|window| (window.width / window.columns, window.height / window.rows))
+        .unwrap_or_default()
+}
+
 impl Drop for SurfaceRenderer {
     fn drop(&mut self) {
         if self.active == "kitty" {
-            let _ = io::stdout().write_all(b"\x1b_Ga=d,d=a,q=2;\x1b\\");
+            let _ = clear_kitty_surface(&mut io::stdout());
         }
     }
+}
+
+/// Send the delete-all sequence so kitty image placements cannot leak into
+/// the next session, and flush: on process exit without a flush the
+/// sequence can be lost, and a redirected stdout would buffer it forever.
+fn clear_kitty_surface<W: io::Write>(writer: &mut W) -> io::Result<()> {
+    writer.write_all(b"\x1b_Ga=d,d=a,q=2;\x1b\\")?;
+    writer.flush()
 }
 
 fn image_id(fill: [u8; 3], corner: Corner) -> u32 {
@@ -196,10 +264,38 @@ mod tests {
 
     #[test]
     fn rounded_mask_keeps_outside_canvas_and_inside_fill() {
-        let mask = rounded_corner_rgba(10, 20, CANVAS, [15, 34, 57], Corner::TopLeft);
-        assert_eq!(&mask[..3], &CANVAS);
+        let mask = rounded_corner_rgba(10, 20, DEFAULT_CANVAS, [15, 34, 57], Corner::TopLeft);
+        assert_eq!(&mask[..3], &DEFAULT_CANVAS);
         let bottom_right = (10 * 20 - 1) * 4;
         assert_eq!(&mask[bottom_right..bottom_right + 3], &[15, 34, 57]);
+    }
+
+    #[test]
+    fn imported_palettes_honor_an_explicit_kitty_renderer_choice() {
+        // Imported palettes are allowed to use Kitty when their RGB pixels
+        // can match the terminal cells; this policy test stays independent of
+        // the host test runner's terminal geometry.
+        assert!(kitty_is_safe("kitty", "imported", true, false, false));
+    }
+
+    #[test]
+    fn kitty_uses_the_established_auto_or_explicit_graphics_policy() {
+        assert!(kitty_is_safe("kitty", "dark", true, false, false));
+        assert!(kitty_is_safe("auto", "dark", true, false, true));
+        assert!(
+            !kitty_is_safe("auto", "dark", true, false, false),
+            "AUTO falls back to quadrant cells outside known graphics terminals"
+        );
+        assert!(
+            !kitty_is_safe("kitty", "dark", false, false, true),
+            "explicit Kitty must not place RGB pixels over indexed terminal cells"
+        );
+    }
+
+    #[test]
+    fn no_color_kitty_request_falls_back_to_square_cells() {
+        let renderer = SurfaceRenderer::new("kitty", "no_color", DEFAULT_CANVAS);
+        assert_eq!(renderer.active_name(), "square");
     }
 
     #[test]
@@ -208,6 +304,7 @@ mod tests {
             active: "kitty",
             cell_width: 8,
             cell_height: 16,
+            canvas: DEFAULT_CANVAS,
             transmitted: HashSet::new(),
             placements: Vec::new(),
         };
@@ -240,5 +337,62 @@ mod tests {
         );
         drop(bytes);
         renderer.active = "square";
+    }
+
+    #[test]
+    fn resize_retransmits_corner_images_and_retires_old_placements() {
+        let fill = [15, 34, 57];
+        let mut renderer = SurfaceRenderer {
+            active: "kitty",
+            cell_width: 8,
+            cell_height: 16,
+            canvas: DEFAULT_CANVAS,
+            transmitted: HashSet::from([(fill, Corner::TopLeft)]),
+            placements: vec![(image_id(fill, Corner::TopLeft), 7)],
+        };
+
+        assert!(renderer.update_cell_geometry(12, 20));
+        assert_eq!((renderer.cell_width, renderer.cell_height), (12, 20));
+        assert!(
+            renderer.transmitted.is_empty(),
+            "new cell dimensions require fresh image payloads"
+        );
+        assert_eq!(
+            renderer.placements,
+            vec![(image_id(fill, Corner::TopLeft), 7)],
+            "the next render must delete old placements before repainting"
+        );
+        assert!(!renderer.update_cell_geometry(12, 20));
+        assert!(!renderer.update_cell_geometry(0, 20));
+        renderer.active = "square";
+    }
+
+    #[derive(Default)]
+    struct FlushCountingWriter {
+        bytes: Vec<u8>,
+        flushes: usize,
+    }
+
+    impl Write for FlushCountingWriter {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.flushes += 1;
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn clear_surface_writes_delete_all_and_flushes() {
+        let mut writer = FlushCountingWriter::default();
+        clear_kitty_surface(&mut writer).expect("test write should succeed");
+        assert_eq!(writer.bytes, b"\x1b_Ga=d,d=a,q=2;\x1b\\");
+        assert_eq!(
+            writer.flushes, 1,
+            "the delete-all sequence must be flushed or kitty placements leak"
+        );
     }
 }

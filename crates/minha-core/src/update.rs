@@ -9,6 +9,7 @@ use std::{
     io::{self, Read},
     path::{Path, PathBuf},
     process::{Command, ExitStatus, Stdio},
+    sync::mpsc,
     thread,
     time::{Duration, Instant},
 };
@@ -213,6 +214,7 @@ fn run_gh_json<T: for<'de> Deserialize<'de>>(args: &[&str]) -> Result<T, String>
 }
 
 fn run_gh_download(repository: &str, tag: &str, asset: &str, directory: &Path) -> Result<(), String> {
+    validate_asset_name(asset)?;
     let directory_string = directory.to_string_lossy().into_owned();
     let output = run_gh(
         &[
@@ -240,6 +242,23 @@ fn run_gh_download(repository: &str, tag: &str, asset: &str, directory: &Path) -
     }
 }
 
+/// Release asset names are attacker-controlled metadata. `--pattern` is a
+/// glob, so reject glob metacharacters and path separators before it reaches
+/// gh; the exact-name metadata checks in `install_release` then verify that
+/// precisely the expected file was written.
+fn validate_asset_name(asset: &str) -> Result<(), String> {
+    if asset.is_empty() || asset.len() > 512 {
+        return Err("release asset name is invalid".into());
+    }
+    if asset.contains(['*', '?', '[', ']', '{', '}', '\\', '/']) || asset.contains(['\r', '\n', '\t']) {
+        return Err("release asset name contains unsupported characters".into());
+    }
+    if asset == "." || asset == ".." {
+        return Err("release asset name is invalid".into());
+    }
+    Ok(())
+}
+
 struct GhOutput {
     status: ExitStatus,
     stdout: Vec<u8>,
@@ -261,8 +280,16 @@ fn run_gh(args: &[&str], timeout: Duration, cap: usize) -> Result<GhOutput, Stri
         .stderr
         .take()
         .ok_or_else(|| "gh did not provide stderr".to_owned())?;
-    let stdout_reader = thread::spawn(move || read_capped(stdout, cap));
-    let stderr_reader = thread::spawn(move || read_capped(stderr, cap));
+    let (stdout_tx, stdout_rx) = mpsc::channel();
+    let (stderr_tx, stderr_rx) = mpsc::channel();
+    let stdout_reader = thread::spawn(move || {
+        let result = read_capped(stdout, cap);
+        let _ = stdout_tx.send(result);
+    });
+    let stderr_reader = thread::spawn(move || {
+        let result = read_capped(stderr, cap);
+        let _ = stderr_tx.send(result);
+    });
     let deadline = Instant::now() + timeout;
     let mut timed_out = false;
     loop {
@@ -277,14 +304,21 @@ fn run_gh(args: &[&str], timeout: Duration, cap: usize) -> Result<GhOutput, Stri
         thread::sleep(Duration::from_millis(10));
     }
     let status = child.wait().map_err(io_message)?;
-    let stdout = stdout_reader
-        .join()
-        .map_err(|_| "gh stdout reader panicked".to_owned())?
-        .map_err(io_message)?;
-    let stderr = stderr_reader
-        .join()
-        .map_err(|_| "gh stderr reader panicked".to_owned())?
-        .map_err(io_message)?;
+    // A grandchild that inherited the pipes keeps EOF (and the thread join)
+    // from ever arriving; collect the readers with a grace timeout instead.
+    let grace = Duration::from_secs(5);
+    let stdout = match stdout_rx.recv_timeout(grace) {
+        Ok(Ok(bytes)) => bytes,
+        Ok(Err(error)) => return Err(io_message(error)),
+        Err(_) => Vec::new(),
+    };
+    let stderr = match stderr_rx.recv_timeout(grace) {
+        Ok(Ok(bytes)) => bytes,
+        Ok(Err(error)) => return Err(io_message(error)),
+        Err(_) => Vec::new(),
+    };
+    let _ = stdout_reader;
+    let _ = stderr_reader;
     if timed_out {
         return Err(format!("gh timed out after {} seconds", timeout.as_secs()));
     }
@@ -551,6 +585,28 @@ mod tests {
         ];
         assert!(select_assets(&assets, "x86_64-unknown-linux-gnu").is_ok());
         assert!(select_assets(&assets, "x86_64-pc-windows-msvc").is_err());
+    }
+
+    #[test]
+    fn release_asset_names_cannot_carry_glob_or_path_escapes() {
+        for name in [
+            "minha-*",
+            "minha-?.sha256",
+            "release[1]",
+            "../minha",
+            "dir/minha",
+            "minha\\bad",
+            "minha\nother",
+            "",
+        ] {
+            assert!(validate_asset_name(name).is_err(), "accepted: {name:?}");
+        }
+        for name in [
+            "minha-x86_64-unknown-linux-gnu",
+            "minha-x86_64-unknown-linux-gnu.sha256",
+        ] {
+            assert!(validate_asset_name(name).is_ok(), "rejected: {name:?}");
+        }
     }
 
     #[test]

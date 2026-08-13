@@ -4,6 +4,62 @@ use crate::models::Model;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+/// Durable accounting schema. The SQLite store is the source of truth for
+/// these entries; events and run-level counters are compatibility projections.
+pub const USAGE_LEDGER_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UsageKindV1 {
+    ModelTurn,
+    Compaction,
+    LegacyUnverified,
+}
+
+impl UsageKindV1 {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::ModelTurn => "model_turn",
+            Self::Compaction => "compaction",
+            Self::LegacyUnverified => "legacy_unverified",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UsageStateV1 {
+    Settled,
+    LegacyUnverified,
+}
+
+impl UsageStateV1 {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Settled => "settled",
+            Self::LegacyUnverified => "legacy_unverified",
+        }
+    }
+}
+
+/// Compact canonical record for a billable provider boundary. `entry_key` is
+/// stable for an observed provider response when the provider exposes one;
+/// duplicate settlement must never change totals.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct UsageLedgerEntryV1 {
+    pub schema_version: u16,
+    pub entry_key: String,
+    pub run_id: String,
+    pub kind: UsageKindV1,
+    pub state: UsageStateV1,
+    pub provider: String,
+    pub model: String,
+    pub agent_id: Option<String>,
+    pub provider_response_id: Option<String>,
+    pub usage: TokenUsage,
+    pub context_tokens: Option<u64>,
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TokenUsage {
     pub input: u64,

@@ -1,8 +1,10 @@
 //! Layered runtime configuration.
 
 use crate::protocol::Mode;
+use crate::provider::ProviderId;
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
     str::FromStr,
@@ -19,12 +21,14 @@ pub enum ConfigError {
     Encode(#[from] toml::ser::Error),
     #[error("config database path must not be empty")]
     EmptyDatabasePath,
-    #[error("scheduler.max_agents must be between 1 and 16")]
+    #[error("scheduler.max_agents must be between 1 and 8")]
     AgentCount,
     #[error("scheduler.usage_reserve_percent must be between 0 and 50")]
     UsageReserve,
-    #[error("budgets DeepSeek reserves must satisfy 0 <= hard < soft <= 100")]
-    DeepSeekReserve,
+    #[error("every budgets.provider_reserves entry must satisfy 0 <= hard < soft <= 100")]
+    ProviderReserve,
+    #[error("routing pins must have non-empty role keys and model values")]
+    RoutingPolicy,
     #[error("context.context_limit must be positive when configured")]
     ContextWindow,
     #[error("context.fact_limit and context.recent_turns must be positive")]
@@ -55,6 +59,7 @@ pub struct Config {
     pub cache: CacheConfig,
     pub memory: MemoryConfig,
     pub budgets: BudgetConfig,
+    pub routing: RoutingConfig,
     pub books: BooksConfig,
     pub tui: TuiConfig,
 }
@@ -81,6 +86,10 @@ pub struct SchedulerConfig {
     pub hard_max_agents: usize,
     pub usage_reserve_percent: f32,
     pub question_policy: QuestionPolicy,
+    /// When true, pause and ask for human approval before Mina integrates
+    /// worker output instead of integrating automatically. Off by default so
+    /// existing runs are unaffected unless a user opts in.
+    pub integration_approval: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -156,7 +165,7 @@ impl ExecutionProfile {
             },
             Self::Balanced => RunPolicyV1 {
                 schema_version: 1,
-                max_agents: 8,
+                max_agents: 4,
                 minimum_speedup_percent: 25,
                 maximum_coordination_percent: 15,
                 local_yolo: false,
@@ -164,7 +173,7 @@ impl ExecutionProfile {
             },
             Self::Turbo => RunPolicyV1 {
                 schema_version: 1,
-                max_agents: 16,
+                max_agents: 8,
                 minimum_speedup_percent: 1,
                 maximum_coordination_percent: 100,
                 local_yolo: true,
@@ -188,12 +197,117 @@ pub struct RunPolicyV1 {
 
 pub type BudgetPreset = ExecutionProfile;
 
+/// Balance-reserve policy for a single provider. Once the provider's remaining
+/// balance falls to `soft_percent` of its observed high-water mark, that
+/// provider is used only when nothing else is available; at `hard_percent` it is
+/// withdrawn entirely.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ReservePolicy {
+    pub soft_percent: f32,
+    pub hard_percent: f32,
+}
+
+impl Default for ReservePolicy {
+    fn default() -> Self {
+        Self {
+            soft_percent: 10.0,
+            hard_percent: 2.0,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct BudgetConfig {
     pub default: ExecutionProfile,
-    pub deepseek_soft_reserve_percent: f32,
-    pub deepseek_hard_reserve_percent: f32,
+    /// Reserve policy keyed by provider, so a newly added provider registers its
+    /// own thresholds instead of needing a parallel pair of flat fields.
+    pub provider_reserves: BTreeMap<ProviderId, ReservePolicy>,
+    /// Superseded by `provider_reserves`. Kept readable for one schema
+    /// generation so existing `minha.toml` files keep working; when present
+    /// these fold into the DeepSeek entry of `provider_reserves`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deepseek_soft_reserve_percent: Option<f32>,
+    /// See `deepseek_soft_reserve_percent`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deepseek_hard_reserve_percent: Option<f32>,
+}
+
+impl BudgetConfig {
+    /// Fold the deprecated flat DeepSeek keys into the provider-keyed table and
+    /// guarantee every known provider has an entry, so lookups never have to
+    /// decide what a missing provider means.
+    fn normalize(&mut self) {
+        let legacy_soft = self.deepseek_soft_reserve_percent.take();
+        let legacy_hard = self.deepseek_hard_reserve_percent.take();
+        if legacy_soft.is_some() || legacy_hard.is_some() {
+            let entry = self.provider_reserves.entry(ProviderId::DeepSeek).or_default();
+            if let Some(soft) = legacy_soft {
+                entry.soft_percent = soft;
+            }
+            if let Some(hard) = legacy_hard {
+                entry.hard_percent = hard;
+            }
+        }
+        for provider in ProviderId::all() {
+            self.provider_reserves.entry(provider).or_default();
+        }
+    }
+
+    /// Reserve thresholds for `provider`. Defaults apply to any provider the
+    /// user has not configured explicitly.
+    pub fn reserve_for(&self, provider: ProviderId) -> ReservePolicy {
+        self.provider_reserves.get(&provider).copied().unwrap_or_default()
+    }
+}
+
+/// Explicit user routing policy.  The default remains provider-neutral: pins
+/// and provider overrides are absent unless the user chooses them.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct RoutingConfig {
+    /// A model pin keyed by an exact role, or by the compact `worker`, `lead`,
+    /// or `default` role family. Pins narrow an eligible pool; they never turn
+    /// an unavailable/unsupported model into an eligible one.
+    pub pins: BTreeMap<String, String>,
+    /// Explicit per-provider exceptions for reserve and transient cooldown
+    /// admission. `true` forces exclusion, `false` bypasses only that local
+    /// admission signal, and `None` respects the observed policy.
+    pub providers: BTreeMap<ProviderId, RoutingProviderOverride>,
+}
+
+impl RoutingConfig {
+    /// Resolve a compact pin without making task IDs or provider names part of
+    /// the public configuration surface.
+    pub fn pin_for_role(&self, role: &str) -> Option<&str> {
+        self.pins.get(role).map(String::as_str).or_else(|| {
+            let role = role.to_ascii_lowercase();
+            let family = if role.contains("worker") || role.contains("audit") || role.contains("auditor") {
+                Some("worker")
+            } else if role.contains("lead") || role.contains("mina") || role.contains("planner") {
+                Some("lead")
+            } else {
+                None
+            };
+            family
+                .and_then(|family| self.pins.get(family))
+                .or_else(|| self.pins.get("default"))
+                .map(String::as_str)
+        })
+    }
+
+    pub fn provider_override(&self, provider: ProviderId) -> RoutingProviderOverride {
+        self.providers.get(&provider).copied().unwrap_or_default()
+    }
+}
+
+/// The narrow per-provider portion of an explicit routing override.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct RoutingProviderOverride {
+    pub reserve: Option<bool>,
+    pub cooldown: Option<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -232,6 +346,7 @@ impl Default for Config {
             cache: CacheConfig::default(),
             memory: MemoryConfig::default(),
             budgets: BudgetConfig::default(),
+            routing: RoutingConfig::default(),
             books: BooksConfig::default(),
             tui: TuiConfig::default(),
         }
@@ -258,10 +373,13 @@ impl Default for ModelConfig {
 impl Default for SchedulerConfig {
     fn default() -> Self {
         Self {
-            max_agents: 8,
-            hard_max_agents: 16,
+            // Balanced is deliberately a small batch rather than a standing
+            // swarm. Turbo is the only profile permitted to exceed it.
+            max_agents: 4,
+            hard_max_agents: 8,
             usage_reserve_percent: 12.0,
             question_policy: QuestionPolicy::OnlyBlocking,
+            integration_approval: false,
         }
     }
 }
@@ -311,8 +429,12 @@ impl Default for BudgetConfig {
     fn default() -> Self {
         Self {
             default: ExecutionProfile::Balanced,
-            deepseek_soft_reserve_percent: 10.0,
-            deepseek_hard_reserve_percent: 2.0,
+            provider_reserves: ProviderId::all()
+                .into_iter()
+                .map(|provider| (provider, ReservePolicy::default()))
+                .collect(),
+            deepseek_soft_reserve_percent: None,
+            deepseek_hard_reserve_percent: None,
         }
     }
 }
@@ -337,7 +459,8 @@ impl Default for TuiConfig {
 
 impl Config {
     pub fn from_toml(input: &str) -> Result<Self, ConfigError> {
-        let config: Self = toml::from_str(input)?;
+        let mut config: Self = toml::from_str(input)?;
+        config.budgets.normalize();
         config.validate()?;
         Ok(config)
     }
@@ -351,33 +474,52 @@ impl Config {
     /// project. Maps merge recursively so a small project file does not erase
     /// unrelated defaults.
     pub fn discover(project_root: impl AsRef<Path>) -> Result<Self, ConfigError> {
+        let user = dirs::config_dir().map(|dir| dir.join("minha/config.toml"));
+        Self::discover_with_user(project_root, user)
+    }
+
+    fn discover_with_user(
+        project_root: impl AsRef<Path>,
+        user_file: Option<PathBuf>,
+    ) -> Result<Self, ConfigError> {
         let project_root = project_root.as_ref();
+        let user_file = user_file.filter(|path| path.is_file());
+        let project_file = project_root.join("minha.toml");
+        let project_exists = project_file.is_file();
         let mut merged = toml::Value::try_from(Self::default())?;
-        if let Some(user) = dirs::config_dir().map(|dir| dir.join("minha/config.toml"))
-            && user.is_file()
-        {
-            merge_toml(
-                &mut merged,
+        // A relative `database_path` resolves against the layer that set it:
+        // the user config directory for user files, the project root for the
+        // default and for project files.
+        let mut database_origin: Option<PathBuf> = None;
+        if let Some(user) = user_file {
+            let parsed: toml::Value =
                 toml::from_str(&fs::read_to_string(&user).map_err(|source| ConfigError::Read {
                     path: user.clone(),
                     source,
-                })?)?,
-            );
+                })?)?;
+            if parsed.get("database_path").is_some() {
+                database_origin = user.parent().map(Path::to_path_buf);
+            }
+            merge_toml(&mut merged, parsed);
         }
-        let project = project_root.join("minha.toml");
-        if project.is_file() {
-            merge_toml(
-                &mut merged,
-                toml::from_str(&fs::read_to_string(&project).map_err(|source| ConfigError::Read {
-                    path: project.clone(),
+        if project_exists {
+            let parsed: toml::Value = toml::from_str(&fs::read_to_string(&project_file).map_err(
+                |source| ConfigError::Read {
+                    path: project_file.clone(),
                     source,
-                })?)?,
-            );
+                },
+            )?)?;
+            if parsed.get("database_path").is_some() {
+                database_origin = Some(project_root.to_path_buf());
+            }
+            merge_toml(&mut merged, parsed);
         }
         let mut config: Self = merged.try_into().map_err(ConfigError::Parse)?;
         if config.database_path.is_relative() {
-            config.database_path = project_root.join(&config.database_path);
+            let base = database_origin.unwrap_or_else(|| project_root.to_path_buf());
+            config.database_path = base.join(&config.database_path);
         }
+        config.budgets.normalize();
         config.validate()?;
         Ok(config)
     }
@@ -386,20 +528,32 @@ impl Config {
         if self.database_path.as_os_str().is_empty() {
             return Err(ConfigError::EmptyDatabasePath);
         }
-        if !(1..=16).contains(&self.scheduler.max_agents) {
+        if !(1..=8).contains(&self.scheduler.max_agents) {
             return Err(ConfigError::AgentCount);
         }
-        if self.scheduler.hard_max_agents < self.scheduler.max_agents || self.scheduler.hard_max_agents > 16 {
+        if self.scheduler.hard_max_agents < self.scheduler.max_agents || self.scheduler.hard_max_agents > 8 {
             return Err(ConfigError::AgentCount);
         }
         if !(0.0..=50.0).contains(&self.scheduler.usage_reserve_percent) {
             return Err(ConfigError::UsageReserve);
         }
-        if !(0.0..=100.0).contains(&self.budgets.deepseek_soft_reserve_percent)
-            || !(0.0..=100.0).contains(&self.budgets.deepseek_hard_reserve_percent)
-            || self.budgets.deepseek_hard_reserve_percent >= self.budgets.deepseek_soft_reserve_percent
+        // Every provider's reserve pair is validated the same way; a new
+        // provider inherits the rule by being present in the table.
+        for policy in self.budgets.provider_reserves.values() {
+            if !(0.0..=100.0).contains(&policy.soft_percent)
+                || !(0.0..=100.0).contains(&policy.hard_percent)
+                || policy.hard_percent >= policy.soft_percent
+            {
+                return Err(ConfigError::ProviderReserve);
+            }
+        }
+        if self
+            .routing
+            .pins
+            .iter()
+            .any(|(role, model)| role.trim().is_empty() || model.trim().is_empty())
         {
-            return Err(ConfigError::DeepSeekReserve);
+            return Err(ConfigError::RoutingPolicy);
         }
         if self.context.context_limit == Some(0) {
             return Err(ConfigError::ContextWindow);
@@ -428,6 +582,7 @@ impl Config {
             &models.worker_deep,
             &models.consult_ambiguous,
             &models.consult_high_risk,
+            &models.reasoning_effort,
         ]
         .iter()
         .any(|model| model.trim().is_empty())
@@ -493,7 +648,7 @@ mod tests {
             .expect("test operation should succeed");
         assert_eq!(config.mode, Mode::Batch);
         assert_eq!(config.models.lead, "gpt-5.6-luna");
-        assert_eq!(config.scheduler.max_agents, 8);
+        assert_eq!(config.scheduler.max_agents, 4);
         assert_eq!(config.memory, MemoryConfig::default());
         assert_eq!(config.tui.theme, "dark");
         assert_eq!(config.tui.surface_renderer, "auto");
@@ -514,7 +669,8 @@ mod tests {
         assert_eq!(economy.max_agents, 1);
         assert_eq!(balanced.minimum_speedup_percent, 25);
         assert_eq!(balanced.maximum_coordination_percent, 15);
-        assert_eq!(turbo.max_agents, 16);
+        assert_eq!(balanced.max_agents, 4);
+        assert_eq!(turbo.max_agents, 8);
         assert!(turbo.local_yolo);
         assert_eq!(turbo.schema_version, 1);
         assert_eq!(ExecutionProfile::Balanced.soft_token_target(), 100_000);
@@ -535,6 +691,51 @@ mod tests {
     }
 
     #[test]
+    fn user_layer_relative_database_path_resolves_against_user_config_dir() {
+        let project = tempfile::tempdir().expect("test operation should succeed");
+        let user_dir = tempfile::tempdir().expect("test operation should succeed");
+        fs::create_dir_all(user_dir.path().join("minha")).expect("test operation should succeed");
+        fs::write(
+            user_dir.path().join("minha/config.toml"),
+            "database_path = 'shared.sqlite3'\n",
+        )
+        .expect("test operation should succeed");
+        let config =
+            Config::discover_with_user(project.path(), Some(user_dir.path().join("minha/config.toml")))
+                .expect("test operation should succeed");
+        assert_eq!(
+            config.database_path,
+            user_dir.path().join("minha/shared.sqlite3"),
+            "user-layer relative paths must not be re-based onto the project"
+        );
+    }
+
+    #[test]
+    fn project_layer_database_path_overrides_user_resolution() {
+        let project = tempfile::tempdir().expect("test operation should succeed");
+        let user_dir = tempfile::tempdir().expect("test operation should succeed");
+        fs::create_dir_all(user_dir.path().join("minha")).expect("test operation should succeed");
+        fs::write(
+            user_dir.path().join("minha/config.toml"),
+            "database_path = 'user.sqlite3'\n",
+        )
+        .expect("test operation should succeed");
+        fs::write(
+            project.path().join("minha.toml"),
+            "database_path = 'project.db'\n",
+        )
+        .expect("test operation should succeed");
+        let config =
+            Config::discover_with_user(project.path(), Some(user_dir.path().join("minha/config.toml")))
+                .expect("test operation should succeed");
+        assert_eq!(
+            config.database_path,
+            project.path().join("project.db"),
+            "the project layer must win over the user layer"
+        );
+    }
+
+    #[test]
     fn empty_database_path_is_rejected() {
         let error = Config::from_toml("database_path = ''").unwrap_err();
         assert!(matches!(error, ConfigError::EmptyDatabasePath));
@@ -549,6 +750,13 @@ mod tests {
         let detail = Config::from_toml("[tui]\ntool_detail = 'verbose'")
             .expect_err("unknown tool detail must fail validation");
         assert!(matches!(detail, ConfigError::ToolDetail));
+    }
+
+    #[test]
+    fn empty_reasoning_effort_is_rejected() {
+        let error = Config::from_toml("[models]\nreasoning_effort = ''")
+            .expect_err("empty reasoning effort must fail validation");
+        assert!(matches!(error, ConfigError::EmptyModel));
     }
 
     #[test]
@@ -572,5 +780,37 @@ mod tests {
         assert_eq!(configured.memory.retrieval_limit, 3);
         assert_eq!(configured.tui.theme, "ansi16");
         assert!(configured.tui.reduced_motion);
+    }
+
+    #[test]
+    fn routing_pins_and_provider_overrides_are_explicit_and_role_scoped() {
+        let config = Config::from_toml(
+            "[routing.pins]\nworker = 'deepseek/deepseek-v4-flash'\n\n[routing.providers.deepseek]\nreserve = false\ncooldown = true\n",
+        )
+        .expect("routing policy");
+        assert_eq!(
+            config.routing.pin_for_role("worker"),
+            Some("deepseek/deepseek-v4-flash")
+        );
+        assert_eq!(
+            config.routing.pin_for_role("audit"),
+            Some("deepseek/deepseek-v4-flash"),
+            "audit lenses share the explicit worker pin family"
+        );
+        assert_eq!(config.routing.pin_for_role("lead"), None);
+        assert_eq!(
+            config.routing.provider_override(ProviderId::DeepSeek),
+            RoutingProviderOverride {
+                reserve: Some(false),
+                cooldown: Some(true),
+            }
+        );
+    }
+
+    #[test]
+    fn routing_rejects_empty_pin_identities() {
+        let error = Config::from_toml("[routing.pins]\nworker = '  '\n")
+            .expect_err("empty pin model must fail validation");
+        assert!(matches!(error, ConfigError::RoutingPolicy));
     }
 }

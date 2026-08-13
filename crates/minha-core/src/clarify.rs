@@ -8,6 +8,8 @@ use serde::Deserialize;
 
 pub const INTAKE_SCHEMA_VERSION: u16 = 1;
 pub const READY_THRESHOLD: u8 = 25;
+/// Maximum clarification batches before remaining uncertainty is delegated.
+pub const MAX_CLARIFICATION_ROUNDS: u32 = 4;
 
 const GOAL: &str = "goal";
 const REPRODUCTION: &str = "reproduction";
@@ -288,6 +290,22 @@ pub fn prepare_brief(view: &mut IssueClarificationView, original_goal: &str) {
 pub fn confirm(view: &mut IssueClarificationView) {
     view.status = ClarificationStatus::Confirmed;
     view.pending_batch = None;
+}
+
+/// After a bounded number of clarification rounds, every still-unknown
+/// dimension is delegated so a user who never picks an option cannot loop
+/// forever (each round spends model tokens).
+pub fn exhaust_rounds(view: &mut IssueClarificationView, original_goal: &str) {
+    for dimension in view.meter.dimensions.iter_mut() {
+        if dimension.status == DimensionStatus::Unknown {
+            dimension.status = DimensionStatus::Delegated;
+            dimension.detail =
+                "Clarification rounds exhausted; Minha used the safest repository-supported assumption."
+                    .into();
+        }
+    }
+    view.meter = score(std::mem::take(&mut view.meter.dimensions));
+    prepare_brief(view, original_goal);
 }
 
 pub fn make_fallback_batch(view: &IssueClarificationView) -> ClarificationBatch {
@@ -877,6 +895,29 @@ mod tests {
 
         let audit = analyze("audit the repository", "audit");
         assert!(!needs_clarification(&audit));
+    }
+
+    #[test]
+    fn exhausted_rounds_delegate_unknowns_and_prepare_a_brief() {
+        let mut view = analyze("delete it", "implement");
+        assert!(needs_clarification(&view));
+        assert!(
+            view.meter
+                .dimensions
+                .iter()
+                .any(|dimension| dimension.status == DimensionStatus::Unknown)
+        );
+        exhaust_rounds(&mut view, "delete it");
+        assert_eq!(view.status, ClarificationStatus::Reviewing);
+        assert!(view.brief.is_some());
+        assert!(
+            view.meter
+                .dimensions
+                .iter()
+                .all(|dimension| dimension.status != DimensionStatus::Unknown),
+            "every unknown dimension must be delegated"
+        );
+        assert!(view.pending_batch.is_none());
     }
 
     #[test]

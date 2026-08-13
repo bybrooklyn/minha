@@ -2,9 +2,9 @@
 
 use crate::provider::{
     ModelCatalog, ModelDescriptor, ProviderBalanceAmountV1, ProviderBalanceV1, ProviderClient, ProviderError,
-    ProviderId, ProviderStreamEvent, ToolCall, TurnRequest, TurnResult,
+    ProviderId, ProviderStreamEvent, ToolCall, TurnRequest, TurnResult, redact_provider_detail,
+    retry_after_from_headers,
 };
-use crate::usage::TokenUsage;
 use futures_util::StreamExt;
 use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, HeaderValue};
 use secrecy::{ExposeSecret, SecretString};
@@ -15,6 +15,16 @@ use std::{future::Future, pin::Pin};
 
 pub const DEEPSEEK_PRICING_SOURCE: &str = "https://api-docs.deepseek.com/quick_start/pricing";
 pub const DEEPSEEK_PRICING_VERSION: &str = "2026-07-29";
+
+/// The small, explicit compatibility differences Minha supports for fixed
+/// OpenAI-style Chat Completions providers.  This is deliberately an enum,
+/// not a provider plug-in surface: each variant is reviewed in-tree and its
+/// request semantics are fixture-tested.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum ChatRequestProfile {
+    DeepSeek,
+    XiaomiMiMo,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DeepSeekPricing {
@@ -131,10 +141,12 @@ impl DeepSeekClient {
             Ok(())
         } else {
             let status = response.status();
+            let retry_after = retry_after_from_headers(response.headers());
             let bytes = response.bytes().await.unwrap_or_default();
             Err(ProviderError::Http {
                 status,
-                detail: String::from_utf8_lossy(&bytes[..bytes.len().min(4 * 1024)]).into_owned(),
+                detail: redact_provider_detail(&String::from_utf8_lossy(&bytes[..bytes.len().min(4 * 1024)])),
+                retry_after,
             })
         }
     }
@@ -166,9 +178,15 @@ impl DeepSeekClient {
             .await?;
         if !response.status().is_success() {
             let status = response.status();
+            let retry_after = retry_after_from_headers(response.headers());
             let bytes = response.bytes().await.unwrap_or_default();
-            let detail = String::from_utf8_lossy(&bytes[..bytes.len().min(4 * 1024)]).into_owned();
-            return Err(ProviderError::Http { status, detail });
+            let detail =
+                redact_provider_detail(&String::from_utf8_lossy(&bytes[..bytes.len().min(4 * 1024)]));
+            return Err(ProviderError::Http {
+                status,
+                detail,
+                retry_after,
+            });
         }
         let payload: BalanceResponse = response.json().await?;
         Ok(ProviderBalanceV1 {
@@ -192,15 +210,27 @@ impl DeepSeekClient {
         self.turn_stream(request, |_| {}).await
     }
 
-    pub async fn turn_stream<F>(
+    pub async fn turn_stream<F>(&self, request: TurnRequest, on_event: F) -> Result<TurnResult, ProviderError>
+    where
+        F: FnMut(ProviderStreamEvent),
+    {
+        self.turn_stream_with_profile(request, ChatRequestProfile::DeepSeek, on_event)
+            .await
+    }
+
+    /// Run a fixed, in-tree Chat Completions compatibility profile.  MiMo
+    /// shares the wire framing and SSE result shape with DeepSeek but does not
+    /// inherit DeepSeek's thinking/reasoning request fields.
+    pub(crate) async fn turn_stream_with_profile<F>(
         &self,
         request: TurnRequest,
+        profile: ChatRequestProfile,
         mut on_event: F,
     ) -> Result<TurnResult, ProviderError>
     where
         F: FnMut(ProviderStreamEvent),
     {
-        let body = chat_request(&request);
+        let body = chat_request_with_profile(&request, profile);
         let authorization = HeaderValue::from_str(&format!("Bearer {}", self.api_key.expose_secret()))
             .map_err(|_| ProviderError::Header)?;
         // Model POSTs are deliberately never retried: the provider may have
@@ -211,22 +241,36 @@ impl DeepSeekClient {
             .header(AUTHORIZATION, authorization)
             .header(ACCEPT, "text/event-stream")
             .header(CONTENT_TYPE, "application/json")
-            .timeout(Duration::from_secs(300))
             .json(&body)
             .send()
             .await?;
         if !response.status().is_success() {
             let status = response.status();
+            let retry_after = retry_after_from_headers(response.headers());
             let bytes = response.bytes().await.unwrap_or_default();
-            let detail = String::from_utf8_lossy(&bytes[..bytes.len().min(4 * 1024)]).into_owned();
-            return Err(ProviderError::Http { status, detail });
+            let detail =
+                redact_provider_detail(&String::from_utf8_lossy(&bytes[..bytes.len().min(4 * 1024)]));
+            return Err(ProviderError::Http {
+                status,
+                detail,
+                retry_after,
+            });
         }
 
         let mut parser = ChatStreamParser::default();
         let mut result = TurnResult::default();
         let mut stream = response.bytes_stream();
-        while let Some(chunk) = stream.next().await {
-            for event in parser.push(&chunk?, &mut result)? {
+        // Bounded by silence between chunks, never by total wall-clock time:
+        // long reasoning turns are already billed and must not be cut.
+        loop {
+            let chunk = tokio::time::timeout(crate::provider::STREAM_IDLE_TIMEOUT, stream.next())
+                .await
+                .map_err(|_| {
+                    ProviderError::InvalidResponse("provider stream exceeded the idle timeout".into())
+                })?;
+            let Some(chunk) = chunk else { break };
+            let chunk = chunk.map_err(ProviderError::Request)?;
+            for event in parser.push(&chunk, &mut result)? {
                 on_event(event);
             }
         }
@@ -259,7 +303,12 @@ impl ProviderClient for DeepSeekClient {
     }
 }
 
+#[cfg(test)]
 fn chat_request(request: &TurnRequest) -> Value {
+    chat_request_with_profile(request, ChatRequestProfile::DeepSeek)
+}
+
+pub(crate) fn chat_request_with_profile(request: &TurnRequest, profile: ChatRequestProfile) -> Value {
     let mut messages = vec![json!({"role":"system", "content":request.instructions})];
     for item in &request.input {
         match item.get("type").and_then(Value::as_str) {
@@ -304,16 +353,26 @@ fn chat_request(request: &TurnRequest) -> Value {
         "tools":tools,
         "parallel_tool_calls":request.parallel_tool_calls,
     });
-    body["thinking"] = json!({"type":"enabled"});
-    let requested_effort = request.reasoning_effort.as_deref().unwrap_or("max");
-    let reasoning_effort = if request.model == "deepseek-v4-flash" {
-        "max"
-    } else if matches!(requested_effort, "high" | "max") {
-        requested_effort
+    if profile == ChatRequestProfile::DeepSeek {
+        body["thinking"] = json!({"type":"enabled"});
+        let requested_effort = request.reasoning_effort.as_deref().unwrap_or("max");
+        let reasoning_effort = if request.model == "deepseek-v4-flash" {
+            "max"
+        } else if matches!(requested_effort, "high" | "max") {
+            requested_effort
+        } else {
+            "max"
+        };
+        body["reasoning_effort"] = json!(reasoning_effort);
     } else {
-        "max"
-    };
-    body["reasoning_effort"] = json!(reasoning_effort);
+        // MiMo documents that a tool-call continuation must include the
+        // provider's reasoning content when thinking is enabled.  Minha's
+        // provider-neutral turn history intentionally does not persist that
+        // vendor field, so make the first offline-qualified adapter safe by
+        // explicitly disabling thinking rather than silently issuing invalid
+        // follow-up tool turns.
+        body["thinking"] = json!({"type":"disabled"});
+    }
     if let Some(response_format) = &request.response_format {
         body["response_format"] = response_format.clone();
     }
@@ -325,6 +384,7 @@ struct ChatStreamParser {
     buffer: Vec<u8>,
     completed: bool,
     calls: BTreeMap<usize, ToolCall>,
+    malformed_frames: u8,
 }
 
 impl ChatStreamParser {
@@ -358,19 +418,41 @@ impl ChatStreamParser {
         result: &mut TurnResult,
         events: &mut Vec<ProviderStreamEvent>,
     ) -> Result<(), ProviderError> {
-        let Some(data) = frame
+        // Join every data: line of the frame; a lone find_map would silently
+        // drop the remainder of multi-line payloads.
+        let data = frame
             .lines()
-            .find_map(|line| line.strip_prefix("data:").map(str::trim))
-        else {
+            .filter_map(|line| line.strip_prefix("data:").map(str::trim))
+            .collect::<Vec<_>>()
+            .join("\n");
+        if data.is_empty() {
             return Ok(());
-        };
+        }
         if data == "[DONE]" {
             self.completed = true;
+            for (index, call) in &self.calls {
+                if serde_json::from_str::<Value>(&call.arguments).is_err() {
+                    return Err(ProviderError::InvalidResponse(format!(
+                        "tool call {index} carried invalid JSON arguments"
+                    )));
+                }
+            }
             result.tool_calls = self.calls.values().cloned().collect();
             events.push(ProviderStreamEvent::Completed);
             return Ok(());
         }
-        let value: Value = serde_json::from_str(data).map_err(ProviderError::Sse)?;
+        let value: Value = match serde_json::from_str(&data) {
+            Ok(value) => value,
+            Err(error) => {
+                // A single corrupted or injected frame must not discard an
+                // otherwise-complete (and billed) turn.
+                self.malformed_frames = self.malformed_frames.saturating_add(1);
+                if self.malformed_frames > crate::provider::MAX_MALFORMED_FRAMES {
+                    return Err(ProviderError::Sse(error));
+                }
+                return Ok(());
+            }
+        };
         result.response_id = value
             .get("id")
             .and_then(Value::as_str)
@@ -382,22 +464,27 @@ impl ChatStreamParser {
             .map(str::to_owned)
             .or(result.server_model.take());
         if let Some(usage) = value.get("usage") {
-            result.usage = TokenUsage {
-                input: usage.get("prompt_tokens").and_then(Value::as_u64).unwrap_or(0),
-                output: usage
-                    .get("completion_tokens")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(0),
-                cached_input: usage
-                    .get("prompt_cache_hit_tokens")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(0),
-                cache_write: usage
-                    .get("prompt_cache_miss_tokens")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(0),
-                reasoning_output: usage.get("reasoning_tokens").and_then(Value::as_u64).unwrap_or(0),
-            };
+            // Merge field by field so fields absent from a later usage frame
+            // keep their earlier values instead of resetting to zero.
+            result.usage.input = usage
+                .get("prompt_tokens")
+                .and_then(Value::as_u64)
+                .unwrap_or(result.usage.input);
+            result.usage.output = usage
+                .get("completion_tokens")
+                .and_then(Value::as_u64)
+                .unwrap_or(result.usage.output);
+            result.usage.cached_input = usage
+                .get("prompt_cache_hit_tokens")
+                .and_then(Value::as_u64)
+                .unwrap_or(result.usage.cached_input);
+            // DeepSeek has no cache-write accounting: miss tokens are uncached
+            // input, already included in prompt_tokens, so cache_write stays
+            // zero instead of being mislabeled.
+            result.usage.reasoning_output = usage
+                .get("reasoning_tokens")
+                .and_then(Value::as_u64)
+                .unwrap_or(result.usage.reasoning_output);
         }
         for choice in value
             .get("choices")
@@ -431,16 +518,53 @@ impl ChatStreamParser {
                 .into_iter()
                 .flatten()
             {
-                let index = call.get("index").and_then(Value::as_u64).unwrap_or(0) as usize;
+                let index = call.get("index").and_then(Value::as_u64) as Option<u64>;
+                let index = match index {
+                    Some(index) => index as usize,
+                    None => {
+                        // Missing index is only unambiguous while a single
+                        // call is in flight; otherwise the fragment cannot be
+                        // attributed and must not corrupt an existing call.
+                        let Some((&only, _)) = self.calls.iter().next() else {
+                            continue;
+                        };
+                        if self.calls.len() != 1 {
+                            continue;
+                        }
+                        only
+                    }
+                };
+                let fresh_id = call.get("id").and_then(Value::as_str);
                 let entry = self.calls.entry(index).or_insert_with(|| ToolCall {
                     call_id: String::new(),
                     name: String::new(),
                     arguments: String::new(),
                 });
-                if let Some(id) = call.get("id").and_then(Value::as_str) {
-                    entry.call_id.push_str(id);
+                if let Some(id) = fresh_id {
+                    match entry.call_id.as_str() {
+                        "" => entry.call_id = id.to_owned(),
+                        existing if existing != id => {
+                            // A different id on the same index marks a
+                            // restarted call: start a fresh accumulator.
+                            *entry = ToolCall {
+                                call_id: id.to_owned(),
+                                name: String::new(),
+                                arguments: String::new(),
+                            };
+                        }
+                        _ => {}
+                    }
                 }
                 if let Some(name) = call.pointer("/function/name").and_then(Value::as_str) {
+                    // Continuation fragments never repeat the name; a name on
+                    // an already-named entry marks a restarted call.
+                    if !entry.name.is_empty() {
+                        *entry = ToolCall {
+                            call_id: entry.call_id.clone(),
+                            name: String::new(),
+                            arguments: String::new(),
+                        };
+                    }
                     entry.name.push_str(name);
                 }
                 if let Some(arguments) = call.pointer("/function/arguments").and_then(Value::as_str) {
@@ -570,6 +694,119 @@ mod tests {
     }
 
     #[test]
+    fn usage_merges_and_tool_calls_survive_resends_and_bad_frames() {
+        let mut parser = ChatStreamParser::default();
+        let mut result = TurnResult::default();
+        // First frame: partial usage; second frame: another partial usage
+        // missing reasoning — absent fields must be preserved, not zeroed.
+        parser
+            .push(
+                b"data: {\"choices\":[],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":3,\"prompt_cache_hit_tokens\":8}}\n\n",
+                &mut result,
+            )
+            .expect("first usage frame");
+        parser
+            .push(
+                b"data: {\"choices\":[],\"usage\":{\"completion_tokens\":5,\"reasoning_tokens\":2}}\n\n",
+                &mut result,
+            )
+            .expect("second usage frame");
+        assert_eq!(result.usage.input, 10);
+        assert_eq!(result.usage.output, 5);
+        assert_eq!(result.usage.cached_input, 8);
+        assert_eq!(result.usage.reasoning_output, 2);
+        // A garbage frame is skipped, not fatal.
+        parser
+            .push(b"data: not json\n\n", &mut result)
+            .expect("skipped frame");
+        // Continuation fragments carry only the index; a re-sent id or name
+        // marks a restarted call and resets the accumulator.
+        parser
+            .push(
+                b"data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call-1\",\"function\":{\"name\":\"read\",\"arguments\":\"{\\\"a\\\"\"}}]}}]}\n\n",
+                &mut result,
+            )
+            .expect("first fragment");
+        parser
+            .push(
+                b"data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\":1}\"}}]}}]}\n\n",
+                &mut result,
+            )
+            .expect("continuation fragment");
+        parser
+            .push(
+                b"data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call-2\",\"function\":{\"name\":\"search\",\"arguments\":\"{\\\"q\\\":\\\"rust\\\"}\"}}]}}]}\n\n",
+                &mut result,
+            )
+            .expect("restarted call");
+        parser.push(b"data: [DONE]\n\n", &mut result).expect("done");
+        assert_eq!(result.tool_calls.len(), 1);
+        assert_eq!(result.tool_calls[0].call_id, "call-2");
+        assert_eq!(result.tool_calls[0].name, "search");
+        assert_eq!(result.tool_calls[0].arguments, "{\"q\":\"rust\"}");
+        assert!(parser.completed);
+    }
+
+    #[test]
+    fn done_rejects_truncated_tool_arguments() {
+        let mut parser = ChatStreamParser::default();
+        let mut result = TurnResult::default();
+        parser
+            .push(
+                b"data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"c1\",\"function\":{\"name\":\"search\",\"arguments\":\"{\\\"q\\\":\"}}]}}]}\n\n",
+                &mut result,
+            )
+            .expect("fragment");
+        let error = parser
+            .push(b"data: [DONE]\n\n", &mut result)
+            .expect_err("truncated arguments must fail at [DONE]");
+        assert!(format!("{error}").contains("invalid JSON"));
+    }
+
+    #[test]
+    fn multi_line_data_frames_are_joined() {
+        let mut parser = ChatStreamParser::default();
+        let mut result = TurnResult::default();
+        // A JSON payload split across data: lines must be joined, not parsed
+        // from the first line only.
+        parser
+            .push(
+                b"data: {\"choices\":[{\"delta\":{\"content\":\ndata: \"line\"}}]}\n\n",
+                &mut result,
+            )
+            .expect("joined multi-line frame");
+        assert!(!parser.completed);
+        assert_eq!(result.output_text, "line");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn error_paths_redact_the_api_key_from_provider_bodies() {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).expect("bind fixture");
+        let address = listener.local_addr().expect("fixture address");
+        let join = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept fixture request");
+            let _request = read_fixture_request(&mut stream);
+            let body =
+                r#"{"error":{"message":"Authentication Fails, Your api key: sk-leaky-key is invalid"}}"#;
+            write!(
+                stream,
+                "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            )
+            .expect("write fixture response");
+        });
+        let client = DeepSeekClient::new(format!("http://{address}"), "sk-leaky-key");
+        let error = client.test_connection().await.expect_err("auth failure expected");
+        let debug = format!("{error:?}");
+        assert!(
+            !debug.contains("sk-leaky-key"),
+            "error leaked the API key: {debug}"
+        );
+        assert!(debug.contains("redacted"), "error was not redacted: {debug}");
+        join.join().expect("fixture thread");
+    }
+
+    #[test]
     fn fragmented_tool_arguments_and_cache_usage_are_preserved() {
         let mut parser = ChatStreamParser::default();
         let mut result = TurnResult::default();
@@ -651,7 +888,9 @@ mod tests {
         assert_eq!(result.tool_calls[0].arguments, "{\"q\":\"rust\"}");
         assert_eq!(result.usage.input, 20);
         assert_eq!(result.usage.cached_input, 12);
-        assert_eq!(result.usage.cache_write, 8);
+        // Miss tokens are uncached input, not a cache write; DeepSeek has no
+        // cache-write accounting so the counter must not be mislabeled.
+        assert_eq!(result.usage.cache_write, 0);
         assert_eq!(result.usage.reasoning_output, 3);
         assert!(events.contains(&ProviderStreamEvent::Completed));
 

@@ -91,7 +91,7 @@ impl ContextPolicy {
 
 pub fn fallback_context_window(model: &str) -> u64 {
     let model = model.to_ascii_lowercase();
-    if model.contains("deepseek-v4") {
+    if model.contains("deepseek-v4") || model.contains("mimo-v2.5") {
         1_048_576
     } else if model.contains("spark") {
         128_000
@@ -204,6 +204,9 @@ mod tests {
         assert_eq!(deepseek.advertised_limit, 1_048_576);
         assert_eq!(deepseek.effective_limit, 996_147);
         assert_eq!(deepseek.protected_reserve, 52_429);
+        let mimo = ContextPolicy::resolve("xiaomi/mimo-v2.5-pro", None, None);
+        assert_eq!(mimo.advertised_limit, 1_048_576);
+        assert_eq!(mimo.effective_limit, 996_147);
     }
 
     #[test]

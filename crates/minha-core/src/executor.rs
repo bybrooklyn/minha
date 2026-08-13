@@ -4,11 +4,15 @@
 //! catalog in [`crate::tools`]. The model surface stays fixed and compact.
 
 use crate::{
-    books::Book,
+    books::{Book, BookCardV1, BookDetailLevelV1, BookRetrievalReasonV1, validate_book_detail_strings},
     facts::{BoardEntry, BoardKind, BoardStatus},
     github::GitHubQuery,
+    office::{
+        BROADCAST_RECIPIENT, CoordinationKind, EvidenceReceiptV1, OfficeEnvelopeV1, RUN_ROOM_ID, Recipient,
+    },
     protocol::{BoardEntryView, EventAgentId, RunId, RuntimeEvent, TodoItem, TodoState},
-    store::Store,
+    store::{AgentRecord, Store},
+    terminal::{self, TerminalError, TerminalResult},
 };
 use serde_json::{Value, json};
 use std::{
@@ -17,7 +21,7 @@ use std::{
     io::{Read, Write},
     path::{Component, Path, PathBuf},
     process::{Command, Stdio},
-    sync::OnceLock,
+    sync::{OnceLock, mpsc},
     thread,
     time::{Duration, Instant},
 };
@@ -29,34 +33,6 @@ const TRUNCATION_MARKER: &str = "\n[output truncated]";
 const MAX_BOOK_READ_TOKENS: usize = 32_000;
 
 static BUNDLED_BOOKS: OnceLock<Result<Vec<Book>, String>> = OnceLock::new();
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum BookDetail {
-    Index,
-    Compact,
-    Detailed,
-}
-
-impl BookDetail {
-    fn parse(value: Option<&Value>) -> Result<Self, ToolError> {
-        match value.and_then(Value::as_str).unwrap_or("compact") {
-            "index" => Ok(Self::Index),
-            "compact" => Ok(Self::Compact),
-            "detailed" => Ok(Self::Detailed),
-            other => Err(invalid(&format!(
-                "detail must be one of index, compact, detailed; got {other}"
-            ))),
-        }
-    }
-
-    const fn name(self) -> &'static str {
-        match self {
-            Self::Index => "index",
-            Self::Compact => "compact",
-            Self::Detailed => "detailed",
-        }
-    }
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum ToolError {
@@ -155,21 +131,105 @@ impl ToolExecutor {
     /// The fixed tool remains responsible for enforcing the decision; this is
     /// only the user-facing preflight used by the runtime protocol.
     pub fn approval_reason(&self, name: &str, args: &Value) -> Result<Option<String>, ToolError> {
-        if name != "exec" || self.read_only {
+        if self.read_only {
             return Ok(None);
         }
-        let argv = string_array(args.get("argv"), "argv")?;
+        match name {
+            "exec" => self.command_approval_reason(&string_array(args.get("argv"), "argv")?),
+            "just" if args.get("action").and_then(Value::as_str) == Some("run") => {
+                let recipe = required_string(args, "recipe")?;
+                Ok(Some(format!(
+                    "Just recipe bodies are opaque and can mutate local or remote state: just {recipe}"
+                )))
+            }
+            "terminal" => self.terminal_approval_reason(args),
+            _ => Ok(None),
+        }
+    }
+
+    /// A one-use approval is bound to this compact, exact representation. It
+    /// deliberately covers every submitted terminal batch line, so an answer
+    /// cannot be replayed for a different operation after a resume.
+    pub fn approval_command(&self, name: &str, args: &Value) -> Result<Option<Vec<String>>, ToolError> {
+        match name {
+            "exec" => Ok(Some(string_array(args.get("argv"), "argv")?)),
+            "just" if args.get("action").and_then(Value::as_str) == Some("run") => {
+                let mut command = vec!["just".into(), required_string(args, "recipe")?.into()];
+                command.extend(string_array(args.get("args"), "args")?);
+                Ok(Some(command))
+            }
+            "terminal" => match required_string(args, "action")? {
+                "start" => {
+                    let mut command = vec!["terminal:start".into()];
+                    command.extend(string_array(args.get("argv"), "argv")?);
+                    Ok(Some(command))
+                }
+                "batch" => {
+                    let session = required_string(args, "session")?;
+                    let steps = args
+                        .get("steps")
+                        .and_then(Value::as_array)
+                        .ok_or_else(|| invalid("terminal batch requires steps"))?;
+                    let mut command = vec!["terminal:batch".into(), session.into()];
+                    for step in steps {
+                        if let Some(line) = step.get("line").and_then(Value::as_str) {
+                            command.push(line.to_owned());
+                        }
+                    }
+                    Ok(Some(command))
+                }
+                "observe" | "resize" | "close" => Ok(None),
+                other => Err(invalid(&format!("unsupported terminal action {other}"))),
+            },
+            _ => Ok(None),
+        }
+    }
+
+    fn command_approval_reason(&self, argv: &[String]) -> Result<Option<String>, ToolError> {
         if argv.is_empty() {
             return Err(invalid("argv must not be empty"));
         }
         Ok(
-            (is_dangerous_command(&argv) && !is_never_allowed_command(&argv)).then(|| {
+            (is_dangerous_command(argv) && !is_never_allowed_command(argv)).then(|| {
                 format!(
                     "command can mutate history, remote state, credentials, or delete data: {}",
                     argv.join(" ")
                 )
             }),
         )
+    }
+
+    fn terminal_approval_reason(&self, args: &Value) -> Result<Option<String>, ToolError> {
+        match required_string(args, "action")? {
+            "start" => {
+                let argv = string_array(args.get("argv"), "argv")?;
+                if argv.is_empty() {
+                    return Err(invalid("terminal start requires argv"));
+                }
+                self.command_approval_reason(&argv)
+            }
+            "batch" => {
+                let steps = args
+                    .get("steps")
+                    .and_then(Value::as_array)
+                    .ok_or_else(|| invalid("terminal batch requires steps"))?;
+                let risky = steps
+                    .iter()
+                    .filter_map(|step| step.get("line").and_then(Value::as_str))
+                    .map(terminal_line_argv)
+                    .collect::<Result<Vec<_>, _>>()?
+                    .into_iter()
+                    .flatten()
+                    .any(|argv| is_dangerous_command(&argv) || is_just_argv(&argv));
+                Ok(risky.then(|| {
+                    "terminal batch contains a command that can mutate local or remote state".into()
+                }))
+            }
+            "observe" | "resize" | "close" => Ok(None),
+            other => Err(invalid(&format!(
+                "terminal action must be start, observe, batch, resize, or close; got {other}"
+            ))),
+        }
     }
 
     /// Dispatch one of the fixed tools using its compact JSON arguments.
@@ -183,6 +243,8 @@ impl ToolExecutor {
             "hive" => self.hive(args),
             "todo" => self.todo(args),
             "books" => self.books(args),
+            "terminal" => self.terminal(args),
+            "just" => self.just(args),
             "github" => self.github(args),
             "quality" => self.quality(args),
             "board_read" => self.board_read(args),
@@ -208,7 +270,11 @@ impl ToolExecutor {
                 .and_then(Value::as_str)
                 .ok_or_else(|| invalid("each file needs path"))?;
             let full = self.contained_existing(path)?;
-            let bytes = fs::read(full)?;
+            // Read at most the output cap so oversized files cannot allocate
+            // unbounded memory before the cap below truncates the result.
+            let reader = std::fs::File::open(&full)?;
+            let mut bytes = Vec::new();
+            reader.take(cap as u64).read_to_end(&mut bytes)?;
             let text = String::from_utf8_lossy(&bytes);
             let ranges = file.get("ranges").and_then(Value::as_array);
             let selected: Vec<(usize, usize)> = ranges
@@ -288,6 +354,11 @@ impl ToolExecutor {
             .get("patch")
             .and_then(Value::as_str)
             .ok_or_else(|| invalid("patch is required"))?;
+        // Validation and the dry run happen back to back immediately before
+        // the real apply so the window for a file swap between the check and
+        // the write is as small as possible. A concurrent attacker that can
+        // modify the working tree during the apply itself remains a residual
+        // race: git apply operates on the live index, not a snapshot.
         validate_patch_paths(patch, &self.root)?;
         self.run_patch(patch, true)?;
         self.run_patch(patch, false)?;
@@ -347,10 +418,7 @@ impl ToolExecutor {
             .and_then(Value::as_str)
             .map(|p| self.contained_dir_or_file(p))
             .transpose()?;
-        let timeout = args
-            .get("timeout_ms")
-            .and_then(Value::as_u64)
-            .unwrap_or(DEFAULT_TIMEOUT_MS);
+        let timeout = Self::clamp_exec_timeout(args.get("timeout_ms").and_then(Value::as_u64));
         let cap = args
             .get("max_output_bytes")
             .and_then(Value::as_u64)
@@ -358,6 +426,170 @@ impl ToolExecutor {
         let cap = cap.clamp(1, 256 * 1024);
         self.run_command(&argv[0], &argv[1..], cwd.as_deref(), timeout, cap)
             .map(ToolOutcome::Output)
+    }
+
+    /// Persistent PTY access is deliberately a separate fixed tool.  It does
+    /// not accept shell strings: the terminal module owns the session while
+    /// this executor applies the same argv safety policy to every submitted
+    /// line before it reaches the PTY.
+    fn terminal(&self, args: &Value) -> Result<ToolOutcome, ToolError> {
+        if terminal_requests_privileged_input(args)? {
+            return Ok(ToolOutcome::NeedsInput(InputRequest {
+                question:
+                    "terminal input requests a privilege command; a human must take over in a local terminal"
+                        .into(),
+                options: vec!["take over in a local terminal".into()],
+            }));
+        }
+        let output = terminal::execute(
+            &self.root,
+            self.read_only,
+            self.policy.allow_destructive,
+            args,
+            |line, read_only, allow_destructive| {
+                self.validate_terminal_line(line, read_only, allow_destructive)
+            },
+        )
+        .map_err(terminal_to_tool_error)?;
+        match output {
+            TerminalResult::Output(value) => Ok(text_output(
+                serde_json::to_string(&value).map_err(|error| ToolError::Coordination(error.to_string()))?,
+            )),
+            TerminalResult::NeedsHuman(question) => Ok(ToolOutcome::NeedsInput(InputRequest {
+                question,
+                options: vec!["take over in a local terminal".into()],
+            })),
+        }
+    }
+
+    fn validate_terminal_line(
+        &self,
+        line: &str,
+        read_only: bool,
+        allow_destructive: bool,
+    ) -> Result<(), TerminalError> {
+        let argv = terminal_line_argv(line).map_err(tool_to_terminal_error)?;
+        let Some(argv) = argv else {
+            return Err(TerminalError::Invalid(
+                "terminal command lines must not be empty".into(),
+            ));
+        };
+        if terminal_path_escape(&argv) {
+            return Err(TerminalError::Denied(
+                "terminal lines may not change the workspace root or reference paths outside it".into(),
+            ));
+        }
+        if is_privileged_terminal_command(&argv) {
+            return Err(TerminalError::Denied(
+                "privilege commands require a human-controlled terminal; do not submit them through an agent PTY"
+                    .into(),
+            ));
+        }
+        if argv.iter().any(|argument| looks_like_credential(argument)) {
+            return Err(TerminalError::Denied(
+                "terminal lines must not include credentials; a human must enter secrets locally".into(),
+            ));
+        }
+        if is_just_argv(&argv) {
+            if read_only {
+                return Err(TerminalError::Denied(
+                    "read-only roles may not run Just recipes".into(),
+                ));
+            }
+            if !allow_destructive {
+                return Err(TerminalError::Denied(
+                    "Just recipes require explicit one-use approval".into(),
+                ));
+            }
+            return Ok(());
+        }
+        if read_only && !is_read_only_command(&argv) {
+            return Err(TerminalError::Denied(
+                "read-only roles may submit only read-only terminal commands".into(),
+            ));
+        }
+        if read_only {
+            validate_read_only_argv(&self.root, &argv).map_err(tool_to_terminal_error)?;
+        }
+        if is_never_allowed_command(&argv) {
+            return Err(TerminalError::Denied(argv.join(" ")));
+        }
+        if !allow_destructive && is_dangerous_command(&argv) {
+            return Err(TerminalError::Denied(argv.join(" ")));
+        }
+        Ok(())
+    }
+
+    /// Fixed Just support keeps discovery separate from recipe execution.
+    /// Listing is non-mutating; every recipe body is opaque and therefore
+    /// needs the normal one-use destructive approval path.
+    fn just(&self, args: &Value) -> Result<ToolOutcome, ToolError> {
+        let action = required_string(args, "action")?;
+        let cwd = args
+            .get("cwd")
+            .and_then(Value::as_str)
+            .map(|value| self.contained_dir_or_file(value))
+            .transpose()?;
+        let Some(just_root) = find_just_root(cwd.as_deref().unwrap_or(&self.root), &self.root) else {
+            return Ok(text_output(
+                json!({"schema_version": 1, "available": false, "reason": "no Justfile found in the workspace"})
+                    .to_string(),
+            ));
+        };
+        if !command_available("just") {
+            return Ok(text_output(
+                json!({"schema_version": 1, "available": false, "justfile_root": just_root, "reason": "just is not installed"})
+                    .to_string(),
+            ));
+        }
+        match action {
+            "list" => self
+                .run_command(
+                    "just",
+                    &["--list".into()],
+                    Some(&just_root),
+                    DEFAULT_TIMEOUT_MS,
+                    DEFAULT_OUTPUT_CAP,
+                )
+                .map(ToolOutcome::Output),
+            "run" => {
+                if self.read_only {
+                    return Err(ToolError::ReadOnlyDenied);
+                }
+                if !self.policy.allow_destructive {
+                    return Err(ToolError::CommandDenied(
+                        "Just recipes require explicit one-use approval".into(),
+                    ));
+                }
+                let recipe = required_string(args, "recipe")?;
+                if !valid_just_recipe_name(recipe) {
+                    return Err(invalid(
+                        "just recipe must be a compact recipe name without shell syntax",
+                    ));
+                }
+                let mut argv = vec![recipe.to_owned()];
+                for argument in string_array(args.get("args"), "args")? {
+                    if argument.is_empty()
+                        || contains_shell_syntax(&argument)
+                        || looks_like_credential(&argument)
+                    {
+                        return Err(invalid(
+                            "just args must be non-secret literal arguments without shell syntax",
+                        ));
+                    }
+                    argv.push(argument);
+                }
+                self.run_command(
+                    "just",
+                    &argv,
+                    Some(&just_root),
+                    Self::clamp_exec_timeout(args.get("timeout_ms").and_then(Value::as_u64)),
+                    DEFAULT_OUTPUT_CAP,
+                )
+                .map(ToolOutcome::Output)
+            }
+            other => Err(invalid(&format!("just action must be list or run; got {other}"))),
+        }
     }
 
     fn ask_user(&self, args: &Value) -> Result<ToolOutcome, ToolError> {
@@ -459,7 +691,7 @@ impl ToolExecutor {
                 let recipient = format!("agent:{}", coordination.agent_id);
                 let messages = coordination
                     .store
-                    .hive_inbox(
+                    .office_inbox(
                         coordination.run_id,
                         &recipient,
                         args.get("limit").and_then(Value::as_u64).unwrap_or(20) as usize,
@@ -470,43 +702,86 @@ impl ToolExecutor {
                         .map_err(|error| ToolError::Coordination(error.to_string()))?,
                 ))
             }
+            "roster" => {
+                let agents = coordination
+                    .store
+                    .agents(coordination.run_id)
+                    .map_err(coordination_error)?;
+                Ok(text_output(
+                    serde_json::to_string(&hive_roster(&agents, coordination.agent_id))
+                        .map_err(|error| ToolError::Coordination(error.to_string()))?,
+                ))
+            }
             "send" => {
-                let body = args.get("body").and_then(Value::as_str).unwrap_or_default();
+                let body = required_string(args, "body")?;
                 if body.len() > 1_200 {
                     return Err(invalid("hive message body exceeds 1200 bytes; store an artifact"));
                 }
-                let recipient = args.get("to").and_then(Value::as_str).unwrap_or("manager");
                 let kind = args.get("kind").and_then(Value::as_str).unwrap_or("progress");
-                if !matches!(
-                    kind,
-                    "finding"
-                        | "decision"
-                        | "blocker"
-                        | "request"
-                        | "progress"
-                        | "handoff"
-                        | "artifact_reference"
-                ) {
-                    return Err(invalid(
-                        "hive kind must be finding, decision, blocker, request, progress, handoff, or artifact_reference",
-                    ));
+                if !HIVE_SEND_KINDS.contains(&kind) {
+                    return Err(invalid(&format!(
+                        "hive send kind must be one of {}; {kind:?} is a board kind, use action=board_post for it",
+                        HIVE_SEND_KINDS.join(", ")
+                    )));
                 }
+                // Resolve `to` against the live roster before claiming
+                // delivery: an unresolvable recipient used to be written
+                // verbatim into an inbox key nothing reads, and reported as
+                // `delivered: true` anyway.
+                let agents = coordination
+                    .store
+                    .agents(coordination.run_id)
+                    .map_err(coordination_error)?;
+                let recipient = resolve_hive_recipient(args.get("to").and_then(Value::as_str), &agents)?;
+                if recipient == BROADCAST_RECIPIENT {
+                    let reason = required_string(args, "broadcast_reason")?;
+                    if reason.len() > 480 {
+                        return Err(invalid("broadcast_reason exceeds 480 bytes"));
+                    }
+                }
+                let room = args
+                    .get("room")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|room| !room.is_empty())
+                    .unwrap_or(RUN_ROOM_ID);
+                let sender = format!("agent:{}", coordination.agent_id);
                 let id = uuid::Uuid::now_v7().to_string();
+                let evidence = args
+                    .get("evidence_receipts")
+                    .cloned()
+                    .map(serde_json::from_value::<Vec<EvidenceReceiptV1>>)
+                    .transpose()
+                    .map_err(|error| invalid(&format!("invalid evidence receipt: {error}")))?
+                    .unwrap_or_default();
+                let mut artifact_refs = string_array(args.get("refs"), "refs")?;
+                artifact_refs.sort();
+                artifact_refs.dedup();
+                let message_kind = CoordinationKind::parse(kind)
+                    .ok_or_else(|| invalid("unsupported typed office message kind"))?;
+                let envelope = OfficeEnvelopeV1 {
+                    schema_version: crate::office::OFFICE_ENVELOPE_SCHEMA_VERSION,
+                    id: id.clone(),
+                    room_id: room.to_owned(),
+                    sender: coordination.agent_id.to_string(),
+                    recipient: Recipient::parse(&recipient)
+                        .ok_or_else(|| invalid("resolved hive recipient is not a typed recipient"))?,
+                    kind: message_kind,
+                    task_id: coordination.task_id.clone(),
+                    summary: body.to_owned(),
+                    artifact_refs,
+                    evidence,
+                    requested_action: args
+                        .get("requested_action")
+                        .and_then(Value::as_str)
+                        .map(str::to_owned),
+                    sent_at: chrono::Utc::now(),
+                };
                 let stored_id = coordination
                     .store
-                    .insert_hive_message(
+                    .insert_office_envelope(
                         coordination.run_id,
-                        &id,
-                        args.get("room").and_then(Value::as_str).unwrap_or("run"),
-                        &format!("agent:{}", coordination.agent_id),
-                        recipient,
-                        kind,
-                        &json!({
-                            "body": body,
-                            "task_id": coordination.task_id,
-                            "refs": args.get("refs").cloned().unwrap_or(Value::Array(Vec::new())),
-                            "requested_action": args.get("requested_action"),
-                        }),
+                        &envelope,
                         Some(chrono::Utc::now() + chrono::Duration::hours(24)),
                     )
                     .map_err(coordination_error)?;
@@ -517,13 +792,9 @@ impl ToolExecutor {
                         coordination.run_id,
                         RuntimeEvent::OfficeMessageChanged {
                             message_id: stored_id.clone(),
-                            room_id: args
-                                .get("room")
-                                .and_then(Value::as_str)
-                                .unwrap_or("run")
-                                .to_owned(),
-                            sender: format!("agent:{}", coordination.agent_id),
-                            recipient: recipient.to_owned(),
+                            room_id: room.to_owned(),
+                            sender,
+                            recipient: recipient.clone(),
                             kind: kind.to_owned(),
                             summary: body.chars().take(240).collect(),
                             deduplicated,
@@ -531,13 +802,32 @@ impl ToolExecutor {
                     )
                     .map_err(coordination_error)?;
                 Ok(text_output(
-                    json!({"id": stored_id, "delivered": true, "deduplicated": deduplicated}).to_string(),
+                    json!({
+                        "id": stored_id,
+                        "delivered": true,
+                        "to": recipient,
+                        "room": room,
+                        "deduplicated": deduplicated,
+                    })
+                    .to_string(),
                 ))
             }
             "board_read" => self.board_read(args),
             "board_post" | "board_resolve" => {
                 if self.read_only || !coordination.can_write {
                     return Err(ToolError::ReadOnlyDenied);
+                }
+                // `kind` is one schema field shared by two actions with two
+                // different value sets. The schema advertises the union, so the
+                // handler is what keeps a send-only kind out of the board.
+                if action == "board_post"
+                    && let Some(kind) = args.get("kind").and_then(Value::as_str)
+                    && !HIVE_BOARD_KINDS.contains(&kind)
+                {
+                    return Err(invalid(&format!(
+                        "hive board_post kind must be one of {}; {kind:?} is a message kind, use action=send for it",
+                        HIVE_BOARD_KINDS.join(", ")
+                    )));
                 }
                 let mut mapped = args.clone();
                 if let Some(object) = mapped.as_object_mut() {
@@ -614,9 +904,26 @@ impl ToolExecutor {
                     .iter()
                     .find(|book| book.metadata.id == id)
                     .ok_or_else(|| invalid("book not found"))?;
-                let detail = BookDetail::parse(args.get("detail"))?;
+                let reason_name = required_string(args, "reason")?;
+                let detail_name = args.get("detail").and_then(Value::as_str).unwrap_or_else(|| {
+                    match BookRetrievalReasonV1::parse(reason_name) {
+                        Some(BookRetrievalReasonV1::NoGap) => "index",
+                        Some(BookRetrievalReasonV1::TrueGap) => "section",
+                        Some(BookRetrievalReasonV1::ExceptionalFull) | None => "full",
+                    }
+                });
+                let reason = validate_book_detail_strings(reason_name, detail_name)
+                    .map_err(|error| invalid(&error.to_string()))?;
+                let detail = BookDetailLevelV1::parse(detail_name)
+                    .ok_or_else(|| invalid("book detail was not admitted"))?;
+                let section_id = match detail {
+                    BookDetailLevelV1::Section => Some(required_string(args, "section_id")?),
+                    BookDetailLevelV1::Index | BookDetailLevelV1::Full => None,
+                };
                 let max_tokens = book_read_limit(args.get("max_tokens"), detail, book)?;
-                let output = book_read_view(book, detail, max_tokens)?;
+                let card = book_card_for_read(book, detail, section_id)?;
+                self.record_book_card_for_dispatch(&card)?;
+                let output = book_read_view(book, reason, detail, section_id, max_tokens, card)?;
                 Ok(text_output(
                     serde_json::to_string(&output)
                         .map_err(|error| ToolError::Coordination(error.to_string()))?,
@@ -652,6 +959,29 @@ impl ToolExecutor {
             "feedback" => Ok(text_output("{\"recorded\":true}".into())),
             _ => Err(invalid("unknown books action")),
         }
+    }
+
+    fn record_book_card_for_dispatch(&self, card: &BookCardV1) -> Result<(), ToolError> {
+        if self.read_only {
+            return Ok(());
+        }
+        let Some(context) = self.coordination.as_ref() else {
+            return Ok(());
+        };
+        let Some(task_id) = context.task_id.as_deref() else {
+            return Ok(());
+        };
+        if let Some(receipt) = context
+            .store
+            .append_dispatch_book_sources(context.run_id, task_id, context.agent_id, &[card.source()])
+            .map_err(coordination_error)?
+        {
+            context
+                .store
+                .record_runtime_event(context.run_id, RuntimeEvent::DispatchReceipt { receipt })
+                .map_err(coordination_error)?;
+        }
+        Ok(())
     }
 
     fn github(&self, args: &Value) -> Result<ToolOutcome, ToolError> {
@@ -840,6 +1170,28 @@ impl ToolExecutor {
         ))
     }
 
+    /// Bounded like the github and quality tools: an unbounded or instant
+    /// timeout would let the model pin a core forever or kill every command
+    /// immediately.
+    fn clamp_exec_timeout(timeout_ms: Option<u64>) -> u64 {
+        timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS).clamp(1_000, 120_000)
+    }
+
+    /// Collect one reader's output with a grace bound. A background process
+    /// that inherited the pipe keeps EOF away, and a plain join would hang
+    /// the whole run; on grace expiry the output is discarded and marked
+    /// truncated.
+    fn collect_reader_output(
+        rx: &mpsc::Receiver<std::io::Result<(Vec<u8>, bool)>>,
+        grace: Duration,
+    ) -> Result<(Vec<u8>, bool), ToolError> {
+        match rx.recv_timeout(grace) {
+            Ok(Ok(collect)) => Ok(collect),
+            Ok(Err(error)) => Err(error.into()),
+            Err(_) => Ok((Vec::new(), true)),
+        }
+    }
+
     fn run_command(
         &self,
         program: &str,
@@ -866,8 +1218,16 @@ impl ToolExecutor {
                 "command did not provide piped stderr",
             )
         })?;
-        let stdout_reader = thread::spawn(move || read_capped_stream(&mut stdout, cap));
-        let stderr_reader = thread::spawn(move || read_capped_stream(&mut stderr, cap));
+        let (stdout_tx, stdout_rx) = mpsc::channel();
+        let (stderr_tx, stderr_rx) = mpsc::channel();
+        let stdout_reader = thread::spawn(move || {
+            let result = read_capped_stream(&mut stdout, cap);
+            let _ = stdout_tx.send(result);
+        });
+        let stderr_reader = thread::spawn(move || {
+            let result = read_capped_stream(&mut stderr, cap);
+            let _ = stderr_tx.send(result);
+        });
         let deadline = Instant::now() + Duration::from_millis(timeout_ms);
         let mut timed_out = false;
         loop {
@@ -882,12 +1242,14 @@ impl ToolExecutor {
             thread::sleep(Duration::from_millis(5));
         }
         let status = child.wait()?;
-        let (stdout_bytes, stdout_reader_truncated) = stdout_reader
-            .join()
-            .map_err(|_| std::io::Error::other("stdout reader thread panicked"))??;
-        let (stderr_bytes, stderr_reader_truncated) = stderr_reader
-            .join()
-            .map_err(|_| std::io::Error::other("stderr reader thread panicked"))??;
+        // A daemonized child that inherited the pipes keeps them open, so EOF
+        // (and a plain thread join) may never arrive. Collect the readers with
+        // a grace timeout instead of hanging the whole run.
+        let grace = Duration::from_secs(5);
+        let (stdout_bytes, stdout_reader_truncated) = Self::collect_reader_output(&stdout_rx, grace)?;
+        let (stderr_bytes, stderr_reader_truncated) = Self::collect_reader_output(&stderr_rx, grace)?;
+        let _ = stdout_reader;
+        let _ = stderr_reader;
         let (stdout, a) = cap_text(stdout_bytes, cap);
         let (mut stderr, b) = cap_text(stderr_bytes, cap);
         if timed_out {
@@ -1018,28 +1380,23 @@ fn book_index_view(book: &Book) -> Result<Value, ToolError> {
     }))
 }
 
-fn compact_book_content(book: &Book) -> Value {
-    json!({
-        "abstract": book.metadata.abstract_text,
-        "chapters": book.chapters.iter().map(|chapter| json!({
-            "id": chapter.id,
-            "title": chapter.title,
-            "summary": chapter.summary,
-            "sections": chapter.sections.iter().map(|section| json!({
-                "id": section.id,
-                "title": section.title,
-                "summary": section.summary,
-            })).collect::<Vec<_>>(),
-        })).collect::<Vec<_>>(),
-        "key_facts": book.key_facts.iter().map(|fact| json!({
-            "id": fact.id,
-            "statement": fact.statement,
-        })).collect::<Vec<_>>(),
-        "source": {
-            "title": book.metadata.source.title,
-            "publisher": book.metadata.source.publisher,
-        },
-    })
+fn section_book_content(book: &Book, section_id: &str) -> Result<Value, ToolError> {
+    let (chapter, section) = book
+        .chapters
+        .iter()
+        .find_map(|chapter| {
+            chapter
+                .sections
+                .iter()
+                .find(|section| section.id == section_id)
+                .map(|section| (chapter, section))
+        })
+        .ok_or_else(|| invalid("section_id was not found in this book"))?;
+    Ok(json!({
+        "chapter": {"id": chapter.id, "title": chapter.title, "summary": chapter.summary},
+        "section": section,
+        "source": book.metadata.source,
+    }))
 }
 
 fn detailed_book_content(book: &Book) -> Result<Value, ToolError> {
@@ -1053,11 +1410,15 @@ fn detailed_book_content(book: &Book) -> Result<Value, ToolError> {
     .map_err(|error| ToolError::Coordination(format!("could not serialize bundled book: {error}")))
 }
 
-fn book_read_limit(value: Option<&Value>, detail: BookDetail, book: &Book) -> Result<usize, ToolError> {
+fn book_read_limit(
+    value: Option<&Value>,
+    detail: BookDetailLevelV1,
+    book: &Book,
+) -> Result<usize, ToolError> {
     let default = match detail {
-        BookDetail::Index => 1,
-        BookDetail::Compact => book.metadata.token_budget.compact_tokens as usize,
-        BookDetail::Detailed => book.metadata.token_budget.detailed_tokens as usize,
+        BookDetailLevelV1::Index => 1,
+        BookDetailLevelV1::Section => book.metadata.token_budget.compact_tokens as usize,
+        BookDetailLevelV1::Full => book.metadata.token_budget.detailed_tokens as usize,
     }
     .clamp(1, MAX_BOOK_READ_TOKENS);
     let Some(value) = value else {
@@ -1126,19 +1487,46 @@ fn truncate_value(value: &mut Value, remaining: &mut usize) {
     }
 }
 
-fn book_read_view(book: &Book, detail: BookDetail, max_tokens: usize) -> Result<Value, ToolError> {
+fn book_card_for_read(
+    book: &Book,
+    detail: BookDetailLevelV1,
+    section_id: Option<&str>,
+) -> Result<BookCardV1, ToolError> {
+    match detail {
+        BookDetailLevelV1::Section => BookCardV1::section(
+            book,
+            section_id.ok_or_else(|| invalid("section detail requires section_id"))?,
+        )
+        .ok_or_else(|| invalid("section_id was not found in this book")),
+        BookDetailLevelV1::Index | BookDetailLevelV1::Full => Ok(BookCardV1::glossary(book)),
+    }
+}
+
+fn book_read_view(
+    book: &Book,
+    reason: BookRetrievalReasonV1,
+    detail: BookDetailLevelV1,
+    section_id: Option<&str>,
+    max_tokens: usize,
+    card: BookCardV1,
+) -> Result<Value, ToolError> {
     let mut output = json!({
-        "detail": detail.name(),
+        "reason": reason.as_str(),
+        "detail": detail.as_str(),
         "max_tokens": max_tokens,
         "book": book_index_view(book)?,
+        "card": card,
     });
-    if detail == BookDetail::Index {
+    if detail == BookDetailLevelV1::Index {
         return Ok(output);
     }
     let mut content = match detail {
-        BookDetail::Index => Value::Null,
-        BookDetail::Compact => compact_book_content(book),
-        BookDetail::Detailed => detailed_book_content(book)?,
+        BookDetailLevelV1::Index => Value::Null,
+        BookDetailLevelV1::Section => section_book_content(
+            book,
+            section_id.ok_or_else(|| invalid("section detail requires section_id"))?,
+        )?,
+        BookDetailLevelV1::Full => detailed_book_content(book)?,
     };
     let original_tokens = value_token_count(&content);
     let truncated = original_tokens > max_tokens;
@@ -1160,10 +1548,32 @@ pub fn tool_definitions(role: &str, read_only: bool, allow_questions: bool, coor
         json!({"type":"function","name":"apply_patch","description":if read_only{"Denied in read-only mode."}else{"Apply a workspace-contained unified patch."},"strict":false,"parameters":{"type":"object","additionalProperties":false,"required":["patch"],"properties":{"patch":{"type":"string"}}}}),
         json!({"type":"function","name":"exec","description":"Execute an argv vector without a shell.","strict":false,"parameters":{"type":"object","additionalProperties":false,"required":["argv"],"properties":{"argv":{"type":"array","minItems":1,"items":{"type":"string"}},"cwd":{"type":"string"},"timeout_ms":{"type":"integer","minimum":1},"max_output_bytes":{"type":"integer","minimum":1}}}}),
         json!({"type":"function","name":"ask_user","description":"Block for a user decision.","strict":false,"parameters":{"type":"object","additionalProperties":false,"required":["question"],"properties":{"question":{"type":"string"},"options":{"type":"array","items":{"type":"string"}}}}}),
-        json!({"type":"function","name":"books","description":"Search or read indexed technical books; create a private draft only for durable reusable knowledge.","strict":false,"parameters":{"type":"object","additionalProperties":false,"required":["action"],"properties":{"action":{"type":"string","enum":["search","read","draft","feedback"]},"query":{"type":"string"},"id":{"type":"string"},"body":{"type":"string"},"limit":{"type":"integer","minimum":1,"maximum":20},"detail":{"type":"string","enum":["index","compact","detailed"]},"max_tokens":{"type":"integer","minimum":1,"maximum":32000}}}}),
+        json!({"type":"function","name":"books","description":"Search technical books; read only a stated real gap using index, one section, or exceptional full access.","strict":false,"parameters":{"type":"object","additionalProperties":false,"required":["action"],"properties":{"action":{"type":"string","enum":["search","read","draft","feedback"]},"query":{"type":"string"},"id":{"type":"string"},"body":{"type":"string"},"limit":{"type":"integer","minimum":1,"maximum":20},"reason":{"type":"string","enum":["no_gap","true_gap","exceptional_full"],"description":"Required for action=read."},"detail":{"type":"string","enum":["index","section","full"]},"section_id":{"type":"string","description":"Required for detail=section."},"max_tokens":{"type":"integer","minimum":1,"maximum":32000}}}}),
+        json!({"type":"function","name":"just","description":"List a workspace Justfile or run one explicitly approved recipe; recipe bodies are never presumed safe.","strict":false,"parameters":{"type":"object","additionalProperties":false,"required":["action"],"properties":{"action":{"type":"string","enum":["list","run"]},"recipe":{"type":"string","description":"Required for action=run."},"args":{"type":"array","items":{"type":"string"}},"cwd":{"type":"string"},"timeout_ms":{"type":"integer","minimum":1000,"maximum":120000}}}}),
         json!({"type":"function","name":"github","description":"Read structured repository, issue, pull request, check, workflow, run, and release data through authenticated gh CLI.","strict":false,"parameters":{"type":"object","additionalProperties":false,"required":["action"],"properties":{"action":{"type":"string","enum":["repo","issues","issue","prs","pr","checks","runs","workflows","release","releases"]},"repo":{"type":"string"},"number":{"type":"integer","minimum":1},"tag":{"type":"string"},"limit":{"type":"integer","minimum":1,"maximum":100},"timeout_ms":{"type":"integer","minimum":1000,"maximum":120000},"max_output_bytes":{"type":"integer","minimum":1,"maximum":262144}}}}),
         json!({"type":"function","name":"quality","description":"Detect or run bounded built-in quality suites in one call; supports Rust, Python, JavaScript, and Go.","strict":false,"parameters":{"type":"object","additionalProperties":false,"required":["action"],"properties":{"action":{"type":"string","enum":["detect","check","lint","test","docs","security","all","format"]},"suite":{"type":"string","enum":["auto","rust","python","javascript","go"]},"timeout_ms":{"type":"integer","minimum":1000,"maximum":600000},"max_output_bytes":{"type":"integer","minimum":1,"maximum":262144}}}}),
     ];
+    if !read_only {
+        // One versioned terminal tool replaces any dynamic per-session tools.
+        // Its five fixed actions cost one compact schema and retain the normal
+        // approval policy for every submitted line.
+        tools.push(json!({
+            "type":"function",
+            "name":"terminal",
+            "description":"Run a persistent workspace PTY with parsed screen observation. Every submitted line is safety-checked; credential or privilege prompts pause for a human.",
+            "strict":false,
+            "parameters":{"type":"object","additionalProperties":false,"required":["action"],"properties":{
+                "action":{"type":"string","enum":["start","observe","batch","resize","close"]},
+                "argv":{"type":"array","items":{"type":"string"},"description":"Required for start; use a literal argv vector."},
+                "cwd":{"type":"string"},
+                "session":{"type":"string","description":"Required except start."},
+                "steps":{"type":"array","maxItems":8,"items":{"type":"object","additionalProperties":false,"properties":{"line":{"type":"string"},"wait_ms":{"type":"integer","minimum":0,"maximum":30000},"expect":{"type":"string"}}},"description":"Required for batch; each nonempty line is an argv-like command, not shell syntax."},
+                "rows":{"type":"integer","minimum":4,"maximum":400},
+                "cols":{"type":"integer","minimum":4,"maximum":400},
+                "max_output_bytes":{"type":"integer","minimum":1,"maximum":65536}
+            }}
+        }));
+    }
     if read_only {
         tools.retain(|tool| tool["name"] != "apply_patch");
     }
@@ -1193,17 +1603,31 @@ pub fn tool_definitions(role: &str, read_only: bool, allow_questions: bool, coor
         tools.push(json!({
             "type": "function",
             "name": "hive",
-            "description": "Private compact coordination: inbox, typed messages, shared board entries, and artifact references.",
+            "description": "Private compact coordination: roster, inbox, typed messages, shared board entries, and artifact references. Call action=roster first to discover who is in this run: it returns each agent's id, role, and state, and the exact string to pass as `to`. `kind` is shared by two actions with different value sets — see its description.",
             "strict": false,
             "parameters": {
                 "type": "object",
                 "additionalProperties": false,
                 "required": ["action"],
                 "properties": {
-                    "action": {"type":"string","enum":["inbox","send","board_read","board_post","board_resolve","artifact_put"]},
-                    "to": {"type":"string"},
-                    "room": {"type":"string"},
-                    "kind": {"type":"string","enum":["finding","decision","blocker","request","progress","handoff","artifact_reference"]},
+                    "action": {
+                        "type":"string",
+                        "enum":["roster","inbox","send","board_read","board_post","board_resolve","artifact_put"],
+                        "description":"roster lists the agents in this run and their addresses."
+                    },
+                    "to": {
+                        "type":"string",
+                        "description":"Required for send. An agent id or `agent:<id>` from the roster, a role name if it is unambiguous, or `group:all` only for a shared dependency. An unresolvable recipient is an error, not a silent drop."
+                    },
+                    "room": {
+                        "type":"string",
+                        "description":"Delivery scope for send, enforced. Defaults to `run`, the shared room every agent in this run belongs to. Any other name is a private room: the first send creates it and admits the recipient, and afterwards only its members can post to or read from it."
+                    },
+                    "kind": {
+                        "type":"string",
+                        "enum": hive_kind_enum(),
+                        "description":"For action=send: finding, decision, blocker, request, progress, handoff, artifact_reference. For action=board_post: decision, constraint, finding, blocker, artifact, progress. Values outside the set for the action you called are rejected."
+                    },
                     "body": {"type":"string"},
                     "subject": {"type":"string"},
                     "entry_id": {"type":"string"},
@@ -1211,9 +1635,11 @@ pub fn tool_definitions(role: &str, read_only: bool, allow_questions: bool, coor
                     "limit": {"type":"integer","minimum":1,"maximum":100},
                     "refs": {"type":"array","items":{"type":"string"}},
                     "requested_action": {"type":"string"},
+                    "broadcast_reason": {"type":"string","description":"Required when to=group:all; state the real shared dependency."},
                     "artifact_id": {"type":"string"},
                     "confidence": {"type":"integer","minimum":0,"maximum":100},
-                    "evidence": {"type":"array","items":{"type":"string"}}
+                    "evidence": {"type":"array","items":{"type":"string"}},
+                    "evidence_receipts": {"type":"array","maxItems":8,"items":{"type":"object","additionalProperties":false,"required":["schema_version","conclusion","locator","evidence_digest"],"properties":{"schema_version":{"type":"integer","enum":[1]},"conclusion":{"type":"string"},"locator":{"type":"string"},"evidence_digest":{"type":"string"},"excerpt":{"type":"string","maxLength":480}}}}
                 }
             }
         }));
@@ -1223,6 +1649,152 @@ pub fn tool_definitions(role: &str, read_only: bool, allow_questions: bool, coor
 
 fn coordination_error(error: impl std::fmt::Display) -> ToolError {
     ToolError::Coordination(error.to_string())
+}
+
+/// Message kinds `hive send` accepts. These describe a message between agents.
+const HIVE_SEND_KINDS: &[&str] = &[
+    "finding",
+    "decision",
+    "blocker",
+    "request",
+    "progress",
+    "handoff",
+    "artifact_reference",
+];
+
+/// Entry kinds `hive board_post` accepts. These mirror [`BoardKind`] and
+/// describe a durable shared-board entry, which is why they include
+/// `constraint`/`artifact` and exclude the conversational kinds.
+const HIVE_BOARD_KINDS: &[&str] = &[
+    "decision",
+    "constraint",
+    "finding",
+    "blocker",
+    "artifact",
+    "progress",
+];
+
+/// The union advertised by the single `kind` schema field. JSON Schema cannot
+/// express "enum depends on `action`" without a full restructure, so the schema
+/// stays permissive and the handlers reject the wrong half per action.
+fn hive_kind_enum() -> Vec<&'static str> {
+    let mut kinds = HIVE_SEND_KINDS.to_vec();
+    for kind in HIVE_BOARD_KINDS {
+        if !kinds.contains(kind) {
+            kinds.push(kind);
+        }
+    }
+    kinds
+}
+
+/// The run's currently-known agents, in the shape the `roster` action returns.
+fn hive_roster(agents: &[AgentRecord], self_id: EventAgentId) -> Value {
+    let entries = agents
+        .iter()
+        .map(|agent| {
+            json!({
+                "id": agent.agent_id.to_string(),
+                // The exact string to pass back as `to`.
+                "to": format!("agent:{}", agent.agent_id),
+                "role": agent.role,
+                "state": serde_json::to_value(agent.state).unwrap_or(Value::Null),
+                "task_id": agent.task_id,
+                "is_self": agent.agent_id == self_id,
+            })
+        })
+        .collect::<Vec<_>>();
+    json!({
+        "schema_version": 1,
+        "agents": entries,
+        "broadcast": BROADCAST_RECIPIENT,
+        "default_room": RUN_ROOM_ID,
+    })
+}
+
+/// A compact "who exists" list, appended to recipient errors so a model can
+/// recover without a separate roster round-trip.
+fn hive_roster_hint(agents: &[AgentRecord]) -> String {
+    if agents.is_empty() {
+        return "; no other agents are registered in this run yet".to_owned();
+    }
+    let known = agents
+        .iter()
+        .take(12)
+        .map(|agent| format!("agent:{} ({})", agent.agent_id, agent.role))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("; known recipients: {known}, or {BROADCAST_RECIPIENT}")
+}
+
+fn looks_like_agent_id(value: &str) -> bool {
+    value.len() == 36 && value.chars().all(|c| c.is_ascii_hexdigit() || c == '-')
+}
+
+/// Resolve a model-supplied `to` value to an inbox key that actually matches.
+///
+/// Accepts an `agent:{id}` address, a bare agent id, a role name (or an
+/// unambiguous substring of one), `leader`/`manager` for the run's lead, and
+/// the broadcast aliases. Anything that does not resolve to a currently-known
+/// recipient is an error rather than a fabricated key: `hive send` previously
+/// defaulted to the literal string `"manager"`, which matches no inbox, and
+/// still reported `delivered: true`.
+fn resolve_hive_recipient(raw: Option<&str>, agents: &[AgentRecord]) -> Result<String, ToolError> {
+    let Some(raw) = raw.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Err(invalid(
+            "hive send requires `to`; broadcasts are exceptional and need to=group:all plus broadcast_reason",
+        ));
+    };
+    let lowered = raw.to_ascii_lowercase();
+    if matches!(lowered.as_str(), "all" | "everyone" | "room" | "broadcast") || lowered == BROADCAST_RECIPIENT
+    {
+        return Ok(BROADCAST_RECIPIENT.to_owned());
+    }
+    if let Some(group @ Recipient::Group(_)) = Recipient::parse(raw) {
+        return Ok(group.to_wire());
+    }
+    let candidate = raw.strip_prefix("agent:").unwrap_or(raw).trim();
+    if let Some(agent) = agents
+        .iter()
+        .find(|agent| agent.agent_id.to_string().eq_ignore_ascii_case(candidate))
+    {
+        return Ok(format!("agent:{}", agent.agent_id));
+    }
+    // An explicit address or a well-formed id names one specific agent, so a
+    // miss is a hard error rather than a fallback into role matching.
+    if raw.starts_with("agent:") || looks_like_agent_id(candidate) {
+        return Err(invalid(&format!(
+            "hive recipient {raw:?} is not an agent in this run; call hive with action=roster{}",
+            hive_roster_hint(agents)
+        )));
+    }
+    let matches = |predicate: &dyn Fn(&AgentRecord) -> bool| {
+        agents.iter().filter(|agent| predicate(agent)).collect::<Vec<_>>()
+    };
+    let mut found = if matches!(lowered.as_str(), "leader" | "lead" | "manager") {
+        matches(&|agent| agent.role.to_ascii_lowercase().contains("lead"))
+    } else {
+        matches(&|agent| agent.role.eq_ignore_ascii_case(raw))
+    };
+    if found.is_empty() {
+        found = matches(&|agent| agent.role.to_ascii_lowercase().contains(&lowered));
+    }
+    match found.as_slice() {
+        [agent] => Ok(format!("agent:{}", agent.agent_id)),
+        [] => Err(invalid(&format!(
+            "hive recipient {raw:?} matches no agent id or role in this run; call hive with action=roster{}",
+            hive_roster_hint(agents)
+        ))),
+        ambiguous => Err(invalid(&format!(
+            "hive recipient {raw:?} matches {} agents; address one by id: {}",
+            ambiguous.len(),
+            ambiguous
+                .iter()
+                .take(12)
+                .map(|agent| format!("agent:{} ({})", agent.agent_id, agent.role))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))),
+    }
 }
 
 fn parse_board_kind(value: &str) -> Result<BoardKind, ToolError> {
@@ -1287,6 +1859,175 @@ fn string_array(value: Option<&Value>, name: &str) -> Result<Vec<String>, ToolEr
                 })
         })
         .unwrap_or(Ok(Vec::new()))
+}
+
+fn required_string<'a>(args: &'a Value, name: &str) -> Result<&'a str, ToolError> {
+    args.get(name)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| invalid(&format!("{name} is required")))
+}
+
+fn terminal_to_tool_error(error: TerminalError) -> ToolError {
+    match error {
+        TerminalError::Io(error) => ToolError::Io(error),
+        TerminalError::Invalid(message) => ToolError::InvalidArguments(message),
+        TerminalError::Denied(message) => ToolError::CommandDenied(message),
+        other => ToolError::Coordination(other.to_string()),
+    }
+}
+
+fn tool_to_terminal_error(error: ToolError) -> TerminalError {
+    match error {
+        ToolError::InvalidArguments(message)
+        | ToolError::OutsideWorkspace(message)
+        | ToolError::CommandDenied(message) => TerminalError::Denied(message),
+        ToolError::ReadOnlyDenied => TerminalError::Denied("read-only policy denied terminal line".into()),
+        ToolError::Io(error) => TerminalError::Io(error),
+        other => TerminalError::Denied(other.to_string()),
+    }
+}
+
+/// The PTY deliberately accepts a compact argv-like line grammar rather than
+/// shell syntax. A shell session remains persistent, but pipes, redirects,
+/// substitutions, and quotes would bypass the fixed command safety policy.
+fn terminal_line_argv(line: &str) -> Result<Option<Vec<String>>, ToolError> {
+    let line = line.trim();
+    if line.is_empty() {
+        return Ok(None);
+    }
+    if line.len() > 4 * 1024 {
+        return Err(invalid("terminal command line exceeds 4096 bytes"));
+    }
+    if contains_shell_syntax(line) {
+        return Err(invalid(
+            "terminal lines use literal argv words only; shell syntax, quoting, redirects, and substitutions are not allowed",
+        ));
+    }
+    let argv = line.split_whitespace().map(str::to_owned).collect::<Vec<_>>();
+    if argv.len() > 64 {
+        return Err(invalid("terminal command line exceeds 64 argv words"));
+    }
+    Ok(Some(argv))
+}
+
+fn contains_shell_syntax(value: &str) -> bool {
+    value.chars().any(|character| {
+        matches!(
+            character,
+            ';' | '|' | '&' | '>' | '<' | '`' | '$' | '\\' | '\'' | '"' | '(' | ')' | '{' | '}'
+        )
+    })
+}
+
+fn terminal_path_escape(argv: &[String]) -> bool {
+    let Some(program) = argv
+        .first()
+        .and_then(|value| Path::new(value).file_name())
+        .and_then(OsStr::to_str)
+    else {
+        return true;
+    };
+    if program == "cd" || program == "pushd" || program == "popd" {
+        return true;
+    }
+    argv.iter().skip(1).any(|argument| {
+        argument == "-C"
+            || argument == "--git-dir"
+            || argument == "--work-tree"
+            || argument == "--exec-path"
+            || argument.starts_with("--git-dir=")
+            || argument.starts_with("--work-tree=")
+            || argument.starts_with("--exec-path=")
+            || argument.starts_with('~')
+            || Path::new(argument).is_absolute()
+            || Path::new(argument)
+                .components()
+                .any(|component| component == Component::ParentDir)
+    })
+}
+
+fn is_privileged_terminal_command(argv: &[String]) -> bool {
+    argv.first().is_some_and(|program| {
+        matches!(
+            Path::new(program).file_name().and_then(OsStr::to_str),
+            Some("sudo" | "doas" | "su")
+        )
+    })
+}
+
+fn terminal_requests_privileged_input(args: &Value) -> Result<bool, ToolError> {
+    match args.get("action").and_then(Value::as_str) {
+        Some("start") => Ok(is_privileged_terminal_command(&string_array(
+            args.get("argv"),
+            "argv",
+        )?)),
+        Some("batch") => args
+            .get("steps")
+            .and_then(Value::as_array)
+            .ok_or_else(|| invalid("terminal batch requires steps"))?
+            .iter()
+            .filter_map(|step| step.get("line").and_then(Value::as_str))
+            .map(terminal_line_argv)
+            .collect::<Result<Vec<_>, _>>()
+            .map(|commands| {
+                commands
+                    .into_iter()
+                    .flatten()
+                    .any(|argv| is_privileged_terminal_command(&argv))
+            }),
+        Some(_) => Ok(false),
+        None => Err(invalid("terminal action is required")),
+    }
+}
+
+fn is_just_argv(argv: &[String]) -> bool {
+    argv.first().is_some_and(|program| {
+        Path::new(program)
+            .file_name()
+            .and_then(OsStr::to_str)
+            .is_some_and(|program| program == "just")
+    })
+}
+
+fn valid_just_recipe_name(recipe: &str) -> bool {
+    !recipe.is_empty()
+        && recipe.len() <= 120
+        && recipe
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.'))
+}
+
+fn looks_like_credential(value: &str) -> bool {
+    let lower = value.to_ascii_lowercase();
+    lower.contains("token=")
+        || lower.contains("password=")
+        || lower.contains("api_key=")
+        || lower.starts_with("sk-")
+        || lower.starts_with("tp-")
+}
+
+fn find_just_root(start: &Path, root: &Path) -> Option<PathBuf> {
+    let mut current = start.to_path_buf();
+    if current.is_file() {
+        current = current.parent()?.to_path_buf();
+    }
+    loop {
+        if ["Justfile", "justfile", ".justfile"]
+            .iter()
+            .any(|name| current.join(name).is_file())
+        {
+            return Some(current);
+        }
+        if current == root {
+            return None;
+        }
+        current = current.parent()?.to_path_buf();
+        if !current.starts_with(root) {
+            return None;
+        }
+    }
 }
 
 #[derive(Clone, Debug, serde::Serialize)]
@@ -1659,6 +2400,10 @@ fn is_dangerous_command(argv: &[String]) -> bool {
         "cmd",
         "env",
         "xargs",
+        "just",
+        "sudo",
+        "doas",
+        "su",
         "gh",
         "codex",
         "claude",
@@ -1676,17 +2421,25 @@ fn is_dangerous_command(argv: &[String]) -> bool {
         "clean",
         "commit",
         "config",
+        "filter-branch",
         "merge",
         "mv",
+        "notes",
+        "prune",
         "push",
         "rebase",
+        "reflog",
+        "replace",
         "reset",
         "restore",
         "revert",
         "rm",
         "stash",
         "switch",
+        "symbolic-ref",
         "tag",
+        "update-index",
+        "update-ref",
         "worktree",
     ];
     const REMOTE_PROGRAMS: &[&str] = &[
@@ -1730,6 +2483,10 @@ fn is_never_allowed_command(argv: &[String]) -> bool {
             | "cmd"
             | "env"
             | "xargs"
+            | "just"
+            | "sudo"
+            | "doas"
+            | "su"
             | "codex"
             | "claude"
             | "gemini"
@@ -1754,36 +2511,49 @@ fn validate_patch_paths(patch: &str, root: &Path) -> Result<(), ToolError> {
             || line.starts_with("rename to ")
             || line.starts_with("copy from ")
             || line.starts_with("copy to ")
+            || line.starts_with("diff --git ")
     }) {
-        let raw = line
-            .split_once(' ')
-            .map(|(_, value)| value)
-            .unwrap_or("")
-            .split('\t')
-            .next()
-            .unwrap_or("")
-            .split_whitespace()
-            .next()
-            .unwrap_or("");
-        if raw == "/dev/null" {
-            continue;
-        }
-        let path = raw
-            .strip_prefix("a/")
-            .or_else(|| raw.strip_prefix("b/"))
-            .unwrap_or(raw);
-        if Path::new(path).is_absolute() || Path::new(path).components().any(|c| c == Component::ParentDir) {
-            return Err(ToolError::OutsideWorkspace(path.into()));
-        }
-        let full = root.join(path);
-        let resolved = if full.exists() {
-            fs::canonicalize(&full)?
+        // `diff --git a/x b/y` headers carry both sides; binary patches have
+        // no `---`/`+++` lines, so validating the header is the only path
+        // guard for them. Tabs or extra tokens after the header are ignored.
+        let candidate_paths: Vec<&str> = if let Some(remainder) = line.strip_prefix("diff --git ") {
+            remainder.split_whitespace().take(2).collect()
         } else {
-            let parent = full.parent().unwrap_or(root);
-            fs::canonicalize(parent)?.join(full.file_name().unwrap_or_default())
+            vec![
+                line.split_once(' ')
+                    .map(|(_, value)| value)
+                    .unwrap_or("")
+                    .split('\t')
+                    .next()
+                    .unwrap_or("")
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or(""),
+            ]
         };
-        if !resolved.starts_with(root) {
-            return Err(ToolError::OutsideWorkspace(path.into()));
+        for raw in candidate_paths {
+            if raw == "/dev/null" {
+                continue;
+            }
+            let path = raw
+                .strip_prefix("a/")
+                .or_else(|| raw.strip_prefix("b/"))
+                .unwrap_or(raw);
+            if Path::new(path).is_absolute()
+                || Path::new(path).components().any(|c| c == Component::ParentDir)
+            {
+                return Err(ToolError::OutsideWorkspace(path.into()));
+            }
+            let full = root.join(path);
+            let resolved = if full.exists() {
+                fs::canonicalize(&full)?
+            } else {
+                let parent = full.parent().unwrap_or(root);
+                fs::canonicalize(parent)?.join(full.file_name().unwrap_or_default())
+            };
+            if !resolved.starts_with(root) {
+                return Err(ToolError::OutsideWorkspace(path.into()));
+            }
         }
     }
     Ok(())
@@ -1796,11 +2566,11 @@ mod tests {
 
     #[test]
     fn tool_count_is_fixed() {
-        assert_eq!(tool_definitions("implementer", false, true, false).len(), 8);
-        assert_eq!(tool_definitions("reviewer", true, true, false).len(), 7);
-        assert_eq!(tool_definitions("reviewer", true, false, false).len(), 6);
-        assert_eq!(tool_definitions("implementer", false, true, true).len(), 10);
-        assert_eq!(tool_definitions("reviewer", true, true, true).len(), 9);
+        assert_eq!(tool_definitions("implementer", false, true, false).len(), 10);
+        assert_eq!(tool_definitions("reviewer", true, true, false).len(), 8);
+        assert_eq!(tool_definitions("reviewer", true, false, false).len(), 7);
+        assert_eq!(tool_definitions("implementer", false, true, true).len(), 12);
+        assert_eq!(tool_definitions("reviewer", true, true, true).len(), 10);
         assert!(
             tool_definitions("implementer", false, true, true)
                 .iter()
@@ -1811,6 +2581,8 @@ mod tests {
         assert!(coordinated.iter().any(|tool| tool["name"] == "hive"));
         assert!(coordinated.iter().any(|tool| tool["name"] == "todo"));
         assert!(coordinated.iter().any(|tool| tool["name"] == "books"));
+        assert!(coordinated.iter().any(|tool| tool["name"] == "just"));
+        assert!(coordinated.iter().any(|tool| tool["name"] == "terminal"));
         assert!(coordinated.iter().any(|tool| tool["name"] == "github"));
         assert!(coordinated.iter().any(|tool| tool["name"] == "quality"));
         assert!(!coordinated.iter().any(|tool| tool["name"] == "board_read"));
@@ -1820,7 +2592,7 @@ mod tests {
             .expect("test operation should succeed");
         assert_eq!(
             books["parameters"]["properties"]["detail"]["enum"],
-            json!(["index", "compact", "detailed"])
+            json!(["index", "section", "full"])
         );
         assert_eq!(books["parameters"]["properties"]["max_tokens"]["maximum"], 32000);
     }
@@ -1862,18 +2634,27 @@ mod tests {
         let ToolOutcome::Output(output) = executor
             .execute(
                 "books",
-                &json!({"action": "read", "id": book.metadata.id, "max_tokens": 8}),
+                &json!({
+                    "action": "read",
+                    "id": book.metadata.id,
+                    "reason": "true_gap",
+                    "detail": "section",
+                    "section_id": book.chapters[0].sections[0].id,
+                    "max_tokens": 8
+                }),
             )
             .expect("test operation should succeed")
         else {
             panic!()
         };
-        let compact: Value = serde_json::from_str(&output.stdout).expect("test operation should succeed");
-        assert_eq!(compact["detail"], "compact");
-        assert_eq!(compact["truncated"], true);
-        assert!(compact["content"].is_object());
+        let section: Value = serde_json::from_str(&output.stdout).expect("test operation should succeed");
+        assert_eq!(section["detail"], "section");
+        assert_eq!(section["reason"], "true_gap");
+        assert_eq!(section["truncated"], true);
+        assert_eq!(section["card"]["section_id"], book.chapters[0].sections[0].id);
+        assert!(section["content"].is_object());
         assert!(
-            compact["content_tokens"]
+            section["content_tokens"]
                 .as_u64()
                 .expect("test operation should succeed")
                 <= 8
@@ -1882,16 +2663,23 @@ mod tests {
         let ToolOutcome::Output(output) = executor
             .execute(
                 "books",
-                &json!({"action": "read", "id": book.metadata.id, "detail": "detailed", "max_tokens": 32000}),
+                &json!({
+                    "action": "read",
+                    "id": book.metadata.id,
+                    "reason": "exceptional_full",
+                    "detail": "full",
+                    "max_tokens": 32000
+                }),
             )
             .expect("test operation should succeed")
         else {
             panic!()
         };
-        let detailed: Value = serde_json::from_str(&output.stdout).expect("test operation should succeed");
-        assert_eq!(detailed["detail"], "detailed");
-        assert!(detailed["content"]["citations"].is_array());
-        assert!(detailed["content"]["chapters"][0]["sections"].is_array());
+        let full: Value = serde_json::from_str(&output.stdout).expect("test operation should succeed");
+        assert_eq!(full["detail"], "full");
+        assert_eq!(full["reason"], "exceptional_full");
+        assert!(full["content"]["citations"].is_array());
+        assert!(full["content"]["chapters"][0]["sections"].is_array());
     }
 
     #[test]
@@ -1927,10 +2715,295 @@ mod tests {
         assert!(matches!(
             executor.execute(
                 "books",
-                &json!({"action": "read", "id": book.metadata.id, "detail": "full"})
+                &json!({"action": "read", "id": book.metadata.id, "reason": "no_gap", "detail": "section", "section_id": "x"})
             ),
             Err(ToolError::InvalidArguments(_))
         ));
+    }
+
+    fn hive_fixture(
+        directory: &Path,
+        roles: &[&str],
+    ) -> (Store, RunId, EventAgentId, Vec<EventAgentId>, ToolExecutor) {
+        let store = Store::in_memory().expect("test operation should succeed");
+        let workspace = store
+            .ensure_workspace(directory)
+            .expect("test operation should succeed");
+        let run = store
+            .create_run("hive", crate::protocol::Mode::Batch)
+            .expect("test operation should succeed");
+        store
+            .attach_run_workspace(run.id, &workspace.id)
+            .expect("test operation should succeed");
+        let now = chrono::Utc::now();
+        let ids = roles
+            .iter()
+            .map(|role| {
+                let agent_id = EventAgentId::new();
+                store
+                    .upsert_agent(&AgentRecord {
+                        run_id: run.id,
+                        agent_id,
+                        parent_agent_id: None,
+                        role: (*role).to_owned(),
+                        model: "deepseek/deepseek-v4-flash".into(),
+                        state: crate::protocol::AgentState::Working,
+                        task_id: Some("task-a".into()),
+                        attempt: 1,
+                        generation: 0,
+                        started_at: now,
+                        updated_at: now,
+                        finished_at: None,
+                    })
+                    .expect("test operation should succeed");
+                agent_id
+            })
+            .collect::<Vec<_>>();
+        let self_id = ids[0];
+        let executor = ToolExecutor::new(directory, false)
+            .expect("test operation should succeed")
+            .with_coordination(CoordinationContext {
+                store: store.clone(),
+                workspace_id: workspace.id,
+                run_id: run.id,
+                agent_id: self_id,
+                task_id: Some("task-a".into()),
+                can_write: true,
+            });
+        (store, run.id, self_id, ids, executor)
+    }
+
+    fn hive_json(executor: &ToolExecutor, args: &Value) -> Value {
+        let ToolOutcome::Output(output) = executor
+            .execute("hive", args)
+            .expect("test operation should succeed")
+        else {
+            panic!("hive returns tool output")
+        };
+        serde_json::from_str(&output.stdout).expect("test operation should succeed")
+    }
+
+    #[test]
+    fn hive_roster_lists_the_agents_in_the_run_with_addressable_ids() {
+        let directory = tempdir().expect("test operation should succeed");
+        let (_store, _run, self_id, ids, executor) =
+            hive_fixture(directory.path(), &["Mina session lead", "spark worker"]);
+        let roster = hive_json(&executor, &json!({"action": "roster"}));
+        let agents = roster["agents"].as_array().expect("roster lists agents");
+        assert_eq!(agents.len(), 2);
+        assert_eq!(roster["broadcast"], BROADCAST_RECIPIENT);
+        assert_eq!(agents[0]["id"], self_id.to_string());
+        assert_eq!(agents[0]["to"], format!("agent:{self_id}"));
+        assert_eq!(agents[0]["role"], "Mina session lead");
+        assert_eq!(agents[0]["state"], "working");
+        assert_eq!(agents[0]["is_self"], true);
+        assert_eq!(agents[1]["id"], ids[1].to_string());
+        assert_eq!(agents[1]["is_self"], false);
+    }
+
+    #[test]
+    fn hive_send_resolves_recipients_instead_of_claiming_a_false_delivery() {
+        let directory = tempdir().expect("test operation should succeed");
+        let (store, run_id, _self_id, ids, executor) =
+            hive_fixture(directory.path(), &["Mina session lead", "spark worker"]);
+        let worker = ids[1];
+        // A bare id, an explicit address, and a role name all resolve to the
+        // same inbox key that `hive_inbox` actually matches on.
+        for form in [
+            worker.to_string(),
+            format!("agent:{worker}"),
+            "spark worker".into(),
+            "worker".into(),
+        ] {
+            let sent = hive_json(
+                &executor,
+                &json!({"action":"send","to":form,"kind":"finding","body":format!("note {form}")}),
+            );
+            assert_eq!(sent["to"], format!("agent:{worker}"), "form {form:?}");
+            assert_eq!(sent["delivered"], true);
+        }
+        assert_eq!(
+            store
+                .hive_inbox(run_id, &format!("agent:{worker}"), 20)
+                .expect("test operation should succeed")
+                .len(),
+            4,
+            "every accepted form landed in the worker's real inbox"
+        );
+        // Broadcasts are intentionally exceptional: a real shared dependency
+        // has to be stated, and an omitted target is no longer a silent room
+        // broadcast.
+        let broadcast = hive_json(
+            &executor,
+            &json!({
+                "action":"send",
+                "to":"group:all",
+                "broadcast_reason":"all workers share this dependency",
+                "kind":"progress",
+                "body":"shared dependency"
+            }),
+        );
+        assert_eq!(broadcast["to"], BROADCAST_RECIPIENT);
+        assert_eq!(broadcast["room"], RUN_ROOM_ID);
+        assert_eq!(
+            store
+                .hive_inbox(run_id, &format!("agent:{worker}"), 20)
+                .expect("test operation should succeed")
+                .len(),
+            1,
+            "the exceptional shared-dependency broadcast is readable, not dropped"
+        );
+        assert!(matches!(
+            executor.execute("hive", &json!({"action":"send","kind":"progress","body":"missing recipient"})),
+            Err(ToolError::InvalidArguments(message)) if message.contains("requires `to`")
+        ));
+        // "manager" was the old bogus literal default. It is now an alias that
+        // resolves to the run's actual lead instead of a dead inbox key.
+        let lead = ids[0];
+        assert_eq!(
+            hive_json(
+                &executor,
+                &json!({"action":"send","to":"manager","kind":"progress","body":"status"})
+            )["to"],
+            format!("agent:{lead}")
+        );
+        for unresolvable in ["018f3a2e-0000-7000-8000-000000000000", "nobody", "agent:nope"] {
+            let error = executor
+                .execute(
+                    "hive",
+                    &json!({"action":"send","to":unresolvable,"kind":"finding","body":"x"}),
+                )
+                .expect_err("unresolvable recipients must not report a delivery");
+            assert!(
+                matches!(&error, ToolError::InvalidArguments(message) if message.contains("roster")),
+                "{unresolvable}: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn hive_send_rejects_an_ambiguous_role_and_names_the_candidates() {
+        let directory = tempdir().expect("test operation should succeed");
+        let (_store, _run, _self_id, ids, executor) = hive_fixture(
+            directory.path(),
+            &["Mina session lead", "spark worker", "spark worker"],
+        );
+        let error = executor
+            .execute(
+                "hive",
+                &json!({"action":"send","to":"spark worker","kind":"finding","body":"x"}),
+            )
+            .expect_err("an ambiguous role must not pick an agent at random");
+        let ToolError::InvalidArguments(message) = &error else {
+            panic!("{error}")
+        };
+        assert!(message.contains("matches 2 agents"), "{message}");
+        assert!(message.contains(&ids[1].to_string()), "{message}");
+        assert!(message.contains(&ids[2].to_string()), "{message}");
+    }
+
+    #[test]
+    fn hive_kind_is_validated_per_action_over_the_shared_schema_enum() {
+        let directory = tempdir().expect("test operation should succeed");
+        let (_store, _run, _self_id, ids, executor) =
+            hive_fixture(directory.path(), &["Mina session lead", "spark worker"]);
+        let worker = format!("agent:{}", ids[1]);
+        // Board-only kinds are rejected by send, message-only kinds by
+        // board_post, even though the schema advertises the union of both.
+        for kind in ["constraint", "artifact"] {
+            let error = executor
+                .execute(
+                    "hive",
+                    &json!({"action":"send","to":worker,"kind":kind,"body":"x"}),
+                )
+                .expect_err("board kind must not be sent as a message");
+            assert!(
+                matches!(&error, ToolError::InvalidArguments(message) if message.contains("board_post")),
+                "{kind}: {error}"
+            );
+        }
+        for kind in ["handoff", "request", "artifact_reference"] {
+            let error = executor
+                .execute(
+                    "hive",
+                    &json!({"action":"board_post","kind":kind,"subject":"s","body":"b"}),
+                )
+                .expect_err("message kind must not be posted to the board");
+            assert!(
+                matches!(&error, ToolError::InvalidArguments(message) if message.contains("action=send")),
+                "{kind}: {error}"
+            );
+        }
+        // Both halves still work for the action they belong to.
+        assert_eq!(
+            hive_json(
+                &executor,
+                &json!({"action":"send","to":worker,"kind":"handoff","body":"yours now"})
+            )["delivered"],
+            true
+        );
+        assert_eq!(
+            hive_json(
+                &executor,
+                &json!({"action":"board_post","kind":"constraint","subject":"s","body":"b"})
+            )["kind"],
+            "constraint"
+        );
+    }
+
+    #[test]
+    fn hive_private_rooms_are_scoped_and_the_schema_advertises_both_kind_sets() {
+        let directory = tempdir().expect("test operation should succeed");
+        let (store, run_id, _self_id, ids, executor) = hive_fixture(
+            directory.path(),
+            &["Mina session lead", "spark worker", "spark auditor"],
+        );
+        hive_json(
+            &executor,
+            &json!({
+                "action":"send",
+                "to":format!("agent:{}", ids[1]),
+                "room":"lead-worker",
+                "kind":"decision",
+                "body":"we ship the clamp"
+            }),
+        );
+        assert_eq!(
+            store
+                .hive_inbox(run_id, &format!("agent:{}", ids[1]), 20)
+                .expect("test operation should succeed")
+                .len(),
+            1
+        );
+        assert!(
+            store
+                .hive_inbox(run_id, &format!("agent:{}", ids[2]), 20)
+                .expect("test operation should succeed")
+                .is_empty(),
+            "a private room does not leak to a non-member"
+        );
+        let hive = tool_definitions("implementer", false, true, true)
+            .into_iter()
+            .find(|tool| tool["name"] == "hive")
+            .expect("test operation should succeed");
+        let actions = hive["parameters"]["properties"]["action"]["enum"]
+            .as_array()
+            .expect("test operation should succeed")
+            .clone();
+        assert!(actions.contains(&json!("roster")));
+        let kinds = hive["parameters"]["properties"]["kind"]["enum"]
+            .as_array()
+            .expect("test operation should succeed")
+            .clone();
+        for kind in HIVE_SEND_KINDS.iter().chain(HIVE_BOARD_KINDS) {
+            assert!(kinds.contains(&json!(kind)), "schema omits {kind}");
+        }
+        assert!(
+            hive["description"]
+                .as_str()
+                .expect("test operation should succeed")
+                .contains("roster")
+        );
     }
 
     #[test]
@@ -2043,6 +3116,28 @@ mod tests {
     }
 
     #[test]
+    fn read_files_caps_oversized_input_before_allocating() {
+        let d = tempdir().expect("test operation should succeed");
+        let large = vec![b'x'; 1_000_000];
+        fs::write(d.path().join("big.bin"), &large).expect("test operation should succeed");
+        let e = ToolExecutor::new(d.path(), true).expect("test operation should succeed");
+        let ToolOutcome::Output(o) = e
+            .execute(
+                "read_files",
+                &json!({"files":[{"path":"big.bin"}], "max_bytes": 4096}),
+            )
+            .expect("test operation should succeed")
+        else {
+            panic!()
+        };
+        assert!(
+            o.stdout.len() < 32 * 1024,
+            "output was not capped: {}",
+            o.stdout.len()
+        );
+    }
+
+    #[test]
     fn patches_apply_in_snapshot_lanes_without_git_metadata() {
         let directory = tempdir().expect("test operation should succeed");
         fs::write(directory.path().join("note.txt"), "old\n").expect("test operation should succeed");
@@ -2113,6 +3208,26 @@ mod tests {
     }
 
     #[test]
+    fn binary_patch_headers_are_path_validated() {
+        let d = tempdir().expect("test operation should succeed");
+        let root = d.path().canonicalize().expect("canonical root");
+        let ok = "diff --git a/note.bin b/note.bin\nnew file mode 100644\nGIT binary patch\nliteral 4\nKcmZQ\\n\\n";
+        validate_patch_paths(ok, &root).expect("in-workspace binary patch");
+        for patch in [
+            "diff --git a/../escape.bin b/../escape.bin\nGIT binary patch\nliteral 1\nA\\n",
+            "diff --git a//tmp/escape.bin b//tmp/escape.bin\nGIT binary patch\nliteral 1\nA\\n",
+            "diff --git a/sub/ok.bin b/../../escape.bin\nGIT binary patch\nliteral 1\nA\\n",
+        ] {
+            assert!(
+                validate_patch_paths(patch, &root).is_err(),
+                "accepted traversal in: {patch:?}"
+            );
+        }
+        let dev_null = "diff --git a/note.bin b/note.bin\ndeleted file mode 100644\nGIT binary patch\nliteral 0\nHcL@\\n";
+        validate_patch_paths(dev_null, &root).expect("deletion of in-workspace file");
+    }
+
+    #[test]
     fn remote_commands_require_one_use_approval_but_local_builds_remain_allowed() {
         let temp = tempfile::tempdir().expect("test operation should succeed");
         let executor = ToolExecutor::new(temp.path(), false).expect("test operation should succeed");
@@ -2152,6 +3267,27 @@ mod tests {
                     .approval_reason("exec", &json!({"argv": argv}))
                     .expect("test operation should succeed")
                     .is_none()
+            );
+        }
+        for argv in [
+            vec!["git", "update-ref", "refs/heads/main", "0123456"],
+            vec!["git", "symbolic-ref", "HEAD", "refs/heads/other"],
+            vec!["git", "replace", "HEAD", "0123456"],
+            vec!["git", "filter-branch", "--", "--all"],
+            vec!["git", "update-index", "--assume-unchanged", "file.txt"],
+            vec!["git", "notes", "add", "-m", "note"],
+            vec!["git", "prune"],
+            vec!["git", "reflog", "delete", "HEAD@{1}"],
+        ] {
+            assert!(
+                is_dangerous_command(&argv.iter().map(ToString::to_string).collect::<Vec<_>>()),
+                "expected dangerous: {argv:?}"
+            );
+            assert!(
+                executor
+                    .approval_reason("exec", &json!({"argv": argv}))
+                    .expect("test operation should succeed")
+                    .is_some()
             );
         }
         assert!(
@@ -2234,5 +3370,75 @@ mod tests {
                 Err(ToolError::OutsideWorkspace(_))
             ));
         }
+    }
+
+    #[test]
+    fn exec_timeout_is_clamped_like_github_and_quality() {
+        assert_eq!(ToolExecutor::clamp_exec_timeout(Some(u64::MAX)), 120_000);
+        assert_eq!(ToolExecutor::clamp_exec_timeout(Some(0)), 1_000);
+        assert_eq!(ToolExecutor::clamp_exec_timeout(Some(10_000)), 10_000);
+        assert_eq!(ToolExecutor::clamp_exec_timeout(None), DEFAULT_TIMEOUT_MS);
+        let d = tempdir().expect("test operation should succeed");
+        let e = ToolExecutor::new(d.path(), false).expect("test operation should succeed");
+        assert!(
+            e.execute("exec", &json!({"argv": ["true"], "timeout_ms": u64::MAX}))
+                .is_ok()
+        );
+        assert!(
+            e.execute("exec", &json!({"argv": ["sleep", "0.2"], "timeout_ms": 1}))
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn reader_collection_gives_up_after_the_grace_timeout() {
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            thread::sleep(Duration::from_secs(30));
+            let _ = tx.send(Ok((b"never delivered".to_vec(), false)));
+        });
+        let started = Instant::now();
+        let (bytes, truncated) = ToolExecutor::collect_reader_output(&rx, Duration::from_millis(100))
+            .expect("grace expiry is not an error");
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "collecting must not wait for a reader that never sends"
+        );
+        assert!(bytes.is_empty());
+        assert!(truncated, "grace expiry must be reported as truncated");
+
+        let (tx, rx) = mpsc::channel();
+        let _ = tx.send(Ok((b"done".to_vec(), false)));
+        assert_eq!(
+            ToolExecutor::collect_reader_output(&rx, Duration::from_secs(1))
+                .expect("test operation should succeed"),
+            (b"done".to_vec(), false)
+        );
+
+        let (tx, rx) = mpsc::channel();
+        let _ = tx.send(Err(std::io::Error::other("reader failed")));
+        assert!(matches!(
+            ToolExecutor::collect_reader_output(&rx, Duration::from_secs(1)),
+            Err(ToolError::Io(_))
+        ));
+    }
+
+    #[test]
+    fn failing_patch_check_never_reaches_the_real_apply() {
+        let directory = tempdir().expect("test operation should succeed");
+        fs::write(directory.path().join("note.txt"), "old\n").expect("test operation should succeed");
+        let executor = ToolExecutor::new(directory.path(), false).expect("test operation should succeed");
+        let mismatch =
+            "diff --git a/note.txt b/note.txt\n--- a/note.txt\n+++ b/note.txt\n@@ -1,3 +1,3 @@\n-old\n+new\n";
+        assert!(
+            executor
+                .execute("apply_patch", &json!({"patch": mismatch}))
+                .is_err()
+        );
+        assert_eq!(
+            fs::read_to_string(directory.path().join("note.txt")).expect("test operation should succeed"),
+            "old\n",
+            "a patch that fails the preflight check must leave the tree untouched"
+        );
     }
 }

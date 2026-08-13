@@ -11,8 +11,8 @@ consult_high_risk = "gpt-5.6-sol"
 reasoning_effort = "medium"
 
 [scheduler]
-max_agents = 8
-hard_max_agents = 16
+max_agents = 4
+hard_max_agents = 8
 usage_reserve_percent = 12.0
 question_policy = "only_blocking"
 
@@ -40,8 +40,33 @@ retrieval_limit = 5
 
 [budgets]
 default = "balanced"
+# Legacy DeepSeek-only reserve keys remain readable. Prefer the provider-keyed
+# table below for new configuration.
 deepseek_soft_reserve_percent = 10.0
 deepseek_hard_reserve_percent = 2.0
+
+[budgets.provider_reserves.chatgpt_codex]
+soft_percent = 10.0
+hard_percent = 2.0
+
+[budgets.provider_reserves.deepseek]
+soft_percent = 10.0
+hard_percent = 2.0
+
+[budgets.provider_reserves.xiaomi_mimo]
+soft_percent = 10.0
+hard_percent = 2.0
+
+# Optional, explicit routing controls. A pin can only narrow an otherwise
+# eligible role pool; it cannot bypass capability, health, or safety checks.
+[routing.pins]
+# worker = "deepseek/deepseek-v4-flash"
+
+# Per-provider overrides are intentionally opt-in. `false` bypasses the named
+# reserve or cooldown only; it never changes tool or credential permissions.
+[routing.providers.deepseek]
+# reserve = false
+# cooldown = false
 
 [books]
 enabled = true

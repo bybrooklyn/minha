@@ -4,8 +4,9 @@
 //! plans from prose, and persisted sessions can be replayed without calling a
 //! model.
 
+use crate::fairness::{FairnessSelectionV1, ProviderHealthStatusV1};
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::{fmt, str::FromStr};
 use uuid::Uuid;
@@ -154,6 +155,325 @@ pub struct PlanTask {
     pub agent_id: Option<EventAgentId>,
 }
 
+/// Contract schema for a single coordinator-admitted microtask.  This stays
+/// deliberately small because it is both durable coordination state and the
+/// worker's task packet.
+pub const MICROTASK_CONTRACT_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct MicrotaskContractV1 {
+    pub schema_version: u16,
+    pub task_id: String,
+    pub goal: String,
+    #[serde(default)]
+    pub lease_resources: Vec<String>,
+    pub acceptance_check: String,
+}
+
+/// One candidate considered at an explicit dispatch boundary.  An exclusion
+/// is always stated rather than being hidden behind a provider preference.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct RoutingCandidateV1 {
+    pub provider: String,
+    pub model: String,
+    pub eligible: bool,
+    #[serde(default)]
+    pub reason: String,
+}
+
+/// Persisted explanation for one worker assignment.  It is an audit record,
+/// not a learned routing cache or a prompt-visible transcript.
+pub const DISPATCH_RECEIPT_SCHEMA_VERSION: u16 = 1;
+/// Current durable dispatch receipt schema. `DispatchReceiptV1` remains the
+/// event/TUI compatibility projection while SQLite may retain the richer V2
+/// record for routing inspection.
+pub const DISPATCH_RECEIPT_V2_SCHEMA_VERSION: u16 = 2;
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct DispatchReceiptV1 {
+    pub schema_version: u16,
+    pub receipt_id: String,
+    pub task_id: String,
+    pub generation: u64,
+    pub agent_id: EventAgentId,
+    pub role: String,
+    pub provider: String,
+    pub model: String,
+    #[serde(default)]
+    pub candidates: Vec<RoutingCandidateV1>,
+    #[serde(default)]
+    pub lease_resources: Vec<String>,
+    pub acceptance_check: String,
+    pub estimated_input_tokens: u64,
+    pub session_used_tokens: u64,
+    pub session_target_tokens: u64,
+    pub budget_pressure: String,
+    pub parallelism_reason: String,
+    #[serde(default)]
+    pub book_sources: Vec<String>,
+    pub issued_at: DateTime<Utc>,
+}
+
+/// V2 adds compact, local routing evidence without enlarging the model-facing
+/// worker packet. It is intentionally a separate type: existing event readers
+/// and TUI state can continue to decode `DispatchReceiptV1` unchanged.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct RoutingCandidateV2 {
+    pub provider: String,
+    pub model: String,
+    pub eligible: bool,
+    #[serde(default)]
+    pub reason: String,
+    #[serde(default)]
+    pub health: ProviderHealthStatusV1,
+    #[serde(default)]
+    pub cooldown_until: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub reserve: String,
+    #[serde(default)]
+    pub pinned: bool,
+}
+
+impl From<RoutingCandidateV1> for RoutingCandidateV2 {
+    fn from(candidate: RoutingCandidateV1) -> Self {
+        Self {
+            provider: candidate.provider,
+            model: candidate.model,
+            eligible: candidate.eligible,
+            reason: candidate.reason,
+            health: ProviderHealthStatusV1::Unknown,
+            cooldown_until: None,
+            reserve: String::new(),
+            pinned: false,
+        }
+    }
+}
+
+impl From<RoutingCandidateV2> for RoutingCandidateV1 {
+    fn from(candidate: RoutingCandidateV2) -> Self {
+        Self {
+            provider: candidate.provider,
+            model: candidate.model,
+            eligible: candidate.eligible,
+            reason: candidate.reason,
+        }
+    }
+}
+
+/// Compact explanation of how policy and equal-weight WDRR admitted a route.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct DispatchRoutingV1 {
+    pub schema_version: u16,
+    pub policy: String,
+    pub quantum: u64,
+    pub estimated_work: u64,
+    pub deficit_before: i64,
+    pub deficit_after: i64,
+    #[serde(default)]
+    pub user_pin: bool,
+    #[serde(default)]
+    pub reserve_override: Option<bool>,
+    #[serde(default)]
+    pub cooldown_override: Option<bool>,
+    #[serde(default)]
+    pub health: ProviderHealthStatusV1,
+}
+
+impl Default for DispatchRoutingV1 {
+    fn default() -> Self {
+        Self {
+            schema_version: 1,
+            policy: "legacy_untracked".into(),
+            quantum: 0,
+            estimated_work: 0,
+            deficit_before: 0,
+            deficit_after: 0,
+            user_pin: false,
+            reserve_override: None,
+            cooldown_override: None,
+            health: ProviderHealthStatusV1::Unknown,
+        }
+    }
+}
+
+impl DispatchRoutingV1 {
+    pub fn equal_weight(selection: FairnessSelectionV1) -> Self {
+        Self {
+            schema_version: 1,
+            policy: "equal_weight_wdrr".into(),
+            quantum: selection.quantum,
+            estimated_work: selection.estimated_work,
+            deficit_before: selection.deficit_before,
+            deficit_after: selection.deficit_after,
+            ..Self::default()
+        }
+    }
+}
+
+/// Current durable dispatch receipt. Its custom decoder upcasts literal V1
+/// JSON, so old rows remain readable after V2 is introduced.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct DispatchReceiptV2 {
+    pub schema_version: u16,
+    pub receipt_id: String,
+    pub task_id: String,
+    pub generation: u64,
+    pub agent_id: EventAgentId,
+    pub role: String,
+    pub provider: String,
+    pub model: String,
+    #[serde(default)]
+    pub candidates: Vec<RoutingCandidateV2>,
+    #[serde(default)]
+    pub lease_resources: Vec<String>,
+    pub acceptance_check: String,
+    pub estimated_input_tokens: u64,
+    pub session_used_tokens: u64,
+    pub session_target_tokens: u64,
+    pub budget_pressure: String,
+    pub parallelism_reason: String,
+    #[serde(default)]
+    pub book_sources: Vec<String>,
+    pub issued_at: DateTime<Utc>,
+    #[serde(default)]
+    pub routing: DispatchRoutingV1,
+}
+
+impl DispatchReceiptV2 {
+    pub fn from_v1(receipt: DispatchReceiptV1) -> Self {
+        Self {
+            schema_version: DISPATCH_RECEIPT_V2_SCHEMA_VERSION,
+            receipt_id: receipt.receipt_id,
+            task_id: receipt.task_id,
+            generation: receipt.generation,
+            agent_id: receipt.agent_id,
+            role: receipt.role,
+            provider: receipt.provider,
+            model: receipt.model,
+            candidates: receipt.candidates.into_iter().map(Into::into).collect(),
+            lease_resources: receipt.lease_resources,
+            acceptance_check: receipt.acceptance_check,
+            estimated_input_tokens: receipt.estimated_input_tokens,
+            session_used_tokens: receipt.session_used_tokens,
+            session_target_tokens: receipt.session_target_tokens,
+            budget_pressure: receipt.budget_pressure,
+            parallelism_reason: receipt.parallelism_reason,
+            book_sources: receipt.book_sources,
+            issued_at: receipt.issued_at,
+            routing: DispatchRoutingV1::default(),
+        }
+    }
+
+    /// The compatibility projection used by the existing typed runtime event
+    /// and TUI. V2-only fields remain durable in SQLite and queryable through
+    /// the Store routing inspector.
+    pub fn to_v1(&self) -> DispatchReceiptV1 {
+        DispatchReceiptV1 {
+            schema_version: DISPATCH_RECEIPT_SCHEMA_VERSION,
+            receipt_id: self.receipt_id.clone(),
+            task_id: self.task_id.clone(),
+            generation: self.generation,
+            agent_id: self.agent_id,
+            role: self.role.clone(),
+            provider: self.provider.clone(),
+            model: self.model.clone(),
+            candidates: self.candidates.clone().into_iter().map(Into::into).collect(),
+            lease_resources: self.lease_resources.clone(),
+            acceptance_check: self.acceptance_check.clone(),
+            estimated_input_tokens: self.estimated_input_tokens,
+            session_used_tokens: self.session_used_tokens,
+            session_target_tokens: self.session_target_tokens,
+            budget_pressure: self.budget_pressure.clone(),
+            parallelism_reason: self.parallelism_reason.clone(),
+            book_sources: self.book_sources.clone(),
+            issued_at: self.issued_at,
+        }
+    }
+}
+
+impl From<DispatchReceiptV1> for DispatchReceiptV2 {
+    fn from(receipt: DispatchReceiptV1) -> Self {
+        Self::from_v1(receipt)
+    }
+}
+
+#[derive(Deserialize)]
+struct DispatchReceiptV2Wire {
+    schema_version: u16,
+    receipt_id: String,
+    task_id: String,
+    generation: u64,
+    agent_id: EventAgentId,
+    role: String,
+    provider: String,
+    model: String,
+    #[serde(default)]
+    candidates: Vec<RoutingCandidateV2>,
+    #[serde(default)]
+    lease_resources: Vec<String>,
+    acceptance_check: String,
+    estimated_input_tokens: u64,
+    session_used_tokens: u64,
+    session_target_tokens: u64,
+    budget_pressure: String,
+    parallelism_reason: String,
+    #[serde(default)]
+    book_sources: Vec<String>,
+    issued_at: DateTime<Utc>,
+    #[serde(default)]
+    routing: DispatchRoutingV1,
+}
+
+impl From<DispatchReceiptV2Wire> for DispatchReceiptV2 {
+    fn from(receipt: DispatchReceiptV2Wire) -> Self {
+        Self {
+            schema_version: receipt.schema_version,
+            receipt_id: receipt.receipt_id,
+            task_id: receipt.task_id,
+            generation: receipt.generation,
+            agent_id: receipt.agent_id,
+            role: receipt.role,
+            provider: receipt.provider,
+            model: receipt.model,
+            candidates: receipt.candidates,
+            lease_resources: receipt.lease_resources,
+            acceptance_check: receipt.acceptance_check,
+            estimated_input_tokens: receipt.estimated_input_tokens,
+            session_used_tokens: receipt.session_used_tokens,
+            session_target_tokens: receipt.session_target_tokens,
+            budget_pressure: receipt.budget_pressure,
+            parallelism_reason: receipt.parallelism_reason,
+            book_sources: receipt.book_sources,
+            issued_at: receipt.issued_at,
+            routing: receipt.routing,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for DispatchReceiptV2 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = Value::deserialize(deserializer)?;
+        let version = value
+            .get("schema_version")
+            .and_then(Value::as_u64)
+            .ok_or_else(|| serde::de::Error::custom("dispatch receipt schema_version is required"))?;
+        match version {
+            1 => serde_json::from_value::<DispatchReceiptV1>(value)
+                .map(Self::from_v1)
+                .map_err(serde::de::Error::custom),
+            2 => serde_json::from_value::<DispatchReceiptV2Wire>(value)
+                .map(Into::into)
+                .map_err(serde::de::Error::custom),
+            version => Err(serde::de::Error::custom(format!(
+                "unsupported dispatch receipt schema {version}"
+            ))),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TodoState {
@@ -199,13 +519,18 @@ pub enum RunPhase {
 #[serde(rename_all = "snake_case")]
 pub enum TerminationReason {
     Completed,
+    BudgetTarget,
     ContextBoundary,
     ToolLimit,
     TurnLimit,
     ProviderReserve,
+    SafetyPolicy,
     Interrupted,
     UserPaused,
     Blocked,
+    RetryScheduled,
+    Forked,
+    RecoveryRequired,
     InvalidEmptyResponse,
     ProviderFailure,
 }
@@ -520,6 +845,9 @@ pub enum RuntimeEvent {
         resources: Vec<String>,
         acquired: bool,
     },
+    DispatchReceipt {
+        receipt: DispatchReceiptV1,
+    },
     BoardChanged {
         entry: BoardEntryView,
     },
@@ -705,6 +1033,7 @@ impl RuntimeEvent {
             Self::ProviderBalance { .. } => "provider.balance",
             Self::AgentRetry { .. } => "agent.retry",
             Self::LeaseChanged { .. } => "lease.changed",
+            Self::DispatchReceipt { .. } => "dispatch.receipt",
             Self::BoardChanged { .. } => "board.changed",
             Self::ToolStarted { .. } => "tool.started",
             Self::ToolOutput { .. } => "tool.output",
@@ -835,5 +1164,19 @@ mod tests {
         assert_eq!(decoded, event);
         assert_eq!(decoded.kind(), "session.started");
         assert_eq!(Mode::Batch.to_string().parse(), Ok(Mode::Batch));
+    }
+
+    #[test]
+    fn literal_v1_dispatch_receipt_upcasts_to_v2() {
+        let agent_id = EventAgentId::new();
+        let literal_v1 = format!(
+            r#"{{"schema_version":1,"receipt_id":"dispatch:synthetic:parser:0:agent","task_id":"parser","generation":0,"agent_id":"{agent_id}","role":"Spark worker parser","provider":"deepseek","model":"deepseek/deepseek-v4-flash","lease_resources":["path:src/parser.rs"],"acceptance_check":"synthetic check","estimated_input_tokens":240,"session_used_tokens":12,"session_target_tokens":100000,"budget_pressure":"normal","parallelism_reason":"synthetic test route","issued_at":"2026-08-01T00:00:00Z"}}"#
+        );
+        let receipt: DispatchReceiptV2 =
+            serde_json::from_str(&literal_v1).expect("V1 receipt remains readable");
+        assert_eq!(receipt.schema_version, DISPATCH_RECEIPT_V2_SCHEMA_VERSION);
+        assert_eq!(receipt.routing, DispatchRoutingV1::default());
+        assert_eq!(receipt.to_v1().schema_version, DISPATCH_RECEIPT_SCHEMA_VERSION);
+        assert_eq!(receipt.to_v1().receipt_id, "dispatch:synthetic:parser:0:agent");
     }
 }

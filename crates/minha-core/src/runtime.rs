@@ -4,7 +4,8 @@ use crate::{
     Config, Store,
     auth::{
         AuthError, AuthRecord, CodexOAuthClient, active_account_profile, enabled_account_records,
-        load_default_auth, openai_oauth_config, save_account_profile, save_default_auth,
+        load_account_profile, load_default_auth, openai_oauth_config, save_account_profile,
+        save_default_auth,
     },
     cache::{
         CacheClass, CacheEntry, CachePolicy, HotCache, LookupMode, ObservedInputManifest, cache_key,
@@ -12,8 +13,8 @@ use crate::{
     },
     clarify::{
         analyze as analyze_issue, apply_answers as apply_clarification_answers, confirm as confirm_issue,
-        make_fallback_batch, needs_clarification, prepare_brief, render_brief, reopen as reopen_issue,
-        sanitize_model_batch, should_consult_terra,
+        exhaust_rounds, make_fallback_batch, needs_clarification, prepare_brief, render_brief,
+        reopen as reopen_issue, sanitize_model_batch, should_consult_terra,
     },
     context::{ContextPolicy, estimate_tokens},
     deepseek::DeepSeekClient,
@@ -22,22 +23,33 @@ use crate::{
         tool_definitions,
     },
     facts::{BoardEntry, BoardKind},
+    fairness::{
+        FairnessCandidateV1, FairnessSelectionV1, ProviderHealthStatusV1, ProviderHealthV1,
+        normalized_token_work,
+    },
     instructions::{
         AgentDefinition, Skill, discover_agents, discover_instructions, discover_skills, load_skill,
     },
     memory::{MemoryRecord, MemoryScope},
+    mimo::MiMoClient,
     protocol::{
-        AgentState, BoardEntryView, CatalogModel, ClarificationStatus, EventAgentId, ExitState,
-        IncidentSeverity, IncidentView, IssueClarificationView, ItemId, Mode, PlanTask, PlanTaskState,
-        RequestId, RunId, RunPhase, RuntimeEvent, TerminationReason, TodoItem, TodoState,
+        AgentState, BoardEntryView, CatalogModel, ClarificationStatus, DISPATCH_RECEIPT_SCHEMA_VERSION,
+        DISPATCH_RECEIPT_V2_SCHEMA_VERSION, DispatchReceiptV1, DispatchReceiptV2, DispatchRoutingV1,
+        EventAgentId, ExitState, IncidentSeverity, IncidentView, IssueClarificationView, ItemId,
+        MICROTASK_CONTRACT_SCHEMA_VERSION, MicrotaskContractV1, Mode, PlanTask, PlanTaskState, RequestId,
+        RoutingCandidateV1, RoutingCandidateV2, RunId, RunPhase, RuntimeEvent, TerminationReason, TodoItem,
+        TodoState,
     },
     provider::{
-        ChatGptClient, DEEPSEEK_BASE_URL, ModelCatalog, ModelDescriptor, ProviderBalanceV1, ProviderError,
-        ProviderId, ProviderStreamEvent, ToolCall, TurnRequest, TurnResult,
+        ChatGptClient, DEEPSEEK_BASE_URL, ModelCatalog, ModelDescriptor, ModelRef, ProviderBalanceV1,
+        ProviderError, ProviderId, ProviderStreamEvent, ToolCall, TurnRequest, TurnResult,
     },
-    provider_credentials::{default_path as provider_credentials_path, load_deepseek_key},
+    provider_credentials::{default_path as provider_credentials_path, load_deepseek_key, load_xiaomi_mimo},
     store::{AgentRecord, TaskRecord},
-    usage::{TokenUsage, reserve_reached},
+    usage::{
+        TokenUsage, USAGE_LEDGER_SCHEMA_VERSION, UsageKindV1, UsageLedgerEntryV1, UsageStateV1,
+        reserve_reached,
+    },
     worktree::{GitError, GitRepo, copy_workspace, diff_snapshots},
 };
 use futures_util::{StreamExt, stream::FuturesUnordered};
@@ -47,6 +59,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
+    future::Future,
     path::{Path, PathBuf},
     sync::Arc,
     time::{Duration, Instant, SystemTime},
@@ -54,13 +67,43 @@ use std::{
 use thiserror::Error;
 
 pub const CHATGPT_CODEX_BASE_URL: &str = "https://chatgpt.com/backend-api/codex";
-const MAX_PLAN_TASKS: usize = 16;
+const MAX_PLAN_TASKS: usize = 8;
+/// A session keeps the final five percent of its configured target untouched
+/// for recovery.  The preceding band is a warning/admission pressure signal,
+/// not a second hard terminal budget.
+const ADAPTIVE_TAPER_PERCENT: u64 = 90;
+const ADAPTIVE_PAUSE_PERCENT: u64 = 95;
+/// Upper bound the executor clamps `exec` to, stated in the system prompt so a
+/// role does not spend tool calls rediscovering it. Mirrors
+/// `ToolExecutor::clamp_exec_timeout`.
+const EXEC_TIMEOUT_HINT_SECONDS: u64 = 120;
 const HOT_CACHE_MAX_BYTES: u64 = 16 * 1024 * 1024;
 
 #[derive(Clone, Debug)]
 enum RuntimeProviderClient {
     ChatGpt(ChatGptClient),
     DeepSeek(DeepSeekClient),
+    XiaomiMiMo(MiMoClient),
+}
+
+/// Whether a catalog result proves live provider recovery. Static capability
+/// tables and cached catalogs remain useful for model discovery, but they do
+/// not erase a recorded cooldown, unsupported model, or auth failure.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CatalogProvenance {
+    Live,
+    Cached,
+    StaticFallback,
+}
+
+impl CatalogProvenance {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Live => "live",
+            Self::Cached => "cached",
+            Self::StaticFallback => "static fallback",
+        }
+    }
 }
 
 impl RuntimeProviderClient {
@@ -68,6 +111,7 @@ impl RuntimeProviderClient {
         match self {
             Self::ChatGpt(_) => ProviderId::ChatGptCodex,
             Self::DeepSeek(_) => ProviderId::DeepSeek,
+            Self::XiaomiMiMo(_) => ProviderId::XiaomiMiMo,
         }
     }
 
@@ -75,6 +119,7 @@ impl RuntimeProviderClient {
         match self {
             Self::ChatGpt(client) => client.fetch_models(etag).await,
             Self::DeepSeek(client) => client.fetch_models().await,
+            Self::XiaomiMiMo(client) => client.fetch_models().await,
         }
     }
 
@@ -82,6 +127,10 @@ impl RuntimeProviderClient {
         match self {
             Self::ChatGpt(_) => None,
             Self::DeepSeek(client) => Some(client.fetch_balance().await),
+            // MiMo documents authentication and pricing but not a
+            // machine-readable remaining-quota endpoint.  Unknown is kept
+            // distinct from zero so reserve routing never fabricates a limit.
+            Self::XiaomiMiMo(_) => None,
         }
     }
 
@@ -96,6 +145,7 @@ impl RuntimeProviderClient {
         match self {
             Self::ChatGpt(client) => client.turn(request).await,
             Self::DeepSeek(client) => client.turn(request).await,
+            Self::XiaomiMiMo(client) => client.turn(request).await,
         }
     }
 
@@ -107,6 +157,7 @@ impl RuntimeProviderClient {
         match self {
             Self::ChatGpt(client) => client.turn_stream(request, on_event).await,
             Self::DeepSeek(client) => client.turn_stream(request, on_event).await,
+            Self::XiaomiMiMo(client) => client.turn_stream(request, on_event).await,
         }
     }
 }
@@ -121,15 +172,65 @@ fn provider_model_slug(model: &str) -> &str {
     model
         .strip_prefix("deepseek/")
         .or_else(|| model.strip_prefix("chatgpt/"))
+        .or_else(|| model.strip_prefix("xiaomi/"))
         .unwrap_or(model)
 }
 
 fn provider_for_model(model: &str) -> ProviderId {
-    if model.starts_with("deepseek/") || model.starts_with("deepseek-") {
-        ProviderId::DeepSeek
-    } else {
-        ProviderId::ChatGptCodex
+    // ChatGPT catalog slugs are stored unqualified and enumerated dynamically,
+    // so there is no prefix to match and no closed list to check; that single
+    // legacy assumption lives in `parse_or_legacy_chatgpt`.
+    ModelRef::parse_or_legacy_chatgpt(model).provider
+}
+
+/// Store a model exactly once in a provider-qualified form for routing. The
+/// ChatGPT catalog also exposes legacy bare slugs for compatibility, but those
+/// aliases must not receive separate WDRR credit.
+fn canonical_routing_model(model: &str) -> String {
+    let provider = provider_for_model(model);
+    let slug = provider_model_slug(model);
+    match provider {
+        ProviderId::ChatGptCodex => format!("chatgpt/{slug}"),
+        ProviderId::DeepSeek => format!("deepseek/{slug}"),
+        ProviderId::XiaomiMiMo => format!("xiaomi/{slug}"),
     }
+}
+
+fn usage_entry_key(
+    run_id: RunId,
+    agent_id: Option<EventAgentId>,
+    turn: usize,
+    kind: UsageKindV1,
+    provider: ProviderId,
+    provider_response_id: Option<&str>,
+) -> String {
+    if let Some(response_id) = provider_response_id.filter(|id| !id.trim().is_empty()) {
+        return format!("provider-response:{}:{response_id}", provider.key());
+    }
+    // Some compatible providers do not return a response id. Model-agent turns
+    // still have a durable intent identity: the run, agent, provider, and turn
+    // number. Keep that key stable so recovery/replay cannot double-settle
+    // usage or fair work. Compaction has no durable per-attempt turn number,
+    // so it keeps a distinct local UUID to allow multiple real compactions.
+    if agent_id.is_some() || kind == UsageKindV1::ModelTurn {
+        return format!(
+            "local:{}:{}:{}:{}:{}",
+            run_id,
+            agent_id.map_or_else(|| "none".into(), |id| id.to_string()),
+            kind.as_str(),
+            turn,
+            provider.key(),
+        );
+    }
+    format!(
+        "local:{}:{}:{}:{}:{}:{}",
+        run_id,
+        agent_id.map_or_else(|| "none".into(), |id| id.to_string()),
+        kind.as_str(),
+        turn,
+        provider.key(),
+        uuid::Uuid::now_v7()
+    )
 }
 
 fn reasoning_for_turn(model: &str, role: &str, turn: usize, configured: &str) -> String {
@@ -244,11 +345,86 @@ struct RunControl {
     steering: VecDeque<String>,
     interrupted: bool,
     cooperative_pause: bool,
-    approved_exec_once: Option<Vec<String>>,
+    /// Exact compact operation identity accepted by one human approval. This
+    /// covers `exec`, opaque Just recipes, and persistent-terminal batches.
+    approved_operation_once: Option<Vec<String>>,
     force_compaction: bool,
     bypass_cache: bool,
     budget_tokens: u64,
+    /// Set while a run is paused at the integration approval gate
+    /// (`scheduler.integration_approval`). Holds everything needed to
+    /// either proceed straight into the integrator prompt or report the
+    /// isolated worktrees on decline, without redoing planning or worker
+    /// dispatch on resume.
+    integration_pending: Option<IntegrationApprovalContext>,
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BudgetPressure {
+    Normal,
+    Tapered,
+    Paused,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ReserveAdmission {
+    Unknown,
+    Normal,
+    Soft,
+    Hard,
+}
+
+impl ReserveAdmission {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Unknown => "unknown",
+            Self::Normal => "normal",
+            Self::Soft => "soft_reserved",
+            Self::Hard => "hard_reserved",
+        }
+    }
+}
+
+/// Result of policy filtering plus one durable equal-weight WDRR admission.
+/// The V2 receipt retains the full candidate evidence; V1 consumers receive a
+/// compatibility projection after persistence.
+#[derive(Clone, Debug)]
+struct RoutedAutomaticSelection {
+    model: String,
+    candidates: Vec<RoutingCandidateV2>,
+    fairness: FairnessSelectionV1,
+    health: ProviderHealthStatusV1,
+    user_pin: bool,
+    reserve_override: Option<bool>,
+    cooldown_override: Option<bool>,
+}
+
+const fn budget_pressure_name(pressure: BudgetPressure) -> &'static str {
+    match pressure {
+        BudgetPressure::Normal => "normal",
+        BudgetPressure::Tapered => "tapered",
+        BudgetPressure::Paused => "paused",
+    }
+}
+
+/// Saved context for a paused integration approval decision. Captured when
+/// `run_implementation` pauses before building the integrator prompt, and
+/// consumed by `resume_with_answer` once the human approves or declines.
+#[derive(Clone)]
+struct IntegrationApprovalContext {
+    goal: String,
+    lead_model: String,
+    consultation: String,
+    reports: Vec<String>,
+    usage: TokenUsage,
+    orchestration_agents: usize,
+    worktrees: Vec<PathBuf>,
+}
+
+/// One mutex per account profile serializes token refreshes: concurrent
+/// refreshes of the same profile must never race, while different profiles
+/// stay independent.
+type RefreshLocks = Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>;
 
 #[derive(Clone)]
 pub struct Harness {
@@ -260,7 +436,12 @@ pub struct Harness {
     account_clients: Arc<Mutex<Vec<RuntimeProviderClient>>>,
     hot_cache: Arc<Mutex<HotCache>>,
     model_context_limits: Arc<Mutex<HashMap<String, u64>>>,
-    deepseek_balance_percent: Arc<Mutex<Option<f64>>>,
+    /// Remaining balance as a percentage of each provider's observed high-water
+    /// mark. Keyed by provider so reserve protection is not tied to one vendor;
+    /// a provider absent from the map has no known balance, which is treated as
+    /// `unknown` rather than as either exhausted or unlimited.
+    provider_balance_percent: Arc<Mutex<HashMap<ProviderId, f64>>>,
+    refresh_locks: RefreshLocks,
 }
 
 impl Harness {
@@ -292,7 +473,8 @@ impl Harness {
             account_clients: Arc::new(Mutex::new(Vec::new())),
             hot_cache: Arc::new(Mutex::new(hot_cache)),
             model_context_limits: Arc::new(Mutex::new(HashMap::new())),
-            deepseek_balance_percent: Arc::new(Mutex::new(None)),
+            provider_balance_percent: Arc::new(Mutex::new(HashMap::new())),
+            refresh_locks: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 
@@ -345,7 +527,9 @@ impl Harness {
 
     pub async fn models(&self) -> Result<Vec<ModelDescriptor>, HarnessError> {
         let client = self.client().await?;
-        self.fetch_model_catalog(&client, None).await
+        self.fetch_model_catalog(&client, None)
+            .await
+            .map(|(models, _)| models)
     }
 
     pub fn queue_steering(&self, run_id: RunId, text: &str) -> Result<(), HarnessError> {
@@ -435,7 +619,17 @@ impl Harness {
                 "session not found",
             ))
         })?;
-        self.controls.lock().insert(run_id, RunControl::default());
+        if run.state == ExitState::ApprovalRequired {
+            return Err(HarnessError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "session is awaiting an approval answer; use answer rather than continue",
+            )));
+        }
+        // A continuation is part of the same bounded session.  Reset only
+        // one-shot controls; replacing the control record here used to reset
+        // `budget_tokens`, allowing every Continue press to buy another full
+        // Balanced budget and to create another visible Mina lead.
+        self.reset_resume_control(run_id)?;
         self.store
             .append_message(run_id, "user", &json!({"text": text, "steering": false}), false)?;
         self.store.record_runtime_event(
@@ -455,6 +649,7 @@ impl Harness {
                 state: ExitState::Running,
             },
         )?;
+        self.recover_running_tasks(run_id)?;
         let prompt = format!(
             "Original session goal: {}\nPrevious durable summary: {}\nNew user request: {}\nContinue the same session. Inspect current repository state before acting.",
             run.goal,
@@ -467,7 +662,7 @@ impl Harness {
             &prompt,
             &self.config.models.lead,
             false,
-            "Luna session lead",
+            "Mina, session lead",
         );
         self.capture_failure(run_id, operation).await
     }
@@ -620,7 +815,7 @@ impl Harness {
             let approved = is_affirmative(answer);
             let mut controls = self.controls.lock();
             let control = controls.entry(run_id).or_default();
-            control.approved_exec_once = if approved {
+            control.approved_operation_once = if approved {
                 approval.as_ref().and_then(|(_, command)| command.clone())
             } else {
                 None
@@ -657,35 +852,83 @@ impl Harness {
                 state: ExitState::Running,
             },
         )?;
-        if run.state == ExitState::NeedsInput
-            && let Some(task) = self
+        if run.state == ExitState::NeedsInput {
+            // Multiple workers can be blocked on the same question; every
+            // blocked task holding the answered blocker is resumed.
+            let blocked = self
                 .store
                 .tasks(run_id)?
                 .into_iter()
-                .find(|task| task.state == PlanTaskState::Blocked)
-        {
-            let resume_context = format!("User answer to task blocker: {answer}");
-            self.store.update_task(
+                .filter(|task| task.state == PlanTaskState::Blocked)
+                .collect::<Vec<_>>();
+            if !blocked.is_empty() {
+                let resume_context = format!("User answer to task blocker: {answer}");
+                for task in &blocked {
+                    self.store.update_task(
+                        run_id,
+                        &task.task_id,
+                        PlanTaskState::Pending,
+                        None,
+                        task.attempt,
+                        task.generation.saturating_add(1),
+                        Some(&resume_context),
+                    )?;
+                    self.record_board_note(
+                        run_id,
+                        BoardKind::Decision,
+                        &format!("User answered task {}", task.task_id),
+                        answer,
+                        Some(&task.task_id),
+                        None,
+                    )?;
+                }
+                let kind = stored_run_kind(&self.store.events(run_id)?).unwrap_or(RunKind::Implement);
+                return self
+                    .capture_failure(run_id, self.run_inner(run_id, kind, &run.goal))
+                    .await;
+            }
+        }
+        let integration_pending = self
+            .controls
+            .lock()
+            .entry(run_id)
+            .or_default()
+            .integration_pending
+            .take();
+        if let Some(context) = integration_pending {
+            if is_affirmative(answer) {
+                let client = self.client().await?;
+                let operation = self.integrate_and_judge(
+                    run_id,
+                    &context.goal,
+                    client,
+                    &context.lead_model,
+                    &context.consultation,
+                    &context.reports,
+                    context.usage,
+                    context.orchestration_agents,
+                    context.worktrees,
+                );
+                return self.capture_failure(run_id, operation).await;
+            }
+            let recovery_note = self.integration_recovery_note(run_id);
+            return self.finish_agent_outcome(
                 run_id,
-                &task.task_id,
-                PlanTaskState::Pending,
-                None,
-                task.attempt,
-                task.generation.saturating_add(1),
-                Some(&resume_context),
-            )?;
-            self.record_board_note(
-                run_id,
-                BoardKind::Decision,
-                &format!("User answered task {}", task.task_id),
-                answer,
-                Some(&task.task_id),
-                None,
-            )?;
-            let kind = stored_run_kind(&self.store.events(run_id)?).unwrap_or(RunKind::Implement);
-            return self
-                .capture_failure(run_id, self.run_inner(run_id, kind, &run.goal))
-                .await;
+                RunKind::Implement,
+                &context.lead_model,
+                AgentResult {
+                    text: format!(
+                        "Integration was declined. The integrator agent did not run; branch work was not resolved or judged.\n\n{recovery_note}"
+                    ),
+                    question: None,
+                    usage: context.usage,
+                    paused: false,
+                    reserve_reached: false,
+                    termination: Some(TerminationReason::Blocked),
+                },
+                context.orchestration_agents,
+                context.worktrees,
+            );
         }
         let goal = format!(
             "{}\n\nA worker had to ask: {}\nUser answer: {}\nResume and finish the original goal.",
@@ -697,7 +940,7 @@ impl Harness {
             &goal,
             &self.config.models.lead,
             false,
-            "resumed Luna lead",
+            "Mina, resumed session lead",
         );
         self.capture_failure(run_id, operation).await
     }
@@ -759,9 +1002,34 @@ impl Harness {
                 }
             }
         } else {
-            apply_clarification_answers(&mut clarification, answers);
-            if clarification.status == ClarificationStatus::Reviewing && clarification.brief.is_none() {
-                prepare_brief(&mut clarification, &run.goal);
+            // Free-text action verbs from the CLI (`minha answer cancel`)
+            // must act as actions instead of being bound to a question.
+            match free_action_from_answers(answers) {
+                Some("cancel") => clarification.status = ClarificationStatus::Cancelled,
+                Some("confirm") => {
+                    // `confirm` is a control verb, never an answer. Binding it
+                    // would record the literal text "confirm" as the answer to
+                    // whichever question happened to be pending and mark that
+                    // dimension Confirmed with garbage detail. An explicit
+                    // confirm while still collecting means "stop asking and
+                    // proceed", so any still-unknown dimension is delegated to
+                    // the safest supported assumption, exactly as it is when
+                    // the clarification rounds run out.
+                    if clarification.status == ClarificationStatus::Collecting {
+                        exhaust_rounds(&mut clarification, &run.goal);
+                    }
+                    if clarification.brief.is_none() {
+                        prepare_brief(&mut clarification, &run.goal);
+                    }
+                    confirm_issue(&mut clarification);
+                }
+                _ => {
+                    apply_clarification_answers(&mut clarification, answers);
+                    if clarification.status == ClarificationStatus::Reviewing && clarification.brief.is_none()
+                    {
+                        prepare_brief(&mut clarification, &run.goal);
+                    }
+                }
             }
         }
 
@@ -893,7 +1161,9 @@ impl Harness {
                 )?;
             }
         }
-        self.controls.lock().insert(run_id, RunControl::default());
+        // A retry is still the same billed session. Clear only transient
+        // controls and restore its durable budget before re-admitting work.
+        self.reset_resume_control(run_id)?;
         self.store
             .append_message(run_id, "user", &json!({"retry": true}), false)?;
         self.store
@@ -935,7 +1205,10 @@ impl Harness {
                         self.store.record_runtime_event(
                             run_id,
                             RuntimeEvent::Warning {
-                                message: format!("DeepSeek balance is temporarily unavailable: {error}"),
+                                message: format!(
+                                    "{} balance is temporarily unavailable: {error}",
+                                    provider_client.provider_id()
+                                ),
                             },
                         )?;
                     }
@@ -946,24 +1219,41 @@ impl Harness {
         let mut models = Vec::new();
         let mut last_catalog_error = None;
         for provider_client in &clients {
-            let provider_name = match provider_client.provider_id() {
-                ProviderId::ChatGptCodex => "chatgpt_codex",
-                ProviderId::DeepSeek => "deepseek",
-            };
+            let provider_name = provider_client.provider_id().key();
             match self.fetch_model_catalog(provider_client, Some(run_id)).await {
-                Ok(provider_models) => {
+                Ok((provider_models, provenance)) => {
+                    let health =
+                        self.record_provider_catalog_observation(provider_client.provider_id(), provenance)?;
                     self.store.record_runtime_event(
                         run_id,
                         RuntimeEvent::ProviderState {
                             provider: provider_name.into(),
                             enabled: true,
-                            healthy: Some(true),
-                            detail: format!("{} model(s) available", provider_models.len()),
+                            healthy: match health.status {
+                                ProviderHealthStatusV1::Healthy => Some(true),
+                                ProviderHealthStatusV1::Unknown => None,
+                                ProviderHealthStatusV1::CoolingDown
+                                | ProviderHealthStatusV1::Unsupported
+                                | ProviderHealthStatusV1::AuthenticationRequired => Some(false),
+                            },
+                            detail: format!(
+                                "{} model(s) available from {}; provider health is {}",
+                                provider_models.len(),
+                                provenance.label(),
+                                health.status.as_str(),
+                            ),
                         },
                     )?;
-                    models.extend(provider_models);
+                    models.extend(
+                        provider_models
+                            .into_iter()
+                            .map(|model| (provider_client.provider_id(), model)),
+                    );
                 }
                 Err(error) => {
+                    if let HarnessError::Provider(provider_error) = &error {
+                        self.record_provider_failure(provider_client.provider_id(), provider_error)?;
+                    }
                     self.store.record_runtime_event(
                         run_id,
                         RuntimeEvent::ProviderState {
@@ -980,38 +1270,26 @@ impl Harness {
         if models.is_empty() {
             return Err(last_catalog_error.unwrap_or(HarnessError::LoginRequired));
         }
-        let available = models
+        let catalog_available = models
             .into_iter()
-            .flat_map(|model| {
+            .flat_map(|(provider, model)| {
                 let slug = model.slug;
-                let qualified = if slug.starts_with("deepseek-") {
-                    format!("deepseek/{slug}")
-                } else {
-                    format!("chatgpt/{slug}")
+                let qualified = match provider {
+                    ProviderId::ChatGptCodex => format!("chatgpt/{slug}"),
+                    ProviderId::DeepSeek => format!("deepseek/{slug}"),
+                    ProviderId::XiaomiMiMo => format!("xiaomi/{slug}"),
                 };
-                [slug, qualified]
+                if provider == ProviderId::ChatGptCodex {
+                    vec![slug, qualified]
+                } else {
+                    vec![qualified]
+                }
             })
             .collect::<HashSet<_>>();
-        let balance_percent = *self.deepseek_balance_percent.lock();
-        let available = if balance_percent
-            .is_some_and(|percent| percent <= f64::from(self.config.budgets.deepseek_hard_reserve_percent))
-        {
-            available
-                .into_iter()
-                .filter(|model| provider_for_model(model) != ProviderId::DeepSeek)
-                .collect()
-        } else if balance_percent
-            .is_some_and(|percent| percent <= f64::from(self.config.budgets.deepseek_soft_reserve_percent))
-        {
-            let openai = available
-                .iter()
-                .filter(|model| provider_for_model(model) == ProviderId::ChatGptCodex)
-                .cloned()
-                .collect::<HashSet<_>>();
-            if openai.is_empty() { available } else { openai }
-        } else {
-            available
-        };
+        // Leadership/planning retain the established reserve-filtered pool.
+        // Automatic worker/audit routing also receives the observed catalog so
+        // an explicit reserve override can be evaluated truthfully before WDRR.
+        let available = self.apply_provider_reserves(catalog_available.clone());
         let clarification = self.store.issue_clarification(run_id)?;
         if let Some(clarification) = clarification.as_ref() {
             match clarification.status {
@@ -1067,42 +1345,67 @@ impl Harness {
             .and_then(|clarification| clarification.brief.as_ref())
             .map(render_brief);
         let goal = confirmed_goal.as_deref().unwrap_or(goal);
-        let lead_model = routed_lead_model(goal, &available, &self.config)?;
+        let lead_route = routed_lead_model(goal, &available, &self.config)?;
+        if let Some(reason) = lead_route.degraded.as_deref() {
+            self.store.record_runtime_event(
+                run_id,
+                RuntimeEvent::Warning {
+                    message: reason.to_owned(),
+                },
+            )?;
+        }
+        let lead_model = lead_route.model;
         let planner_model = first_available(
             &available,
             &[
                 &self.config.models.planner,
-                "deepseek/deepseek-v4-pro",
                 &self.config.models.lead,
                 &self.config.models.complex_lead,
             ],
-        )?;
+        )
+        .or_else(|error| deterministic_candidates(&available).first().copied().ok_or(error))?;
+        self.recover_running_tasks(run_id)?;
 
         match kind {
             RunKind::Auto => {
-                self.run_auto(run_id, goal, client, &available, lead_model, planner_model)
-                    .await
+                self.run_auto(
+                    run_id,
+                    goal,
+                    client,
+                    &available,
+                    &catalog_available,
+                    lead_model,
+                    planner_model,
+                )
+                .await
             }
             RunKind::Plan => {
-                self.run_single_with_client(run_id, kind, goal, planner_model, true, "planner lead", client)
+                self.run_single_with_client(run_id, kind, goal, planner_model, true, "Mina, planning", client)
                     .await
             }
             RunKind::Review => {
-                let review_model = first_available(
-                    &available,
-                    &[
-                        &self.config.models.worker_fast,
-                        "deepseek/deepseek-v4-flash",
-                        lead_model,
-                    ],
-                )?;
+                let review_model =
+                    first_available(&available, &[&self.config.models.worker_fast, lead_model]).or_else(
+                        |error| deterministic_candidates(&available).first().copied().ok_or(error),
+                    )?;
                 self.run_single_with_client(run_id, kind, goal, review_model, true, "reviewer", client)
                     .await
             }
-            RunKind::Audit => self.run_audit(run_id, goal, client, &available, lead_model).await,
-            RunKind::Implement => {
-                self.run_implementation(run_id, goal, client, &available, lead_model, planner_model)
+            RunKind::Audit => {
+                self.run_audit(run_id, goal, client, &catalog_available, lead_model)
                     .await
+            }
+            RunKind::Implement => {
+                self.run_implementation(
+                    run_id,
+                    goal,
+                    client,
+                    &available,
+                    &catalog_available,
+                    lead_model,
+                    planner_model,
+                )
+                .await
             }
         }
     }
@@ -1126,6 +1429,26 @@ impl Harness {
                 ),
             },
         )?;
+        if clarification.round >= crate::clarify::MAX_CLARIFICATION_ROUNDS {
+            self.store.record_runtime_event(
+                run_id,
+                RuntimeEvent::Warning {
+                    message: format!(
+                        "clarification rounds exhausted after {} rounds; remaining uncertainty is delegated",
+                        clarification.round
+                    ),
+                },
+            )?;
+            exhaust_rounds(&mut clarification, goal);
+            self.store.save_issue_clarification(run_id, &clarification)?;
+            self.store.record_runtime_event(
+                run_id,
+                RuntimeEvent::ClarificationUpdated {
+                    clarification: clarification.clone(),
+                },
+            )?;
+            return self.clarification_outcome(run_id, kind, clarification, TokenUsage::default(), None, 0);
+        }
         let mut usage = TokenUsage::default();
         let mut agents_used = 0;
         let mut model_used = None;
@@ -1138,7 +1461,7 @@ impl Harness {
             let system = self.system_prompt(goal, "ambiguity consultant Terra", true)?;
             let state = serde_json::to_string(&clarification).unwrap_or_else(|_| "{}".into());
             let prompt = format!(
-                "Review this unresolved high-impact issue clarification. Identify at most three decisions that materially affect safety or scope. Do not ask the user directly and do not call tools. Return terse advice for the Luna clarifier.\n\nIssue: {}\nState: {}",
+                "Review this unresolved high-impact issue clarification. Identify at most three decisions that materially affect safety or scope. Do not ask the user directly and do not call tools. Return terse advice for the Mina clarifier.\n\nIssue: {}\nState: {}",
                 bound(goal, 4_000),
                 bound(&state, 10_000),
             );
@@ -1172,7 +1495,7 @@ impl Harness {
         }
         if available.contains(&self.config.models.lead) {
             let executor = ToolExecutor::new(&self.root, true)?;
-            let mut system = self.system_prompt(goal, "issue clarifier Luna lead", true)?;
+            let mut system = self.system_prompt(goal, "Mina, issue clarifier", true)?;
             system.push_str(
                 "\nHelp a non-expert explain one issue without interrogating them. Ask only questions whose answers could change scope, safety, diagnosis, or acceptance. Never repeat a resolved dimension. Use bounded read-only evidence only when it can replace a question. Do not read credential, token, key, or secret-like paths. A screenshot path is evidence that an image exists, not permission to claim you inspected its contents. Return exactly one <minha-clarification> JSON object with a questions array. Each question needs dimension, header, question, 2-3 options with value/label/description/recommended, plus allow_free_text and allow_not_sure. Dimensions must be unresolved IDs supplied by the caller. Be warm, plain, and concise.",
             );
@@ -1195,7 +1518,7 @@ impl Harness {
                     &system,
                     &prompt,
                     executor,
-                    "issue clarifier Luna lead",
+                    "Mina, issue clarifier",
                 )
                 .await
             {
@@ -1210,7 +1533,7 @@ impl Harness {
                         run_id,
                         RuntimeEvent::Warning {
                             message: format!(
-                                "Luna clarification was unavailable; using local scoped questions: {error}"
+                                "Mina clarification was unavailable; using local scoped questions: {error}"
                             ),
                         },
                     )?;
@@ -1296,23 +1619,40 @@ impl Harness {
         })
     }
 
+    /// Observe model catalog provenance without treating a cached/static
+    /// capability list as evidence that a failed provider has recovered.
+    fn record_provider_catalog_observation(
+        &self,
+        provider: ProviderId,
+        provenance: CatalogProvenance,
+    ) -> Result<ProviderHealthV1, HarnessError> {
+        match provenance {
+            CatalogProvenance::Live => Ok(self
+                .store
+                .record_provider_catalog_success(&self.workspace_id, provider.key())?),
+            CatalogProvenance::Cached | CatalogProvenance::StaticFallback => {
+                Ok(self.store.provider_health(&self.workspace_id, provider.key())?)
+            }
+        }
+    }
+
     async fn fetch_model_catalog(
         &self,
         client: &RuntimeProviderClient,
         run_id: Option<RunId>,
-    ) -> Result<Vec<ModelDescriptor>, HarnessError> {
+    ) -> Result<(Vec<ModelDescriptor>, CatalogProvenance), HarnessError> {
         const FRESH_MINUTES: i64 = 15;
         const STALE_FALLBACK_HOURS: i64 = 24;
-        if client.provider_id() == ProviderId::DeepSeek {
+        if client.provider_id() != ProviderId::ChatGptCodex {
             let catalog = client.fetch_models(None).await?;
             self.emit_model_catalog(
                 run_id,
-                ProviderId::DeepSeek,
+                client.provider_id(),
                 &catalog.models,
                 chrono::Utc::now(),
                 false,
             )?;
-            return Ok(catalog.models);
+            return Ok((catalog.models, CatalogProvenance::StaticFallback));
         }
         let cached = self.store.model_catalog(&self.workspace_id)?;
         let now = chrono::Utc::now();
@@ -1327,7 +1667,7 @@ impl Harness {
                 cached.fetched_at,
                 true,
             )?;
-            return Ok(cached.models.clone());
+            return Ok((cached.models.clone(), CatalogProvenance::Cached));
         }
 
         match client
@@ -1336,12 +1676,12 @@ impl Harness {
         {
             Ok(catalog) if catalog.not_modified => {
                 let cached = cached.ok_or(HarnessError::Provider(ProviderError::InvalidResponse(
-                    "provider returned not-modified without a local catalog",
+                    "provider returned not-modified without a local catalog".into(),
                 )))?;
                 self.store.touch_model_catalog(&self.workspace_id)?;
                 client.install_model_catalog(&cached.models);
                 self.emit_model_catalog(run_id, ProviderId::ChatGptCodex, &cached.models, now, true)?;
-                Ok(cached.models)
+                Ok((cached.models, CatalogProvenance::Live))
             }
             Ok(catalog) => {
                 let saved = self.store.save_model_catalog(
@@ -1356,7 +1696,7 @@ impl Harness {
                     saved.fetched_at,
                     false,
                 )?;
-                Ok(saved.models)
+                Ok((saved.models, CatalogProvenance::Live))
             }
             Err(error) => {
                 if let Some(cached) = cached
@@ -1382,12 +1722,271 @@ impl Harness {
                         cached.fetched_at,
                         true,
                     )?;
-                    Ok(cached.models)
+                    Ok((cached.models, CatalogProvenance::Cached))
                 } else {
                     Err(error.into())
                 }
             }
         }
+    }
+
+    /// Withdraw models from providers that have reached their configured
+    /// balance reserve. A provider under its hard reserve is removed outright; a
+    /// provider under its soft reserve is used only when no unreserved provider
+    /// can serve the request. Providers with no known balance are left alone,
+    /// because missing telemetry means `unknown`, not `exhausted`.
+    fn apply_provider_reserves(&self, available: HashSet<String>) -> HashSet<String> {
+        let balances = self.provider_balance_percent.lock().clone();
+        let mut hard_reserved = Vec::new();
+        let mut soft_reserved = Vec::new();
+        for provider in ProviderId::all() {
+            let Some(percent) = balances.get(&provider).copied() else {
+                continue;
+            };
+            let policy = self.config.budgets.reserve_for(provider);
+            if percent <= f64::from(policy.hard_percent) {
+                hard_reserved.push(provider);
+            } else if percent <= f64::from(policy.soft_percent) {
+                soft_reserved.push(provider);
+            }
+        }
+        let mut available = available;
+        if !hard_reserved.is_empty() {
+            available.retain(|model| !hard_reserved.contains(&provider_for_model(model)));
+        }
+        if !soft_reserved.is_empty() {
+            let unreserved = available
+                .iter()
+                .filter(|model| !soft_reserved.contains(&provider_for_model(model)))
+                .cloned()
+                .collect::<HashSet<_>>();
+            if !unreserved.is_empty() {
+                available = unreserved;
+            }
+        }
+        available
+    }
+
+    fn provider_reserve_admission(&self, provider: ProviderId) -> ReserveAdmission {
+        let override_policy = self.config.routing.provider_override(provider);
+        match override_policy.reserve {
+            Some(true) => return ReserveAdmission::Hard,
+            Some(false) => return ReserveAdmission::Normal,
+            None => {}
+        }
+        let Some(percent) = self.provider_balance_percent.lock().get(&provider).copied() else {
+            return ReserveAdmission::Unknown;
+        };
+        let policy = self.config.budgets.reserve_for(provider);
+        if percent <= f64::from(policy.hard_percent) {
+            ReserveAdmission::Hard
+        } else if percent <= f64::from(policy.soft_percent) {
+            ReserveAdmission::Soft
+        } else {
+            ReserveAdmission::Normal
+        }
+    }
+
+    /// Route an automatic worker/audit dispatch after capability, explicit
+    /// policy, health, and reserve filtering. Equal-weight WDRR is deliberately
+    /// the final choice; this code never consults provider price estimates.
+    #[allow(clippy::too_many_arguments)]
+    fn select_automatic_route(
+        &self,
+        fairness_role: &str,
+        run_id: RunId,
+        agent_id: EventAgentId,
+        receipt_id: &str,
+        candidate_models: impl IntoIterator<Item = String>,
+        estimated_input_tokens: u64,
+    ) -> Result<RoutedAutomaticSelection, HarnessError> {
+        let pinned_model = self
+            .config
+            .routing
+            .pin_for_role(fairness_role)
+            .map(canonical_routing_model);
+        let mut models = candidate_models
+            .into_iter()
+            .map(|model| canonical_routing_model(&model))
+            .collect::<Vec<_>>();
+        models.sort();
+        models.dedup();
+        let now = chrono::Utc::now();
+        let mut candidates = Vec::with_capacity(models.len());
+        let mut soft_candidates = Vec::new();
+        for model in models {
+            let provider = provider_for_model(&model);
+            let provider_name = provider.key().to_owned();
+            let provider_override = self.config.routing.provider_override(provider);
+            let health = self.store.provider_health(&self.workspace_id, &provider_name)?;
+            let reserve = self.provider_reserve_admission(provider);
+            let pinned = pinned_model.as_deref() == Some(model.as_str());
+            let mut eligible = true;
+            let mut reason = if let Some(exclusion) = worker_model_policy_exclusion(&model) {
+                eligible = false;
+                exclusion.into()
+            } else if pinned_model.is_some() && !pinned {
+                eligible = false;
+                "excluded by explicit user model pin".into()
+            } else if matches!(
+                health.status,
+                ProviderHealthStatusV1::Unsupported | ProviderHealthStatusV1::AuthenticationRequired
+            ) {
+                eligible = false;
+                match health.status {
+                    ProviderHealthStatusV1::Unsupported => {
+                        "provider unsupported until a successful catalog refresh".into()
+                    }
+                    ProviderHealthStatusV1::AuthenticationRequired => {
+                        "provider authentication needs remediation".into()
+                    }
+                    _ => unreachable!("matched above"),
+                }
+            } else if provider_override.cooldown == Some(true) {
+                eligible = false;
+                "excluded by explicit user cooldown override".into()
+            } else if health.cooldown_active_at(now) && provider_override.cooldown != Some(false) {
+                eligible = false;
+                "provider cooldown is active".into()
+            } else if reserve == ReserveAdmission::Hard {
+                eligible = false;
+                "provider reserve excludes this route".into()
+            } else {
+                let mut reason = if health.status == ProviderHealthStatusV1::Unknown {
+                    "eligible; provider telemetry is unknown".to_owned()
+                } else {
+                    "eligible by capability and provider health".to_owned()
+                };
+                if provider_override.cooldown == Some(false) && health.cooldown_active_at(now) {
+                    reason.push_str("; explicit user cooldown bypass applied");
+                }
+                if provider_override.reserve == Some(false) {
+                    reason.push_str("; explicit user reserve bypass applied");
+                }
+                reason
+            };
+            if eligible && reserve == ReserveAdmission::Soft {
+                soft_candidates.push(candidates.len());
+                reason.push_str("; soft provider reserve");
+            }
+            candidates.push(RoutingCandidateV2 {
+                provider: provider_name,
+                model,
+                eligible,
+                reason,
+                health: health.status,
+                cooldown_until: health.cooldown_until,
+                reserve: reserve.as_str().into(),
+                pinned,
+            });
+        }
+        // Soft-reserved routes remain a truthful fallback only when no
+        // non-reserved route can serve this role. Unknown telemetry is not
+        // placed in either reserve bucket.
+        let has_unreserved = candidates
+            .iter()
+            .enumerate()
+            .any(|(index, candidate)| candidate.eligible && !soft_candidates.contains(&index));
+        if has_unreserved {
+            for index in soft_candidates {
+                let candidate = &mut candidates[index];
+                candidate.eligible = false;
+                candidate.reason = "provider soft reserve; an unreserved eligible route exists".into();
+            }
+        }
+        let eligible = candidates
+            .iter()
+            .filter(|candidate| candidate.eligible)
+            .map(|candidate| FairnessCandidateV1::new(&candidate.provider, &candidate.model))
+            .collect::<Vec<_>>();
+        if eligible.is_empty() {
+            let pin_note = pinned_model
+                .as_deref()
+                .map(|pin| format!(" (pinned model `{pin}` is not eligible)"))
+                .unwrap_or_default();
+            return Err(HarnessError::ModelUnavailable(format!(
+                "no eligible automatic {fairness_role} route{pin_note}"
+            )));
+        }
+        let fairness = self.store.admit_equal_weight_route(
+            &self.workspace_id,
+            fairness_role,
+            run_id,
+            agent_id,
+            receipt_id,
+            &eligible,
+            normalized_token_work(TokenUsage {
+                input: estimated_input_tokens,
+                ..TokenUsage::default()
+            }),
+        )?;
+        let (selected_model, selected_health, user_pin) = candidates
+            .iter()
+            .find(|candidate| {
+                candidate.provider == fairness.key.provider && candidate.model == fairness.key.model
+            })
+            .map(|candidate| (candidate.model.clone(), candidate.health, candidate.pinned))
+            .ok_or_else(|| HarnessError::ModelUnavailable("fair route disappeared after admission".into()))?;
+        let selected_override = self
+            .config
+            .routing
+            .provider_override(provider_for_model(&selected_model));
+        Ok(RoutedAutomaticSelection {
+            model: selected_model,
+            candidates,
+            fairness,
+            health: selected_health,
+            user_pin,
+            reserve_override: selected_override.reserve,
+            cooldown_override: selected_override.cooldown,
+        })
+    }
+
+    fn record_provider_failure(
+        &self,
+        provider: ProviderId,
+        error: &ProviderError,
+    ) -> Result<(), HarnessError> {
+        let (status, retry_after) = match error {
+            ProviderError::Http {
+                status, retry_after, ..
+            } if *status == reqwest::StatusCode::UNAUTHORIZED
+                || *status == reqwest::StatusCode::FORBIDDEN =>
+            {
+                (Some(ProviderHealthStatusV1::AuthenticationRequired), None)
+            }
+            ProviderError::Http { status, .. }
+                if *status == reqwest::StatusCode::NOT_FOUND
+                    || *status == reqwest::StatusCode::METHOD_NOT_ALLOWED
+                    || *status == reqwest::StatusCode::NOT_IMPLEMENTED =>
+            {
+                (Some(ProviderHealthStatusV1::Unsupported), None)
+            }
+            ProviderError::Http { retry_after, .. } => (None, *retry_after),
+            ProviderError::Request(_)
+            | ProviderError::IncompleteStream
+            | ProviderError::InvalidResponse(_)
+            | ProviderError::Json(_)
+            | ProviderError::Sse(_)
+            | ProviderError::RemoteError(_) => (None, None),
+            ProviderError::Header => (Some(ProviderHealthStatusV1::AuthenticationRequired), None),
+        };
+        if let Some(status) = status {
+            self.store.record_provider_remediation_needed(
+                &self.workspace_id,
+                provider.key(),
+                status,
+                &error.to_string(),
+            )?;
+        } else {
+            self.store.record_provider_transient_failure(
+                &self.workspace_id,
+                provider.key(),
+                retry_after,
+                &error.to_string(),
+            )?;
+        }
+        Ok(())
     }
 
     fn record_provider_balance(
@@ -1403,13 +2002,18 @@ impl Harness {
         let Some(usd) = usd else {
             return Ok(());
         };
-        let current = usd.total.parse::<f64>().ok();
+        let current = usd
+            .total
+            .parse::<f64>()
+            .ok()
+            .filter(|value| value.is_finite() && *value >= 0.0);
+        let provider = balance.provider;
         let reserve_percent = current
             .map(|current| {
                 self.store
                     .update_provider_balance_high_water(
                         &self.workspace_id,
-                        "deepseek",
+                        provider.key(),
                         &usd.currency,
                         current,
                     )
@@ -1422,11 +2026,20 @@ impl Harness {
                     })
             })
             .transpose()?;
-        *self.deepseek_balance_percent.lock() = reserve_percent;
+        // Only this provider's entry moves; an unreadable balance leaves the
+        // previous reading for other providers untouched.
+        match reserve_percent {
+            Some(percent) => {
+                self.provider_balance_percent.lock().insert(provider, percent);
+            }
+            None => {
+                self.provider_balance_percent.lock().remove(&provider);
+            }
+        }
         self.store.record_runtime_event(
             run_id,
             RuntimeEvent::ProviderBalance {
-                provider: "deepseek".into(),
+                provider: provider.key().into(),
                 available: balance.is_available,
                 currency: usd.currency.clone(),
                 total: usd.total.clone(),
@@ -1454,6 +2067,7 @@ impl Harness {
                     let prefix = match provider {
                         ProviderId::ChatGptCodex => "chatgpt",
                         ProviderId::DeepSeek => "deepseek",
+                        ProviderId::XiaomiMiMo => "xiaomi",
                     };
                     limits.insert(format!("{prefix}/{}", model.slug), limit);
                 }
@@ -1471,6 +2085,7 @@ impl Harness {
                                 provider: match provider {
                                     ProviderId::ChatGptCodex => "chatgpt_codex",
                                     ProviderId::DeepSeek => "deepseek",
+                                    ProviderId::XiaomiMiMo => "xiaomi_mimo",
                                 }
                                 .into(),
                                 slug: model.slug.clone(),
@@ -1504,12 +2119,14 @@ impl Harness {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn run_auto(
         &self,
         run_id: RunId,
         goal: &str,
         client: RuntimeProviderClient,
         available: &HashSet<String>,
+        catalog_available: &HashSet<String>,
         lead_model: &str,
         planner_model: &str,
     ) -> Result<RunOutcome, HarnessError> {
@@ -1550,11 +2167,9 @@ impl Harness {
             RuntimeEvent::RoutingDecision {
                 mode: auto_mode_name(selected).into(),
                 reason: reason.into(),
-                provider: match provider_for_model(routing_model.as_deref().unwrap_or(lead_model)) {
-                    ProviderId::ChatGptCodex => "chatgpt_codex",
-                    ProviderId::DeepSeek => "deepseek",
-                }
-                .into(),
+                provider: provider_for_model(routing_model.as_deref().unwrap_or(lead_model))
+                    .key()
+                    .into(),
                 model: routing_model,
             },
         )?;
@@ -1581,15 +2196,23 @@ impl Harness {
                     goal,
                     lead_model,
                     true,
-                    "conversation lead",
+                    "Mina, conversation lead",
                     client,
                 )
                 .await;
         }
         let mut outcome = match selected {
             AutoMode::Implement => {
-                self.run_implementation(run_id, goal, client, available, lead_model, planner_model)
-                    .await?
+                self.run_implementation(
+                    run_id,
+                    goal,
+                    client,
+                    available,
+                    catalog_available,
+                    lead_model,
+                    planner_model,
+                )
+                .await?
             }
             AutoMode::Plan => {
                 self.run_single_with_client(
@@ -1598,24 +2221,18 @@ impl Harness {
                     goal,
                     planner_model,
                     true,
-                    "planner lead",
+                    "Mina, planning",
                     client,
                 )
                 .await?
             }
             AutoMode::Audit => {
-                self.run_audit(run_id, goal, client, available, lead_model)
+                self.run_audit(run_id, goal, client, catalog_available, lead_model)
                     .await?
             }
             AutoMode::Review => {
-                let review_model = first_available(
-                    available,
-                    &[
-                        &self.config.models.worker_fast,
-                        "deepseek/deepseek-v4-flash",
-                        lead_model,
-                    ],
-                )?;
+                let review_model = first_available(available, &[&self.config.models.worker_fast, lead_model])
+                    .or_else(|error| deterministic_candidates(available).first().copied().ok_or(error))?;
                 self.run_single_with_client(
                     run_id,
                     RunKind::Review,
@@ -1629,7 +2246,7 @@ impl Harness {
             }
             AutoMode::Chat => {
                 return Err(HarnessError::Provider(ProviderError::InvalidResponse(
-                    "chat route escaped its terminal branch",
+                    "chat route escaped its terminal branch".into(),
                 )));
             }
         };
@@ -1671,6 +2288,19 @@ impl Harness {
         role: &str,
         client: RuntimeProviderClient,
     ) -> Result<RunOutcome, HarnessError> {
+        if self.session_budget_exhausted(run_id)? {
+            let result = AgentResult {
+                text: format!(
+                    "The session token budget is exhausted; no new {role} turn was dispatched. Start a new session or change the execution profile."
+                ),
+                question: None,
+                usage: TokenUsage::default(),
+                paused: true,
+                reserve_reached: false,
+                termination: Some(TerminationReason::BudgetTarget),
+            };
+            return self.finish_agent_outcome(run_id, kind, model, result, 0, Vec::new());
+        }
         let executor = ToolExecutor::new(&self.root, read_only)?;
         let system = self.system_prompt(goal, role, read_only)?;
         let result = self
@@ -1684,7 +2314,7 @@ impl Harness {
         run_id: RunId,
         goal: &str,
         client: RuntimeProviderClient,
-        available: &HashSet<String>,
+        catalog_available: &HashSet<String>,
         lead_model: &str,
     ) -> Result<RunOutcome, HarnessError> {
         let lenses = [
@@ -1709,43 +2339,92 @@ impl Harness {
                 "Find architecture drift, duplication, and documentation mismatches.",
             ),
         ];
-        let count = lenses.len().min(
-            self.config
-                .scheduler
-                .max_agents
-                .min(self.config.scheduler.hard_max_agents)
-                .max(1),
-        );
-        let worker_models = [
-            self.config.models.worker_fast.as_str(),
-            "deepseek/deepseek-v4-flash",
-        ]
-        .into_iter()
-        .filter(|model| available.contains(*model))
-        .collect::<Vec<_>>();
-        if worker_models.is_empty() {
-            return Err(HarnessError::ModelUnavailable(
-                "audit requires Spark or DeepSeek V4 Flash".into(),
-            ));
-        }
+        let count = lenses
+            .len()
+            .min(
+                self.config
+                    .scheduler
+                    .max_agents
+                    .min(self.config.scheduler.hard_max_agents)
+                    .max(1),
+            )
+            .min(if self.budget_pressure(run_id)? == BudgetPressure::Tapered {
+                1
+            } else {
+                usize::MAX
+            });
         let futures = FuturesUnordered::new();
+        let mut audit_models = Vec::new();
+        let mut admitted_agents = Vec::new();
         for (slot, (lens, directive)) in lenses.into_iter().take(count).enumerate() {
+            let agent_id = EventAgentId::new();
+            let task_id = format!("audit-{lens}");
+            let receipt_id = dispatch_receipt_id(run_id, &task_id, 0, agent_id);
+            let estimated_input_tokens = estimate_tokens(&format!("{goal}\n{directive}")) as u64;
+            let routed = match self.select_automatic_route(
+                "audit",
+                run_id,
+                agent_id,
+                &receipt_id,
+                fair_audit_models(catalog_available, &self.config),
+                estimated_input_tokens,
+            ) {
+                Ok(routed) => routed,
+                Err(error) => {
+                    for admitted_agent in admitted_agents {
+                        let _ = self.store.cancel_fair_route_admission(run_id, admitted_agent);
+                    }
+                    return Err(error);
+                }
+            };
+            let model = routed.model.clone();
+            let role = format!("{} {lens} auditor", model_identity(&model));
+            if let Err(error) = self.record_audit_dispatch_receipt(
+                run_id,
+                &task_id,
+                agent_id,
+                &role,
+                &routed,
+                estimated_input_tokens,
+            ) {
+                let _ = self.store.cancel_fair_route_admission(run_id, agent_id);
+                for admitted_agent in admitted_agents {
+                    let _ = self.store.cancel_fair_route_admission(run_id, admitted_agent);
+                }
+                return Err(error);
+            }
+            audit_models.push(model.clone());
+            admitted_agents.push(agent_id);
             let harness = self.clone();
             let goal = goal.to_owned();
-            let model = worker_models[slot % worker_models.len()].to_owned();
             let client = self.pooled_client(slot, &model, &client);
             futures.push(async move {
-                let role = format!("{} {lens} auditor", model_label(&model));
-                let executor = ToolExecutor::new(&harness.root, true)?;
-                let mut system = harness.system_prompt(&goal, &role, true)?;
-                system.push_str("\nAudit lens: ");
-                system.push_str(directive);
-                system.push_str(
-                    "\nReport only evidence-backed findings with path and line. If none, say none. Never edit.",
-                );
-                harness
-                    .run_agent(run_id, &client, &model, &system, &goal, executor, &role)
-                    .await
+                let result = async {
+                    let executor = ToolExecutor::new(&harness.root, true)?;
+                    let mut system = harness.system_prompt(&goal, &role, true)?;
+                    system.push_str("\nAudit lens: ");
+                    system.push_str(directive);
+                    system.push_str(
+                        "\nReport only evidence-backed findings with path and line. If none, say none. Never edit.",
+                    );
+                    harness
+                        .run_agent_as(
+                            run_id,
+                            &client,
+                            &model,
+                            &system,
+                            &goal,
+                            executor,
+                            &role,
+                            agent_id,
+                        )
+                        .await
+                }
+                .await;
+                if result.is_err() {
+                    let _ = harness.store.cancel_fair_route_admission(run_id, agent_id);
+                }
+                result
             });
         }
         let mut reports = Vec::new();
@@ -1790,7 +2469,7 @@ impl Harness {
             return self.finish_agent_outcome(
                 run_id,
                 RunKind::Audit,
-                worker_models[0],
+                audit_models.first().map(String::as_str).unwrap_or(lead_model),
                 AgentResult {
                     text: reports.join("\n\n"),
                     question: Some(question),
@@ -1807,7 +2486,7 @@ impl Harness {
             return self.finish_agent_outcome(
                 run_id,
                 RunKind::Audit,
-                worker_models[0],
+                audit_models.first().map(String::as_str).unwrap_or(lead_model),
                 AgentResult::usage_pause(
                     format!(
                         "Account usage reserve reached after audit workers. Partial reports:\n\n{}",
@@ -1830,7 +2509,7 @@ impl Harness {
                 .join("\n\n")
         );
         let executor = ToolExecutor::new(&self.root, true)?;
-        let system = self.system_prompt(goal, "audit synthesizer lead", true)?;
+        let system = self.system_prompt(goal, "Mina, audit synthesis", true)?;
         let mut final_result = self
             .run_agent(
                 run_id,
@@ -1839,7 +2518,7 @@ impl Harness {
                 &system,
                 &synthesis,
                 executor,
-                "audit synthesizer lead",
+                "Mina, audit synthesis",
             )
             .await?;
         final_result.usage = add_usage(final_result.usage, usage);
@@ -1853,12 +2532,14 @@ impl Harness {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn run_implementation(
         &self,
         run_id: RunId,
         goal: &str,
         client: RuntimeProviderClient,
         available: &HashSet<String>,
+        catalog_available: &HashSet<String>,
         lead_model: &str,
         planner_model: &str,
     ) -> Result<RunOutcome, HarnessError> {
@@ -1877,9 +2558,9 @@ impl Harness {
                 },
             )?;
             let planner = ToolExecutor::new(&self.root, true)?;
-            let mut planner_system = self.system_prompt(goal, "branch planner lead", true)?;
+            let mut planner_system = self.system_prompt(goal, "Mina, branch planning", true)?;
             planner_system.push_str(
-                "\nInspect first. End with one <minha-plan> JSON object: {\"summary\":string,\"consult\":null|\"terra\"|\"sol\",\"tasks\":[{\"id\":string,\"objective\":string,\"paths\":[string],\"dependencies\":[string]}]}. Use consult=null normally, terra for important cross-cutting work, and sol only for critical work. Tasks must be testable slices; declare dependencies only when one slice needs another. Prefer one focused lane unless evidence proves meaningful independent work. Use up to 8 tasks normally and up to 16 only in Turbo for truly disjoint work. Do not edit.",
+                "\nInspect first. End with one <minha-plan> JSON object: {\"summary\":string,\"consult\":null|\"terra\"|\"sol\",\"tasks\":[{\"id\":string,\"objective\":string,\"paths\":[string],\"dependencies\":[string],\"check\":string}]}. This is a dispatch contract, not an invitation to summon agents. Return one focused task unless the repository evidence proves at least two genuinely independent, path-disjoint slices that will finish sooner in parallel. Every task needs a concrete acceptance check. Do not create tasks for planning, coordination, restating the goal, or a final review. Use consult=null normally, Terra only for a material cross-cutting uncertainty, and Sol only for independently demonstrated critical/high-risk work. Balanced permits at most four tasks; Turbo permits at most eight only when Turbo was explicitly selected. Extra tasks still require evidence of an independent speedup. Tasks must be testable slices; declare dependencies only when one slice needs another. Do not edit.",
             );
             let plan_result = self
                 .run_agent(
@@ -1889,7 +2570,7 @@ impl Harness {
                     &planner_system,
                     goal,
                     planner,
-                    "branch planner lead",
+                    "Mina, branch planning",
                 )
                 .await?;
             if plan_result.question.is_some() || plan_result.pause_before_next_call() {
@@ -1902,7 +2583,15 @@ impl Harness {
                     Vec::new(),
                 );
             }
-            let parsed = parse_plan(&plan_result.text).unwrap_or_else(|| single_task_plan(goal));
+            let mut parsed = parse_plan(&plan_result.text).unwrap_or_else(|| single_task_plan(goal));
+            parsed.tasks.truncate(
+                self.config
+                    .budgets
+                    .default
+                    .policy()
+                    .max_agents
+                    .min(MAX_PLAN_TASKS),
+            );
             let plan = match validate_branch_plan(parsed) {
                 Ok(plan) => plan,
                 Err(error) => {
@@ -1936,6 +2625,12 @@ impl Harness {
                 })
                 .collect::<Vec<_>>();
             self.store.replace_tasks(run_id, &records)?;
+            let contracts = plan
+                .tasks
+                .iter()
+                .map(microtask_contract_for_branch)
+                .collect::<Vec<_>>();
+            self.store.replace_task_contracts(run_id, &contracts)?;
             self.store.record_runtime_event(
                 run_id,
                 RuntimeEvent::PlanCreated {
@@ -1956,27 +2651,9 @@ impl Harness {
             )?;
             (plan, plan_result, false)
         } else {
-            self.store.record_runtime_event(
-                run_id,
-                RuntimeEvent::RunPhase {
-                    phase: RunPhase::Recovering,
-                    detail: "reloading the persisted task graph; running tasks require explicit rescheduling"
-                        .into(),
-                },
-            )?;
-            for task in &existing_tasks {
-                if task.state == PlanTaskState::Running {
-                    self.store.update_task(
-                        run_id,
-                        &task.task_id,
-                        PlanTaskState::Pending,
-                        None,
-                        task.attempt,
-                        task.generation.saturating_add(1),
-                        Some("recovered after an interrupted process"),
-                    )?;
-                }
-            }
+            // Running→Pending recovery moved to `run_inner` so every entry
+            // point (fresh runs, continue_session, resumptions) reschedules
+            // tasks stranded by an interrupted process.
             (
                 BranchPlan {
                     summary: "Recovered persistent task graph".into(),
@@ -1988,6 +2665,7 @@ impl Harness {
                             objective: task.objective,
                             paths: task.paths,
                             dependencies: task.dependencies,
+                            check: String::new(),
                         })
                         .collect(),
                 },
@@ -2011,7 +2689,7 @@ impl Harness {
             let executor = ToolExecutor::new(&self.root, true)?;
             let system = self.system_prompt(goal, consult_role, true)?;
             let consult_prompt = format!(
-                "Goal: {goal}\n\nLuna plan:\n{}\n\nInspect only the uncertainty or risk that justifies this consultation. Return concise, evidence-backed constraints and recommendations for workers and integrator. Do not restate the plan and never edit.",
+                "Goal: {goal}\n\nMina plan:\n{}\n\nInspect only the uncertainty or risk that justifies this consultation. Return concise, evidence-backed constraints and recommendations for workers and integrator. Do not restate the plan and never edit.",
                 bound(&plan_result.text, 10_000)
             );
             let mut result = self
@@ -2057,7 +2735,7 @@ impl Harness {
                 run_id,
                 goal,
                 &client,
-                available,
+                catalog_available,
                 &consultation,
                 orchestration_usage,
             )
@@ -2103,12 +2781,192 @@ impl Harness {
             );
         }
 
+        if self.config.scheduler.integration_approval {
+            let scope = self.integration_approval_scope(run_id, &worktrees)?;
+            let request_id = RequestId::new();
+            let agent_id = EventAgentId::new();
+            self.store.update_run_state(
+                run_id,
+                ExitState::ApprovalRequired,
+                Some(lead_model),
+                None,
+                Some(&scope),
+            )?;
+            self.store.record_runtime_event(
+                run_id,
+                RuntimeEvent::Approval {
+                    request_id,
+                    agent_id,
+                    reason: scope.clone(),
+                    command: None,
+                },
+            )?;
+            self.controls
+                .lock()
+                .entry(run_id)
+                .or_default()
+                .integration_pending = Some(IntegrationApprovalContext {
+                goal: goal.to_owned(),
+                lead_model: lead_model.to_owned(),
+                consultation: consultation.clone(),
+                reports: reports.clone(),
+                usage,
+                orchestration_agents,
+                worktrees: worktrees.clone(),
+            });
+            return self.finish_agent_outcome(
+                run_id,
+                RunKind::Implement,
+                lead_model,
+                AgentResult {
+                    text: format!("Branch work is complete and waiting for integration approval.\n\n{scope}"),
+                    question: Some(InputRequest {
+                        question: scope,
+                        options: vec!["approve".into(), "decline".into()],
+                    }),
+                    usage,
+                    paused: false,
+                    reserve_reached: false,
+                    termination: Some(TerminationReason::Blocked),
+                },
+                orchestration_agents,
+                worktrees,
+            );
+        }
+        self.integrate_and_judge(
+            run_id,
+            goal,
+            client,
+            lead_model,
+            &consultation,
+            &reports,
+            usage,
+            orchestration_agents,
+            worktrees,
+        )
+        .await
+    }
+
+    /// Gathers a lightweight scope summary for the integration approval
+    /// gate: the task/path list from persisted tasks, the worktree count,
+    /// and (if cheaply derivable from existing quality-check tool-output
+    /// events) a pass/fail line. No new tracking machinery is added for the
+    /// check-count line; it is simply omitted when there is nothing to
+    /// derive it from.
+    fn integration_approval_scope(
+        &self,
+        run_id: RunId,
+        worktrees: &[PathBuf],
+    ) -> Result<String, HarnessError> {
+        let tasks = self.store.tasks(run_id)?;
+        let mut lines = vec![format!(
+            "Branch work finished: {} task{} across {} worktree{}.",
+            tasks.len(),
+            if tasks.len() == 1 { "" } else { "s" },
+            worktrees.len(),
+            if worktrees.len() == 1 { "" } else { "s" },
+        )];
+        for task in &tasks {
+            let paths = if task.paths.is_empty() {
+                "no declared paths".to_owned()
+            } else {
+                task.paths.join(", ")
+            };
+            lines.push(format!("- {}: {}", task.task_id, paths));
+        }
+        if let Some(checks) = self.quality_check_summary(run_id)? {
+            lines.push(checks);
+        }
+        lines.push(self.integration_recovery_note(run_id));
+        lines.push(
+            "Approve to have Mina integrate now, or decline to stop here without running the integrator."
+                .into(),
+        );
+        Ok(lines.join("\n"))
+    }
+
+    /// Describes where branch-work changes actually live by the time this
+    /// gate runs. Worker lanes (the `worktrees` paths) are removed by
+    /// `cleanup_worker_lane` as soon as each task's patch is captured, win
+    /// or lose, so they never survive to this point — the durable record is
+    /// the per-task recovery patch plus the working-tree changes already
+    /// applied to the primary checkout (uncommitted).
+    fn integration_recovery_note(&self, run_id: RunId) -> String {
+        let recovery_dir = self.root.join(".minha/recovery").join(run_id.to_string());
+        let mut patches = std::fs::read_dir(&recovery_dir)
+            .map(|entries| {
+                entries
+                    .filter_map(Result::ok)
+                    .map(|entry| entry.path())
+                    .filter(|path| path.extension().is_some_and(|extension| extension == "patch"))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        patches.sort();
+        if patches.is_empty() {
+            format!(
+                "Worker changes are already applied to {} as uncommitted working-tree changes; no recovery patches were recorded.",
+                self.root.display()
+            )
+        } else {
+            let list = patches
+                .iter()
+                .map(|path| format!("- {}", path.display()))
+                .collect::<Vec<_>>()
+                .join("\n");
+            format!(
+                "Worker changes are already applied to {} as uncommitted working-tree changes. Recovery patches:\n{list}",
+                self.root.display()
+            )
+        }
+    }
+
+    /// Cheap pass/fail summary derived from already-recorded
+    /// `RuntimeEvent::ToolOutput` events for `quality` tool calls. Returns
+    /// `None` when no such events exist, rather than adding new tracking.
+    fn quality_check_summary(&self, run_id: RunId) -> Result<Option<String>, HarnessError> {
+        let mut passed = 0_usize;
+        let mut failed = 0_usize;
+        for envelope in self.store.events(run_id)? {
+            if let RuntimeEvent::ToolOutput { name, exit_code, .. } = envelope.event
+                && name == "quality"
+            {
+                match exit_code {
+                    Some(0) => passed += 1,
+                    Some(_) => failed += 1,
+                    None => {}
+                }
+            }
+        }
+        if passed == 0 && failed == 0 {
+            return Ok(None);
+        }
+        Ok(Some(format!("Quality checks: {passed} passed, {failed} failed.")))
+    }
+
+    /// Builds the integrator prompt from the branch results and runs the
+    /// integrator agent through to judging. Shared by the direct path
+    /// (`scheduler.integration_approval` off) and the resumed-approval path
+    /// (`resume_with_answer`, after a human approves).
+    #[allow(clippy::too_many_arguments)]
+    async fn integrate_and_judge(
+        &self,
+        run_id: RunId,
+        goal: &str,
+        client: RuntimeProviderClient,
+        lead_model: &str,
+        consultation: &str,
+        reports: &[String],
+        usage: TokenUsage,
+        orchestration_agents: usize,
+        worktrees: Vec<PathBuf>,
+    ) -> Result<RunOutcome, HarnessError> {
         let integrator_prompt = format!(
             "Original goal: {goal}\n\nRead-only consultation:\n{}\n\nBranch results:\n{}\n\nInspect the primary checkout and recovery patches. Resolve any conflicts, finish missing integration, and run sufficient checks. Do not commit, merge, push, or discard user changes.",
             if consultation.is_empty() {
                 "none"
             } else {
-                &consultation
+                consultation
             },
             if reports.is_empty() {
                 "No new worker report was needed; inspect persisted task and board state.".into()
@@ -2119,7 +2977,7 @@ impl Harness {
         let integrator = ToolExecutor::new(&self.root, false)?.with_policy(ExecutorPolicy {
             allow_destructive: false,
         });
-        let system = self.system_prompt(goal, "integrator lead", false)?;
+        let system = self.system_prompt(goal, "Mina, integrating", false)?;
         let mut result = self
             .run_agent(
                 run_id,
@@ -2128,7 +2986,7 @@ impl Harness {
                 &system,
                 &integrator_prompt,
                 integrator,
-                "integrator lead",
+                "Mina, integrating",
             )
             .await?;
         result.usage = add_usage(result.usage, usage);
@@ -2170,6 +3028,9 @@ impl Harness {
             updated_at: now,
         };
         self.store.replace_tasks(run_id, std::slice::from_ref(&task))?;
+        let contract = microtask_contract_for_task(&task);
+        self.store
+            .replace_task_contracts(run_id, std::slice::from_ref(&contract))?;
         self.store.record_runtime_event(
             run_id,
             RuntimeEvent::PlanCreated {
@@ -2196,10 +3057,30 @@ impl Harness {
         let executor = ToolExecutor::new(&self.root, false)?.with_policy(ExecutorPolicy {
             allow_destructive: false,
         });
-        let system = self.system_prompt(goal, "Lead task focused", false)?;
+        let system = self.system_prompt(goal, "Mina, direct task", false)?;
         let prompt = format!(
-            "Implement this task end to end: {goal}\n\nInspect before editing, preserve unrelated work, run sufficient checks, and finish with a concise evidence-backed result. Delegate nothing unless new evidence proves an independent lane is necessary."
+            "Microtask contract:\n- Goal: {}\n- Lease: {}\n- Acceptance check: {}\n\nInspect before editing, preserve unrelated work, run sufficient checks, and finish with a concise evidence-backed result. Delegate nothing unless new evidence proves an independent lane is necessary.",
+            contract.goal,
+            contract.lease_resources.join(", "),
+            contract.acceptance_check,
         );
+        self.record_dispatch_receipt(
+            run_id,
+            &task,
+            &contract,
+            agent_id,
+            "Mina, direct task",
+            lead_model,
+            vec![RoutingCandidateV1 {
+                provider: provider_for_model(lead_model).key().into(),
+                model: lead_model.into(),
+                eligible: true,
+                reason: "selected focused lead lane".into(),
+            }],
+            estimate_tokens(&system).saturating_add(estimate_tokens(&prompt)) as u64,
+            "one-agent default; delegation was not justified by task evidence",
+            None,
+        )?;
         let result = self
             .run_agent_as(
                 run_id,
@@ -2208,7 +3089,7 @@ impl Harness {
                 &system,
                 &prompt,
                 executor,
-                "Lead task focused",
+                "Mina, direct task",
                 agent_id,
             )
             .await?;
@@ -2243,7 +3124,7 @@ impl Harness {
         run_id: RunId,
         goal: &str,
         client: &RuntimeProviderClient,
-        available: &HashSet<String>,
+        catalog_available: &HashSet<String>,
         consultation: &str,
         initial_usage: TokenUsage,
     ) -> Result<WorkerGraphResult, HarnessError> {
@@ -2309,37 +3190,116 @@ impl Harness {
             } else {
                 self.config.scheduler.max_agents
             };
+            // Once a durable session crosses its adaptive target, finish only
+            // one already-independent slice at a time. This protects enough
+            // allowance for a compact recovery instead of multiplying the
+            // remaining cost across a last batch of workers.
+            let pressure_cap = if self.budget_pressure(run_id)? == BudgetPressure::Tapered {
+                1
+            } else {
+                usize::MAX
+            };
             let ready = disjoint_ready_tasks(
                 ready,
                 policy
                     .max_agents
                     .min(configured_max)
                     .min(self.config.scheduler.hard_max_agents)
+                    .min(pressure_cap)
                     .max(1),
             );
             if ready.is_empty() {
                 break;
             }
 
+            let admitted_parallel = ready.len() > 1;
             let futures = FuturesUnordered::new();
             for (slot, task) in ready.into_iter().enumerate() {
                 let attempt = task.attempt.saturating_add(1);
                 let generation = task.generation;
                 let agent_id = EventAgentId::new();
-                let lane =
-                    prepare_worker_lane(&self.root, &lane_base, run_id, &task, attempt, use_git_worktrees)?;
-                if !output.lanes.iter().any(|path| path == lane.path()) {
-                    output.lanes.push(lane.path().to_owned());
-                }
-                let resources = lease_resources(&task);
-                self.store.acquire_task_leases(
+                let contract = self.task_contract_for_dispatch(run_id, &task)?;
+                let resources = contract.lease_resources.clone();
+                if let Err(crate::store::StoreError::LeaseConflict(_)) = self.store.acquire_task_leases(
                     run_id,
                     &task.task_id,
                     agent_id,
                     generation,
                     &resources,
                     chrono::Utc::now() + chrono::Duration::hours(2),
-                )?;
+                ) {
+                    // A ready task whose declared resources collide with
+                    // another selected task is skipped instead of aborting
+                    // the entire run; it stays Pending for the next batch.
+                    continue;
+                }
+                let parallelism_reason = if admitted_parallel {
+                    "admitted with path-disjoint ready work; concurrent completion has an independent speedup case"
+                } else {
+                    "one-agent default; no second independent ready slice was admitted"
+                };
+                let estimated_input_tokens = estimate_tokens(&format!(
+                    "{}\n{}\n{}\n{}",
+                    goal, task.objective, contract.acceptance_check, consultation
+                )) as u64;
+                let receipt_id = dispatch_receipt_id(run_id, &task.task_id, generation, agent_id);
+                let routed = match self.select_automatic_route(
+                    "worker",
+                    run_id,
+                    agent_id,
+                    &receipt_id,
+                    fair_worker_models(&task, catalog_available, &self.config),
+                    estimated_input_tokens,
+                ) {
+                    Ok(routed) => routed,
+                    Err(error) => {
+                        let _ =
+                            self.store
+                                .release_task_leases(run_id, &task.task_id, agent_id, generation)?;
+                        return Err(error);
+                    }
+                };
+                let model = routed.model.clone();
+                let role = format!("{} worker {}", model_identity(&model), task.task_id);
+                let lane = match prepare_worker_lane(
+                    &self.root,
+                    &lane_base,
+                    run_id,
+                    &task,
+                    attempt,
+                    use_git_worktrees,
+                ) {
+                    Ok(lane) => lane,
+                    Err(error) => {
+                        let _ = self.store.cancel_fair_route_admission(run_id, agent_id)?;
+                        let _ =
+                            self.store
+                                .release_task_leases(run_id, &task.task_id, agent_id, generation)?;
+                        return Err(error);
+                    }
+                };
+                if let Err(error) = self.record_dispatch_receipt(
+                    run_id,
+                    &task,
+                    &contract,
+                    agent_id,
+                    &role,
+                    &model,
+                    routed.candidates.iter().cloned().map(Into::into).collect(),
+                    estimated_input_tokens,
+                    parallelism_reason,
+                    Some(&routed),
+                ) {
+                    let _ = self.store.cancel_fair_route_admission(run_id, agent_id);
+                    let _ = self
+                        .store
+                        .release_task_leases(run_id, &task.task_id, agent_id, generation);
+                    cleanup_worker_lane(run_id, &task, lane, use_git_worktrees, &self.root);
+                    return Err(error);
+                }
+                if !output.lanes.iter().any(|path| path == lane.path()) {
+                    output.lanes.push(lane.path().to_owned());
+                }
                 self.store.update_task(
                     run_id,
                     &task.task_id,
@@ -2370,23 +3330,23 @@ impl Harness {
                 )?;
 
                 let harness = self.clone();
-                let model = routed_worker_model(&task, available, &self.config).to_owned();
                 let client = self.pooled_client(slot.saturating_add(attempt as usize), &model, client);
                 let goal = goal.to_owned();
                 let consultation = consultation.to_owned();
                 futures.push(async move {
-                    let role = format!("{} worker {}", model_label(&model), task.task_id);
                     let result = async {
                         let executor = ToolExecutor::new(lane.path(), false)?;
                         let mut system = harness.system_prompt(&goal, &role, false)?;
+                        system.push_str("\nWorker agent definition:\n");
                         system.push_str(include_str!("../../../bundled/agents/spark-worker.md"));
                         let prompt = format!(
-                            "Shared goal: {goal}\n\nRead-only consultation: {}\n\nTask: {}\nDependencies already integrated: {}\nPrior scheduler context: {}\nOwned paths: {}\nStay within this slice. Read the shared board only when it saves duplicate work; post only durable findings, blockers, artifacts, or decisions. Inspect, edit, and run the smallest sufficient checks. Do not commit, push, or claim global completion.",
+                            "Shared goal: {goal}\n\nMicrotask contract:\n- Goal: {}\n- Lease: {}\n- Acceptance check: {}\n\nRead-only consultation: {}\nDependencies already integrated: {}\nPrior scheduler context: {}\nStay within this slice. Read the shared board only when it saves duplicate work; post only durable findings, blockers, artifacts, or decisions. Inspect, edit, and run the smallest sufficient checks. Do not commit, push, or claim global completion.",
+                            contract.goal,
+                            contract.lease_resources.join(", "),
+                            contract.acceptance_check,
                             if consultation.is_empty() { "none" } else { &consultation },
-                            task.objective,
                             if task.dependencies.is_empty() { "none".into() } else { task.dependencies.join(", ") },
                             task.last_error.as_deref().unwrap_or("none"),
-                            if task.paths.is_empty() { "planner did not constrain paths".into() } else { task.paths.join(", ") },
                         );
                         harness
                             .run_agent_as(
@@ -2402,13 +3362,27 @@ impl Harness {
                             .await
                     }
                     .await;
+                    if result.is_err() {
+                        let _ = harness.store.cancel_fair_route_admission(run_id, agent_id);
+                    }
                     (task, lane, agent_id, attempt, generation, result)
                 });
             }
 
             let mut futures = futures;
             while let Some((task, lane, agent_id, attempt, generation, result)) = futures.next().await {
-                output.agents_used += 1;
+                // `run_agent_as` persists the agent only after durable budget
+                // admission. Count from that authoritative record, not from
+                // a scheduled future, so a denied preflight is neither a
+                // ghost agent nor a misleading "agent used" total.
+                if self
+                    .store
+                    .agents(run_id)?
+                    .iter()
+                    .any(|agent| agent.agent_id == agent_id)
+                {
+                    output.agents_used += 1;
+                }
                 let _ = self
                     .store
                     .release_task_leases(run_id, &task.task_id, agent_id, generation)?;
@@ -2452,15 +3426,31 @@ impl Harness {
                             continue;
                         }
                         if result.pause_before_next_call() {
+                            // A reserve pause is not a failure: reset the
+                            // attempt so pauses never consume retry budget.
                             self.store.update_task(
                                 run_id,
                                 &task.task_id,
                                 PlanTaskState::Pending,
                                 None,
-                                attempt,
+                                0,
                                 generation.saturating_add(1),
                                 Some("paused by account usage reserve"),
                             )?;
+                            self.store.record_runtime_event(
+                                run_id,
+                                RuntimeEvent::PlanTaskChanged {
+                                    task_id: task.task_id.clone(),
+                                    state: PlanTaskState::Pending,
+                                    agent_id: None,
+                                },
+                            )?;
+                            // `run_agent_as` deliberately did not create an
+                            // agent record after denied budget admission, so
+                            // remove the scheduler's provisional TODO too.
+                            // Leaving it would make the Operations panel
+                            // describe ghost work as in progress.
+                            self.store.clear_todos(run_id, agent_id)?;
                             output.paused = true;
                             output.reports.push(format!(
                                 "Task {} paused at the configured account-usage reserve.",
@@ -2569,6 +3559,7 @@ impl Harness {
                         ));
                     }
                 }
+                cleanup_worker_lane(run_id, &task, lane, use_git_worktrees, &self.root);
             }
         }
 
@@ -2580,7 +3571,7 @@ impl Harness {
             .collect::<Vec<_>>();
         if !unresolved.is_empty() {
             output.reports.push(format!(
-                "Luna must replan or finish these unresolved slices during integration: {}",
+                "Mina must replan or finish these unresolved slices during integration: {}",
                 unresolved
                     .iter()
                     .map(|task| format!(
@@ -2644,6 +3635,131 @@ impl Harness {
                 &bound(reason, 2_000),
                 Some(&task.task_id),
                 Some(agent_id),
+            )?;
+        }
+        Ok(())
+    }
+
+    fn task_contract_for_dispatch(
+        &self,
+        run_id: RunId,
+        task: &TaskRecord,
+    ) -> Result<MicrotaskContractV1, HarnessError> {
+        if let Some(contract) = self.store.task_contract(run_id, &task.task_id)? {
+            return Ok(contract);
+        }
+        // Runs created before the contract table remain resumable. Repair the
+        // missing contract once, before a new lease is dispatched.
+        let contract = microtask_contract_for_task(task);
+        self.store.upsert_task_contract(run_id, &contract)?;
+        Ok(contract)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn record_dispatch_receipt(
+        &self,
+        run_id: RunId,
+        task: &TaskRecord,
+        contract: &MicrotaskContractV1,
+        agent_id: EventAgentId,
+        role: &str,
+        model: &str,
+        candidates: Vec<RoutingCandidateV1>,
+        estimated_input_tokens: u64,
+        parallelism_reason: &str,
+        routing: Option<&RoutedAutomaticSelection>,
+    ) -> Result<(), HarnessError> {
+        let usage = self.store.usage_totals(Some(run_id))?;
+        let pressure = self.budget_pressure(run_id)?;
+        let receipt = DispatchReceiptV1 {
+            schema_version: DISPATCH_RECEIPT_SCHEMA_VERSION,
+            receipt_id: dispatch_receipt_id(run_id, &task.task_id, task.generation, agent_id),
+            task_id: task.task_id.clone(),
+            generation: task.generation,
+            agent_id,
+            role: role.to_owned(),
+            provider: provider_for_model(model).key().into(),
+            model: model.to_owned(),
+            candidates,
+            lease_resources: contract.lease_resources.clone(),
+            acceptance_check: contract.acceptance_check.clone(),
+            estimated_input_tokens,
+            session_used_tokens: usage.session_input.saturating_add(usage.session_output),
+            session_target_tokens: self.config.budgets.default.soft_token_target(),
+            budget_pressure: budget_pressure_name(pressure).into(),
+            parallelism_reason: parallelism_reason.to_owned(),
+            book_sources: Vec::new(),
+            issued_at: chrono::Utc::now(),
+        };
+        let mut receipt = DispatchReceiptV2::from(receipt);
+        if let Some(routing) = routing {
+            receipt.model = routing.model.clone();
+            receipt.provider = provider_for_model(&routing.model).key().into();
+            receipt.candidates = routing.candidates.clone();
+            let mut detail = DispatchRoutingV1::equal_weight(routing.fairness.clone());
+            detail.user_pin = routing.user_pin;
+            detail.reserve_override = routing.reserve_override;
+            detail.cooldown_override = routing.cooldown_override;
+            detail.health = routing.health;
+            receipt.routing = detail;
+        }
+        if self.store.record_dispatch_receipt_v2(run_id, &receipt)? {
+            self.store.record_runtime_event(
+                run_id,
+                RuntimeEvent::DispatchReceipt {
+                    receipt: receipt.to_v1(),
+                },
+            )?;
+        }
+        Ok(())
+    }
+
+    /// Audits do not have a scheduler task contract, but they are still
+    /// automatic provider dispatches and retain the same durable routing
+    /// evidence as worker lanes. This avoids manufacturing a mutable task
+    /// merely to record a read-only lens.
+    fn record_audit_dispatch_receipt(
+        &self,
+        run_id: RunId,
+        task_id: &str,
+        agent_id: EventAgentId,
+        role: &str,
+        routing: &RoutedAutomaticSelection,
+        estimated_input_tokens: u64,
+    ) -> Result<(), HarnessError> {
+        let usage = self.store.usage_totals(Some(run_id))?;
+        let mut detail = DispatchRoutingV1::equal_weight(routing.fairness.clone());
+        detail.user_pin = routing.user_pin;
+        detail.reserve_override = routing.reserve_override;
+        detail.cooldown_override = routing.cooldown_override;
+        detail.health = routing.health;
+        let receipt = DispatchReceiptV2 {
+            schema_version: DISPATCH_RECEIPT_V2_SCHEMA_VERSION,
+            receipt_id: dispatch_receipt_id(run_id, task_id, 0, agent_id),
+            task_id: task_id.to_owned(),
+            generation: 0,
+            agent_id,
+            role: role.to_owned(),
+            provider: provider_for_model(&routing.model).key().into(),
+            model: routing.model.clone(),
+            candidates: routing.candidates.clone(),
+            lease_resources: vec!["read_only:workspace".into()],
+            acceptance_check: "return evidence-backed audit findings".into(),
+            estimated_input_tokens,
+            session_used_tokens: usage.session_input.saturating_add(usage.session_output),
+            session_target_tokens: self.config.budgets.default.soft_token_target(),
+            budget_pressure: budget_pressure_name(self.budget_pressure(run_id)?).into(),
+            parallelism_reason: "independent read-only audit lens admitted by equal-weight routing".into(),
+            book_sources: Vec::new(),
+            issued_at: chrono::Utc::now(),
+            routing: detail,
+        };
+        if self.store.record_dispatch_receipt_v2(run_id, &receipt)? {
+            self.store.record_runtime_event(
+                run_id,
+                RuntimeEvent::DispatchReceipt {
+                    receipt: receipt.to_v1(),
+                },
             )?;
         }
         Ok(())
@@ -2720,6 +3836,7 @@ impl Harness {
             );
         }
         let mut system = self.system_prompt(goal, "Spark completion judge", true)?;
+        system.push_str("\nJudge agent definition:\n");
         system.push_str(include_str!("../../../bundled/agents/completion-judge.md"));
         let mut integrated_text = integration.text;
         let mut cumulative_usage = integration.usage;
@@ -2780,7 +3897,7 @@ impl Harness {
                 "Original goal: {goal}\n\nIndependent judge report: {report_json}\n\nInspect current source, repair only verified deficiencies, and run the smallest sufficient checks. Preserve unrelated changes. Do not claim completion without evidence."
             );
             let executor = ToolExecutor::new(&self.root, false)?;
-            let repair_system = self.system_prompt(goal, "Lead repair cycle", false)?;
+            let repair_system = self.system_prompt(goal, "Mina, repair cycle", false)?;
             let mut repair = self
                 .run_agent(
                     run_id,
@@ -2789,7 +3906,7 @@ impl Harness {
                     &repair_system,
                     &repair_prompt,
                     executor,
-                    "Lead repair cycle",
+                    "Mina, repair cycle",
                 )
                 .await?;
             additional_agents += 1;
@@ -2894,7 +4011,37 @@ impl Harness {
         role: &str,
         agent_id: EventAgentId,
     ) -> Result<AgentResult, HarnessError> {
-        let selected_client = self.pooled_client(0, model, client);
+        let result = self
+            .run_agent_as_inner(run_id, client, model, system, prompt, executor, role, agent_id)
+            .await;
+        // A fair route is admitted before this function starts. If no
+        // canonical usage entry was ever settled (budget denial, interruption,
+        // or provider failure), return its provisional estimate rather than
+        // counting artificial work. After real usage this is a no-op.
+        self.store.cancel_fair_route_admission(run_id, agent_id)?;
+        result
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn run_agent_as_inner(
+        &self,
+        run_id: RunId,
+        client: &RuntimeProviderClient,
+        model: &str,
+        system: &str,
+        prompt: &str,
+        executor: ToolExecutor,
+        role: &str,
+        agent_id: EventAgentId,
+    ) -> Result<AgentResult, HarnessError> {
+        // Callers already select a client by slot; re-pooling with slot 0
+        // would defeat account spread. Only re-pool when the caller's client
+        // belongs to a different provider than the routed model.
+        let selected_client = if client.provider_id() == provider_for_model(model) {
+            client.clone()
+        } else {
+            self.pooled_client(0, model, client)
+        };
         let client = &selected_client;
         let task_id = worker_task_id(role).map(str::to_owned);
         let read_only = executor.is_read_only();
@@ -2926,25 +4073,12 @@ impl Harness {
             updated_at: now,
             finished_at: None,
         };
-        self.store.upsert_agent(&agent_record)?;
-        self.store.record_runtime_event(
-            run_id,
-            RuntimeEvent::AgentStarted {
-                agent_id,
-                role: role.to_owned(),
-                model: model.to_owned(),
-                parent: None,
-            },
-        )?;
-        self.store.record_runtime_event(
-            run_id,
-            RuntimeEvent::AgentState {
-                agent_id,
-                state: initial_agent_state(role),
-                detail: "starting".into(),
-            },
-        )?;
         let mut system = system.to_owned();
+        // Retrieval is prepared before admission so it can contribute to the
+        // truthful budget estimate, but its event is emitted only once the
+        // agent exists.  A denied preflight must not leave a ghost agent with
+        // apparently consumed memory.
+        let mut pending_memory_retrieval: Option<(Vec<String>, u64)> = None;
         let memory_settings = self.store.memory_settings(&self.workspace_id)?;
         if self.config.memory.enabled
             && self.config.memory.use_memory
@@ -2974,25 +4108,11 @@ impl Harness {
                     ));
                 }
                 system.push_str("</minha-memory>\n");
-                self.store.record_runtime_event(
-                    run_id,
-                    RuntimeEvent::MemoryRetrieved {
-                        agent_id,
-                        memory_ids: memories.iter().map(|hit| hit.memory.id.clone()).collect(),
-                        estimated_tokens: estimate_tokens(&system) as u64,
-                    },
-                )?;
+                pending_memory_retrieval = Some((
+                    memories.iter().map(|hit| hit.memory.id.clone()).collect(),
+                    estimate_tokens(&system) as u64,
+                ));
             }
-        }
-        if let Some(task_id) = task_id.as_deref() {
-            self.store.record_runtime_event(
-                run_id,
-                RuntimeEvent::PlanTaskChanged {
-                    task_id: task_id.to_owned(),
-                    state: PlanTaskState::Running,
-                    agent_id: Some(agent_id),
-                },
-            )?;
         }
         let mut input = vec![message("user", prompt)];
         let mut tools = tool_definitions(
@@ -3026,28 +4146,33 @@ impl Harness {
         let mut tool_calls_used = 0_usize;
         let mut last_text = String::new();
         let mut last_todo_snapshot = String::new();
+        let mut agent_started = false;
 
         for turn in 0..turn_limit {
             if self.is_interrupted(run_id) {
-                self.store.record_runtime_event(
-                    run_id,
-                    RuntimeEvent::AgentState {
-                        agent_id,
-                        state: AgentState::Cancelled,
-                        detail: "interrupted".into(),
-                    },
-                )?;
+                if agent_started {
+                    self.store.record_runtime_event(
+                        run_id,
+                        RuntimeEvent::AgentState {
+                            agent_id,
+                            state: AgentState::Cancelled,
+                            detail: "interrupted".into(),
+                        },
+                    )?;
+                }
                 return Err(HarnessError::Interrupted);
             }
             if self.take_cooperative_pause(run_id) {
-                self.store.record_runtime_event(
-                    run_id,
-                    RuntimeEvent::AgentState {
-                        agent_id,
-                        state: AgentState::Waiting,
-                        detail: "paused by user at a safe boundary".into(),
-                    },
-                )?;
+                if agent_started {
+                    self.store.record_runtime_event(
+                        run_id,
+                        RuntimeEvent::AgentState {
+                            agent_id,
+                            state: AgentState::Waiting,
+                            detail: "paused by user at a safe boundary".into(),
+                        },
+                    )?;
+                }
                 return Ok(AgentResult {
                     text: "Work paused safely. Active tool/model work reached a boundary; completed evidence and TODO state were preserved.".into(),
                     question: Some(InputRequest {
@@ -3123,7 +4248,7 @@ impl Harness {
             let item_id = ItemId::new();
             let stream_store = self.store.clone();
             let reservation = (estimated_next_input as u64).saturating_add(1_024);
-            if !self.try_reserve_budget(run_id, reservation) {
+            if !self.try_reserve_budget(run_id, reservation)? {
                 self.store.record_runtime_event(
                     run_id,
                     RuntimeEvent::Warning {
@@ -3133,16 +4258,56 @@ impl Harness {
                         ),
                     },
                 )?;
-                return Ok(AgentResult {
-                    text: format!(
-                        "Session token budget reached before another {role} turn; durable progress is preserved."
+                return Ok(AgentResult::budget_pause(
+                    format!(
+                        "Session token target reached before another {role} turn; durable progress is preserved."
                     ),
-                    question: None,
                     usage,
-                    paused: false,
-                    reserve_reached: false,
-                    termination: Some(TerminationReason::ContextBoundary),
-                });
+                ));
+            }
+            if !agent_started {
+                // A provider turn has passed durable-budget admission. Only
+                // now does the runtime make the agent visible or transition
+                // its task, so a denied preflight cannot leave a ghost agent.
+                self.store.upsert_agent(&agent_record)?;
+                self.store.record_runtime_event(
+                    run_id,
+                    RuntimeEvent::AgentStarted {
+                        agent_id,
+                        role: role.to_owned(),
+                        model: model.to_owned(),
+                        parent: None,
+                    },
+                )?;
+                self.store.record_runtime_event(
+                    run_id,
+                    RuntimeEvent::AgentState {
+                        agent_id,
+                        state: initial_agent_state(role),
+                        detail: "admitted for provider turn".into(),
+                    },
+                )?;
+                if let Some((memory_ids, estimated_tokens)) = pending_memory_retrieval.take() {
+                    self.store.record_runtime_event(
+                        run_id,
+                        RuntimeEvent::MemoryRetrieved {
+                            agent_id,
+                            memory_ids,
+                            estimated_tokens,
+                        },
+                    )?;
+                }
+                if let Some(task_id) = task_id.as_deref() {
+                    self.store.record_runtime_event(
+                        run_id,
+                        RuntimeEvent::PlanTaskChanged {
+                            task_id: task_id.to_owned(),
+                            state: PlanTaskState::Running,
+                            agent_id: Some(agent_id),
+                        },
+                    )?;
+                }
+                agent_started = true;
             }
             let turn_result = client
                 .turn_stream(
@@ -3163,7 +4328,7 @@ impl Harness {
                             &self.config.models.reasoning_effort,
                         )),
                         prompt_cache_key: Some(prompt_cache_key(&format!(
-                            "{:?}|{model}|{role}|{}|tools-v2|prompt-v3",
+                            "{:?}|{model}|{role}|{}|tools-v3|prompt-v3",
                             client.provider_id(),
                             self.root.to_string_lossy()
                         ))),
@@ -3187,43 +4352,65 @@ impl Harness {
             let result = match turn_result {
                 Ok(result) => {
                     self.settle_budget(run_id, reservation, result.usage.total());
+                    self.store
+                        .record_provider_turn_success(&self.workspace_id, client.provider_id().key())?;
                     result
                 }
                 Err(error) => {
                     self.settle_budget(run_id, reservation, 0);
+                    self.record_provider_failure(client.provider_id(), &error)?;
                     return Err(error.into());
                 }
             };
-            usage = add_usage(usage, result.usage);
-            if !result.output_text.is_empty() {
-                last_text = result.output_text.clone();
-            }
-            self.store
-                .add_usage(run_id, result.usage.input, result.usage.output)?;
             let estimated_context = estimate_tokens(&system)
                 + input
                     .iter()
                     .map(|item| estimate_tokens(&item.to_string()))
                     .sum::<usize>();
-            self.store.record_usage_turn(
+            let entry_key = usage_entry_key(
                 run_id,
                 Some(agent_id),
-                model,
-                result.usage,
-                Some(estimated_context as u64),
-            )?;
-            self.store.record_runtime_event(
-                run_id,
-                RuntimeEvent::Usage {
-                    agent_id: Some(agent_id),
-                    model: model.to_owned(),
-                    input_tokens: result.usage.input,
-                    output_tokens: result.usage.output,
-                    cached_input_tokens: result.usage.cached_input,
-                    cache_write_tokens: result.usage.cache_write,
-                    reasoning_output_tokens: result.usage.reasoning_output,
-                },
-            )?;
+                turn,
+                UsageKindV1::ModelTurn,
+                client.provider_id(),
+                result.response_id.as_deref(),
+            );
+            let fairness_entry_key = entry_key.clone();
+            let recorded = self.store.record_usage_entry(&UsageLedgerEntryV1 {
+                schema_version: USAGE_LEDGER_SCHEMA_VERSION,
+                entry_key,
+                run_id: run_id.to_string(),
+                kind: UsageKindV1::ModelTurn,
+                state: UsageStateV1::Settled,
+                provider: client.provider_id().key().to_owned(),
+                model: model.to_owned(),
+                agent_id: Some(agent_id.to_string()),
+                provider_response_id: result.response_id.clone(),
+                usage: result.usage,
+                context_tokens: Some(estimated_context as u64),
+            })?;
+            if recorded {
+                self.store
+                    .settle_fair_route_usage(run_id, agent_id, &fairness_entry_key, result.usage)?;
+                usage = add_usage(usage, result.usage);
+            }
+            if !result.output_text.is_empty() {
+                last_text = result.output_text.clone();
+            }
+            if recorded {
+                self.store.record_runtime_event(
+                    run_id,
+                    RuntimeEvent::Usage {
+                        agent_id: Some(agent_id),
+                        model: model.to_owned(),
+                        input_tokens: result.usage.input,
+                        output_tokens: result.usage.output,
+                        cached_input_tokens: result.usage.cached_input,
+                        cache_write_tokens: result.usage.cache_write,
+                        reasoning_output_tokens: result.usage.reasoning_output,
+                    },
+                )?;
+            }
             self.store.record_runtime_event(
                 run_id,
                 RuntimeEvent::ContextUsage {
@@ -3381,8 +4568,35 @@ impl Harness {
                     continue;
                 }
                 tool_calls_used += 1;
-                let arguments: Value = serde_json::from_str(&call.arguments)
-                    .map_err(|error| HarnessError::Tool(ToolError::InvalidArguments(error.to_string())))?;
+                // Unparsable arguments are the model's mistake, or a truncated
+                // tool-call stream, and are recoverable: report them back like
+                // every other tool failure so the model can correct the call.
+                // Propagating here used to abort the whole turn.
+                let arguments: Value = match serde_json::from_str(&call.arguments) {
+                    Ok(arguments) => arguments,
+                    Err(error) => {
+                        let message = format!(
+                            "tool arguments were not valid JSON: {error}; resend this call with a single well-formed JSON object"
+                        );
+                        self.store.record_runtime_event(
+                            run_id,
+                            RuntimeEvent::ToolOutput {
+                                agent_id,
+                                call_id: call.call_id.clone(),
+                                name: call.name.clone(),
+                                stdout: String::new(),
+                                stderr: message.clone(),
+                                exit_code: None,
+                                truncated: false,
+                            },
+                        )?;
+                        input.push(function_output(
+                            &call,
+                            json!({"error": message, "recoverable": true}).to_string(),
+                        ));
+                        continue;
+                    }
+                };
                 self.store.record_runtime_event(
                     run_id,
                     RuntimeEvent::ToolStarted {
@@ -3434,21 +4648,16 @@ impl Harness {
                         ));
                         continue;
                     }
+                    let approval_command = call_executor.approval_command(&call.name, &arguments)?;
                     if matches!(permission, crate::config::PermissionLevel::Allow)
-                        || self.take_exec_approval(run_id, &arguments)
+                        || self.take_operation_approval(run_id, approval_command)
                     {
                         call_executor = call_executor.with_policy(ExecutorPolicy {
                             allow_destructive: true,
                         });
                     } else {
                         let request_id = RequestId::new();
-                        let command = arguments.get("argv").and_then(Value::as_array).map(|values| {
-                            values
-                                .iter()
-                                .filter_map(Value::as_str)
-                                .map(str::to_owned)
-                                .collect::<Vec<_>>()
-                        });
+                        let command = call_executor.approval_command(&call.name, &arguments)?;
                         self.store.update_run_state(
                             run_id,
                             ExitState::ApprovalRequired,
@@ -3647,9 +4856,35 @@ impl Harness {
         calls: &[ToolCall],
     ) -> Result<Vec<Value>, HarnessError> {
         let futures = FuturesUnordered::new();
+        let mut outputs = HashMap::new();
         for call in calls.iter().cloned() {
-            let arguments: Value = serde_json::from_str(&call.arguments)
-                .map_err(|error| HarnessError::Tool(ToolError::InvalidArguments(error.to_string())))?;
+            // One unparsable call must not abort the batch or the turn: report
+            // it back as a recoverable failure and let its siblings run.
+            let arguments: Value = match serde_json::from_str(&call.arguments) {
+                Ok(arguments) => arguments,
+                Err(error) => {
+                    let message = format!(
+                        "tool arguments were not valid JSON: {error}; resend this call with a single well-formed JSON object"
+                    );
+                    self.store.record_runtime_event(
+                        run_id,
+                        RuntimeEvent::ToolOutput {
+                            agent_id,
+                            call_id: call.call_id.clone(),
+                            name: call.name.clone(),
+                            stdout: String::new(),
+                            stderr: message.clone(),
+                            exit_code: None,
+                            truncated: false,
+                        },
+                    )?;
+                    outputs.insert(
+                        call.call_id.clone(),
+                        json!({"error": message, "recoverable": true}).to_string(),
+                    );
+                    continue;
+                }
+            };
             self.store.record_runtime_event(
                 run_id,
                 RuntimeEvent::ToolStarted {
@@ -3680,7 +4915,6 @@ impl Harness {
             });
         }
         let mut futures = futures;
-        let mut outputs = HashMap::new();
         while let Some((call, outcome, duration_ms)) = futures.next().await {
             let (stdout, stderr, exit_code, truncated, succeeded) = match outcome {
                 Ok(ToolOutcome::Output(output)) => (
@@ -3869,7 +5103,7 @@ impl Harness {
             )?;
         }
         let reservation = (estimated as u64).saturating_add(1_024);
-        if !self.try_reserve_budget(run_id, reservation) {
+        if !self.try_reserve_budget(run_id, reservation)? {
             self.store.record_runtime_event(
                 run_id,
                 RuntimeEvent::Warning {
@@ -3891,7 +5125,7 @@ impl Harness {
                 parallel_tool_calls: false,
                 reasoning_effort: Some(reasoning_for_turn(&compaction_model, "compaction", 0, "low")),
                 prompt_cache_key: Some(prompt_cache_key(&format!(
-                    "{:?}|{}|compaction|{}|tools-v2|prompt-v3",
+                    "{:?}|{}|compaction|{}|tools-v3|prompt-v3",
                     compaction_provider,
                     compaction_model,
                     self.root.to_string_lossy()
@@ -3919,7 +5153,7 @@ impl Harness {
                 },
             )?;
             return Err(HarnessError::Provider(ProviderError::InvalidResponse(
-                "context compactor returned an empty checkpoint",
+                "context compactor returned an empty checkpoint".into(),
             )));
         }
         if self.config.cache.enabled
@@ -3950,9 +5184,42 @@ impl Harness {
                 estimated as u64,
             )?;
         }
-        *usage = add_usage(*usage, compacted.usage);
-        self.store
-            .add_usage(run_id, compacted.usage.input, compacted.usage.output)?;
+        let entry_key = usage_entry_key(
+            run_id,
+            None,
+            0,
+            UsageKindV1::Compaction,
+            compaction_provider,
+            compacted.response_id.as_deref(),
+        );
+        let recorded = self.store.record_usage_entry(&UsageLedgerEntryV1 {
+            schema_version: USAGE_LEDGER_SCHEMA_VERSION,
+            entry_key,
+            run_id: run_id.to_string(),
+            kind: UsageKindV1::Compaction,
+            state: UsageStateV1::Settled,
+            provider: compaction_provider.key().to_owned(),
+            model: compaction_model.clone(),
+            agent_id: None,
+            provider_response_id: compacted.response_id.clone(),
+            usage: compacted.usage,
+            context_tokens: Some(estimated as u64),
+        })?;
+        if recorded {
+            *usage = add_usage(*usage, compacted.usage);
+            self.store.record_runtime_event(
+                run_id,
+                RuntimeEvent::Usage {
+                    agent_id: None,
+                    model: compaction_model.clone(),
+                    input_tokens: compacted.usage.input,
+                    output_tokens: compacted.usage.output,
+                    cached_input_tokens: compacted.usage.cached_input,
+                    cache_write_tokens: compacted.usage.cache_write,
+                    reasoning_output_tokens: compacted.usage.reasoning_output,
+                },
+            )?;
+        }
         if !compacted.rate_limits.is_empty() {
             self.store.record_event(
                 run_id,
@@ -4072,7 +5339,12 @@ impl Harness {
 
     fn system_prompt(&self, goal: &str, role: &str, read_only: bool) -> Result<String, HarnessError> {
         let instructions = discover_instructions(&self.root, &self.root)?;
-        let clarifier = role.contains("issue clarifier") || role.contains("ambiguity consultant");
+        let policy = RolePolicy::for_role(role);
+        // Only the issue clarifier runs on a stripped context. The Terra and Sol
+        // risk consultants were caught by the old substring test and lost the
+        // skills and agents they need to judge risk against how this repository
+        // actually works.
+        let clarifier = policy.kind == RoleKind::IssueClarifier;
         let skills = if clarifier {
             Vec::new()
         } else {
@@ -4095,9 +5367,22 @@ impl Harness {
             }
         };
         let mut prompt = format!(
-            "You are an agent in Minha, a fast token-conscious coding hivemind. Workspace: {}. Use only supplied fixed tools; no MCP. Work from evidence. {question_rule} Never redeem credits. Never push or perform remote writes unless the runtime presents the exact operation and the user explicitly approves it. Keep tool output narrow: search before reading, request line ranges, and avoid repeating evidence already in context. Prefer one `quality` call over separate linter/test calls. Use structured read-only `github` queries before raw `gh`; remote GitHub mutations go through permission-gated `exec`. Use `hive` only for durable coordination, blockers, and content-addressed artifacts; use `books` lazily when a curated technical reference will save inspection or reasoning tokens.\n",
-            self.root.display()
+            "You are {identity}, an agent in Minha, a fast token-conscious coding hivemind. Workspace: {}. Use only supplied fixed tools; no MCP. Work from evidence. {question_rule} Never push, merge, or spend account billing credits without the runtime presenting the exact operation and the user explicitly approving it. Keep tool output narrow: search before reading, request line ranges, and avoid repeating evidence already in context. Prefer one `quality` call over separate linter/test calls. Use structured read-only `github` queries before raw `gh`; remote GitHub mutations go through permission-gated `exec`. Use `hive` only for durable coordination, blockers, and content-addressed artifacts; use `books` lazily when a curated technical reference will save inspection or reasoning tokens.\n",
+            self.root.display(),
+            identity = identity_label(role),
         );
+        if policy.tool_budget > 0 {
+            prompt.push_str(&format!(
+                "\nBudgets for this role: at most {} turns and {} tool calls. `exec` is killed at {} seconds, so prefer a narrower command over a long one.",
+                policy.turn_limit, policy.tool_budget, EXEC_TIMEOUT_HINT_SECONDS
+            ));
+            if read_only {
+                prompt.push_str(
+                    " You are read-only, so `exec` accepts only inspection commands; a mutating command is refused rather than run, and retrying it wastes a tool call.",
+                );
+            }
+            prompt.push('\n');
+        }
         if clarifier && !instructions.is_empty() {
             prompt.push_str("\nRepository instruction files are available for targeted read-only lookup: ");
             prompt.push_str(
@@ -4112,13 +5397,26 @@ impl Harness {
             );
         } else if !instructions.is_empty() {
             prompt.push_str("\nRepository instructions, low to high precedence:\n");
+            // `discover_instructions` returns nearest directories last, so the
+            // last entry has the highest precedence. Claim the shared pool in
+            // reverse, highest precedence first, so a broad root file can no
+            // longer exhaust the budget and truncate the specific, more
+            // authoritative file to nothing. Emission stays low to high so the
+            // authoritative file is still what the model reads last.
             let mut remaining = 48 * 1024usize;
-            for instruction in instructions {
+            let mut rendered = vec![None; instructions.len()];
+            for (index, instruction) in instructions.iter().enumerate().rev() {
                 if remaining == 0 {
                     break;
                 }
                 let content = bound(&instruction.content, remaining.min(24 * 1024));
                 remaining = remaining.saturating_sub(content.len());
+                rendered[index] = Some(content);
+            }
+            for (instruction, content) in instructions.iter().zip(rendered) {
+                let Some(content) = content else {
+                    continue;
+                };
                 prompt.push_str(&format!(
                     "\n<{} path=\"{}\">\n{}\n</{}>\n",
                     instruction.name,
@@ -4169,8 +5467,14 @@ impl Harness {
             }
         ));
         if role.contains("Spark") {
-            prompt.push_str("\nInternal communication compression:\n");
-            prompt.push_str(include_str!("../../../bundled/skills/caveman/SKILL.md"));
+            // Purpose-written for a headless worker. The bundled caveman skill
+            // used to be pasted here verbatim, but it is written for interactive
+            // human invocation ("select with `$caveman lite`", "stop when the
+            // user requests normal mode") and none of that applies to an agent
+            // reporting to another agent.
+            prompt.push_str(
+                "\nInternal communication compression:\nYou report to other agents, not to a person. Keep every fact, path, line number, symbol, and command exactly as observed, and drop narration, hedging, restatement, and pleasantries. Structure each report as claim, then the evidence for it, then the next step.\n",
+            );
         }
         Ok(prompt)
     }
@@ -4301,6 +5605,69 @@ impl Harness {
             .ok_or(HarnessError::LoginRequired)
     }
 
+    /// Refresh an expiring record under a per-profile lock. Concurrent runs
+    /// that both see an expiring token serialize here, and the second caller
+    /// re-reads the record the first one saved instead of racing the same
+    /// refresh token and failing with invalid_grant.
+    async fn refreshed_or_current(
+        &self,
+        profile_name: &str,
+        auth: &AuthRecord,
+    ) -> Result<Option<AuthRecord>, HarnessError> {
+        Self::refreshed_or_current_with(
+            &self.refresh_locks,
+            profile_name,
+            auth,
+            || async {
+                load_account_profile(profile_name)
+                    .await
+                    .map_err(HarnessError::from)
+            },
+            |refresh| async move {
+                CodexOAuthClient::new(openai_oauth_config())
+                    .map_err(HarnessError::from)?
+                    .refresh(&refresh)
+                    .await
+                    .map_err(HarnessError::from)
+            },
+        )
+        .await
+    }
+
+    /// The refresh contract, with the profile store and OAuth client
+    /// injected so regression tests can exercise serialization and the
+    /// re-read of the saved record without touching the real home dir.
+    async fn refreshed_or_current_with<Stored, Refreshed, LoadFn, RefreshFn>(
+        locks: &RefreshLocks,
+        profile_name: &str,
+        auth: &AuthRecord,
+        load_stored: LoadFn,
+        refresh: RefreshFn,
+    ) -> Result<Option<AuthRecord>, HarnessError>
+    where
+        LoadFn: Fn() -> Stored,
+        Stored: Future<Output = Result<Option<AuthRecord>, HarnessError>>,
+        RefreshFn: FnOnce(String) -> Refreshed,
+        Refreshed: Future<Output = Result<AuthRecord, HarnessError>>,
+    {
+        let now = chrono::Utc::now().timestamp();
+        if !auth.expires_at_unix.is_some_and(|expiry| expiry <= now + 120) {
+            return Ok(None);
+        }
+        let Some(refresh_token) = auth.refresh_token.clone() else {
+            return Ok(None);
+        };
+        let lock = locks.lock().entry(profile_name.to_owned()).or_default().clone();
+        let _guard = lock.lock().await;
+        if let Some(current) = load_stored().await?
+            && current.access_token != auth.access_token
+        {
+            return Ok(Some(current));
+        }
+        let refreshed = refresh(refresh_token).await?;
+        Ok(Some(merge_refreshed_auth(auth.clone(), refreshed)))
+    }
+
     async fn clients(&self) -> Result<Vec<RuntimeProviderClient>, HarnessError> {
         #[cfg(test)]
         {
@@ -4320,21 +5687,14 @@ impl Harness {
             clients.push(client);
         }
         for (profile, mut auth) in profiles {
-            let now = chrono::Utc::now().timestamp();
-            if auth.expires_at_unix.is_some_and(|expiry| expiry <= now + 120)
-                && let Some(refresh) = auth.refresh_token.clone()
-            {
-                match CodexOAuthClient::new(openai_oauth_config())?
-                    .refresh(&refresh)
-                    .await
-                {
-                    Ok(refreshed) => {
-                        auth = merge_refreshed_auth(auth, refreshed);
-                        save_account_profile(&profile.name, &profile.label, &auth, false).await?;
-                    }
-                    Err(error) if clients.is_empty() => return Err(error.into()),
-                    Err(_) => continue,
+            match self.refreshed_or_current(&profile.name, &auth).await {
+                Ok(Some(updated)) => {
+                    auth = updated;
+                    save_account_profile(&profile.name, &profile.label, &auth, false).await?;
                 }
+                Ok(None) => {}
+                Err(error) if clients.is_empty() => return Err(error),
+                Err(_) => continue,
             }
             let Some(account) = auth.account_id.clone() else {
                 if clients.is_empty() {
@@ -4356,6 +5716,14 @@ impl Harness {
                 key,
             )));
         }
+        if let Some(path) = provider_credentials_path()
+            && let Some(credential) = load_xiaomi_mimo(&path)?
+        {
+            clients.push(RuntimeProviderClient::XiaomiMiMo(MiMoClient::new(
+                credential.base_url,
+                credential.api_key,
+            )));
+        }
         if clients.is_empty() {
             return Err(HarnessError::LoginRequired);
         }
@@ -4364,14 +5732,8 @@ impl Harness {
 
     async fn legacy_default_client(&self) -> Result<RuntimeProviderClient, HarnessError> {
         let mut auth = load_default_auth().await?.ok_or(HarnessError::LoginRequired)?;
-        let now = chrono::Utc::now().timestamp();
-        if auth.expires_at_unix.is_some_and(|expiry| expiry <= now + 120)
-            && let Some(refresh) = auth.refresh_token.clone()
-        {
-            let refreshed = CodexOAuthClient::new(openai_oauth_config())?
-                .refresh(&refresh)
-                .await?;
-            auth = merge_refreshed_auth(auth, refreshed);
+        if let Some(updated) = self.refreshed_or_current("legacy-default", &auth).await? {
+            auth = updated;
             save_default_auth(&auth).await?;
         }
         let account = auth.account_id.clone().ok_or(HarnessError::MissingAccountId)?;
@@ -4422,17 +5784,43 @@ impl Harness {
         std::mem::take(&mut control.cooperative_pause)
     }
 
-    fn take_exec_approval(&self, run_id: RunId, arguments: &Value) -> bool {
-        let requested = arguments.get("argv").and_then(Value::as_array).map(|values| {
-            values
-                .iter()
-                .filter_map(Value::as_str)
-                .map(str::to_owned)
-                .collect::<Vec<_>>()
-        });
+    /// Reset tasks left `Running` by an interrupted process. Runs through any
+    /// entry point (including `continue_session` and resumptions), not only
+    /// fresh implementations, so a crashed graph cannot strand tasks.
+    fn recover_running_tasks(&self, run_id: RunId) -> Result<(), HarnessError> {
+        let mut recovered = 0;
+        for task in self.store.tasks(run_id)? {
+            if task.state == PlanTaskState::Running {
+                self.store.update_task(
+                    run_id,
+                    &task.task_id,
+                    PlanTaskState::Pending,
+                    None,
+                    task.attempt,
+                    task.generation.saturating_add(1),
+                    Some("recovered after an interrupted process"),
+                )?;
+                recovered += 1;
+            }
+        }
+        if recovered > 0 {
+            self.store.record_runtime_event(
+                run_id,
+                RuntimeEvent::RunPhase {
+                    phase: RunPhase::Recovering,
+                    detail: format!(
+                        "reloaded the persisted task graph; {recovered} running task(s) require explicit rescheduling"
+                    ),
+                },
+            )?;
+        }
+        Ok(())
+    }
+
+    fn take_operation_approval(&self, run_id: RunId, requested: Option<Vec<String>>) -> bool {
         let mut controls = self.controls.lock();
         let control = controls.entry(run_id).or_default();
-        let approved = control.approved_exec_once.take();
+        let approved = control.approved_operation_once.take();
         approved.is_some() && approved == requested
     }
 
@@ -4442,6 +5830,52 @@ impl Harness {
         std::mem::take(&mut control.force_compaction)
     }
 
+    /// Clear transient resume state without granting a resumed run another
+    /// session budget.  Usage is durable in SQLite; the in-memory counter is
+    /// only a fast admission check for the next model call.
+    fn reset_resume_control(&self, run_id: RunId) -> Result<(), HarnessError> {
+        let used = self.store.usage_totals(Some(run_id))?;
+        let mut controls = self.controls.lock();
+        let control = controls.entry(run_id).or_default();
+        control.steering.clear();
+        control.interrupted = false;
+        control.cooperative_pause = false;
+        control.approved_operation_once = None;
+        control.force_compaction = false;
+        // Integration approval is durable only for the current process, so a
+        // generic continuation must never discard it. Callers that resolve
+        // the approval consume it explicitly in `resume_with_answer`.
+        control.budget_tokens = control
+            .budget_tokens
+            .max(used.session_input.saturating_add(used.session_output));
+        Ok(())
+    }
+
+    fn budget_pressure(&self, run_id: RunId) -> Result<BudgetPressure, HarnessError> {
+        let target = self.config.budgets.default.soft_token_target();
+        if target == 0 {
+            return Ok(BudgetPressure::Paused);
+        }
+        let used = self.store.usage_totals(Some(run_id))?;
+        let durable = used.session_input.saturating_add(used.session_output);
+        let controls = self.controls.lock();
+        let reserved = controls
+            .get(&run_id)
+            .map_or(durable, |control| control.budget_tokens.max(durable));
+        let percent = reserved.saturating_mul(100) / target;
+        Ok(if percent >= ADAPTIVE_PAUSE_PERCENT {
+            BudgetPressure::Paused
+        } else if percent >= ADAPTIVE_TAPER_PERCENT {
+            BudgetPressure::Tapered
+        } else {
+            BudgetPressure::Normal
+        })
+    }
+
+    fn session_budget_exhausted(&self, run_id: RunId) -> Result<bool, HarnessError> {
+        Ok(self.budget_pressure(run_id)? == BudgetPressure::Paused)
+    }
+
     fn cache_bypassed(&self, run_id: RunId) -> bool {
         self.controls
             .lock()
@@ -4449,11 +5883,22 @@ impl Harness {
             .is_some_and(|control| control.bypass_cache)
     }
 
-    fn try_reserve_budget(&self, run_id: RunId, tokens: u64) -> bool {
+    fn try_reserve_budget(&self, run_id: RunId, tokens: u64) -> Result<bool, HarnessError> {
+        let used = self.store.usage_totals(Some(run_id))?;
+        let durable = used.session_input.saturating_add(used.session_output);
         let mut controls = self.controls.lock();
         let control = controls.entry(run_id).or_default();
+        control.budget_tokens = control.budget_tokens.max(durable);
+        let target = self.config.budgets.default.soft_token_target();
+        // Do not spend the protected recovery band on a new request. The
+        // final allowance is for deterministic evidence condensation and a
+        // truthful paused state, never an extra speculative agent turn.
+        let admission_limit = target.saturating_mul(ADAPTIVE_PAUSE_PERCENT) / 100;
+        if control.budget_tokens.saturating_add(tokens) > admission_limit {
+            return Ok(false);
+        }
         control.budget_tokens = control.budget_tokens.saturating_add(tokens);
-        true
+        Ok(true)
     }
 
     fn settle_budget(&self, run_id: RunId, reserved: u64, actual: u64) {
@@ -4474,76 +5919,130 @@ impl Harness {
     }
 }
 
-fn initial_agent_state(role: &str) -> AgentState {
-    let role = role.to_ascii_lowercase();
-    if role.contains("planner") {
-        AgentState::Planning
-    } else if role.contains("judge") || role.contains("review") || role.contains("auditor") {
-        AgentState::Verifying
-    } else if role.contains("integrator") || role.contains("synthesizer") {
-        AgentState::Integrating
-    } else {
-        AgentState::Working
+/// What an assignment is, independent of which model runs it.
+///
+/// Role strings are display/persistence text; every capability decision derives
+/// from this enum in one place instead of from `role.contains(..)` checks
+/// scattered across the runtime. Classification still reads the role string
+/// because that is what callers and stored events carry, but it happens exactly
+/// once, so renaming a role cannot silently change a budget or a permission.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum RoleKind {
+    AmbiguityConsultant,
+    IssueClarifier,
+    IntentClassifier,
+    IntentRouter,
+    Manager,
+    Auditor,
+    Judge,
+    Planner,
+    Integrator,
+    Worker,
+    Lead,
+}
+
+/// Typed capability policy for a role.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct RolePolicy {
+    pub kind: RoleKind,
+    pub turn_limit: usize,
+    pub input_budget: u64,
+    pub tool_budget: usize,
+    pub can_ask_user: bool,
+    /// May hold the session-leader assignment. Used when the preferred leader
+    /// model is unavailable and a degraded route has to be chosen.
+    pub leadership_eligible: bool,
+    /// May be trusted with critical or high-risk work.
+    pub critical_work_eligible: bool,
+    pub initial_state: AgentState,
+}
+
+impl RolePolicy {
+    pub fn for_role(role: &str) -> Self {
+        Self::for_kind(RoleKind::classify(role))
     }
+
+    pub fn for_kind(kind: RoleKind) -> Self {
+        // (turn_limit, input_budget, tool_budget, can_ask_user, state)
+        let (turn_limit, input_budget, tool_budget, can_ask_user, initial_state) = match kind {
+            RoleKind::AmbiguityConsultant => (2, 12_000, 0, false, AgentState::Working),
+            RoleKind::IssueClarifier => (4, 16_000, 4, true, AgentState::Working),
+            RoleKind::IntentClassifier => (12, 200_000, 32, false, AgentState::Working),
+            RoleKind::IntentRouter => (3, 24_000, 4, true, AgentState::Working),
+            RoleKind::Manager => (3, 32_000, 0, false, AgentState::Working),
+            RoleKind::Auditor => (5, 80_000, 12, false, AgentState::Verifying),
+            RoleKind::Judge => (6, 80_000, 12, false, AgentState::Verifying),
+            RoleKind::Planner => (8, 160_000, 16, true, AgentState::Planning),
+            RoleKind::Integrator => (12, 200_000, 32, true, AgentState::Integrating),
+            RoleKind::Worker => (10, 160_000, 32, true, AgentState::Working),
+            RoleKind::Lead => (12, 200_000, 32, true, AgentState::Working),
+        };
+        Self {
+            kind,
+            turn_limit,
+            input_budget,
+            tool_budget,
+            can_ask_user,
+            leadership_eligible: matches!(
+                kind,
+                RoleKind::Lead | RoleKind::Planner | RoleKind::Integrator | RoleKind::IssueClarifier
+            ),
+            critical_work_eligible: matches!(
+                kind,
+                RoleKind::Lead | RoleKind::Integrator | RoleKind::Judge | RoleKind::Auditor
+            ),
+            initial_state,
+        }
+    }
+}
+
+impl RoleKind {
+    /// Classify a role string. Order matters: the more specific markers are
+    /// tested first, and stems (`synthes`, `integrat`, `plann`) are used so that
+    /// noun and gerund spellings of the same role classify identically.
+    fn classify(role: &str) -> Self {
+        let role = role.to_ascii_lowercase();
+        let has = |marker: &str| role.contains(marker);
+        if has("ambiguity consultant") {
+            Self::AmbiguityConsultant
+        } else if has("clarifier") {
+            Self::IssueClarifier
+        } else if has("classifier") {
+            Self::IntentClassifier
+        } else if has("synthes") || has("integrat") {
+            Self::Integrator
+        } else if has("router") {
+            Self::IntentRouter
+        } else if has("manager") {
+            Self::Manager
+        } else if has("auditor") {
+            Self::Auditor
+        } else if has("judge") || has("review") {
+            Self::Judge
+        } else if has("plann") {
+            Self::Planner
+        } else if has("worker") {
+            Self::Worker
+        } else {
+            Self::Lead
+        }
+    }
+}
+
+fn initial_agent_state(role: &str) -> AgentState {
+    RolePolicy::for_role(role).initial_state
 }
 
 fn agent_turn_limit(role: &str) -> usize {
-    let role = role.to_ascii_lowercase();
-    if role.contains("ambiguity consultant") {
-        2
-    } else if role.contains("issue clarifier") {
-        4
-    } else if role.contains("router") || role.contains("manager") {
-        3
-    } else if role.contains("auditor") {
-        5
-    } else if role.contains("judge") || role.contains("review") {
-        6
-    } else if role.contains("planner") {
-        8
-    } else if role.contains("worker") {
-        10
-    } else {
-        12
-    }
+    RolePolicy::for_role(role).turn_limit
 }
 
 fn agent_input_budget(role: &str) -> u64 {
-    let role = role.to_ascii_lowercase();
-    if role.contains("ambiguity consultant") {
-        12_000
-    } else if role.contains("issue clarifier") {
-        16_000
-    } else if role.contains("router") {
-        24_000
-    } else if role.contains("manager") {
-        32_000
-    } else if role.contains("auditor") || role.contains("judge") || role.contains("review") {
-        80_000
-    } else if role.contains("worker") || role.contains("planner") {
-        160_000
-    } else {
-        200_000
-    }
+    RolePolicy::for_role(role).input_budget
 }
 
 fn agent_tool_budget(role: &str) -> usize {
-    let role = role.to_ascii_lowercase();
-    if role.contains("ambiguity consultant") {
-        0
-    } else if role.contains("issue clarifier") {
-        4
-    } else if role.contains("manager") {
-        0
-    } else if role.contains("router") {
-        4
-    } else if role.contains("auditor") || role.contains("judge") || role.contains("review") {
-        12
-    } else if role.contains("planner") {
-        16
-    } else {
-        32
-    }
+    RolePolicy::for_role(role).tool_budget
 }
 
 fn paired_recent_items(input: &[Value], keep: usize) -> Vec<Value> {
@@ -4609,6 +6108,17 @@ impl AgentResult {
         }
     }
 
+    fn budget_pause(text: String, usage: TokenUsage) -> Self {
+        Self {
+            text,
+            question: None,
+            usage,
+            paused: true,
+            reserve_reached: false,
+            termination: Some(TerminationReason::BudgetTarget),
+        }
+    }
+
     fn pause_before_next_call(&self) -> bool {
         self.paused || self.reserve_reached
     }
@@ -4630,6 +6140,8 @@ struct BranchTask {
     paths: Vec<String>,
     #[serde(default)]
     dependencies: Vec<String>,
+    #[serde(default, alias = "acceptance_check")]
+    check: String,
 }
 
 #[derive(Default)]
@@ -4724,20 +6236,101 @@ fn prepare_worker_lane(
         let prefix = format!("{id}-g{}-a{attempt}", task.generation);
         let baseline = lane_base.join(format!("{prefix}-base"));
         let path = lane_base.join(format!("{prefix}-lane"));
+        // Stale lanes from a crashed dispatch share the same names because
+        // the task was still Pending with the same generation and attempt.
+        // They are regenerable snapshots, so remove them before copying.
+        if baseline.exists() {
+            std::fs::remove_dir_all(&baseline)?;
+        }
+        if path.exists() {
+            std::fs::remove_dir_all(&path)?;
+        }
         copy_workspace(root, &baseline)?;
         copy_workspace(root, &path)?;
         Ok(WorkerLane::Snapshot { baseline, path })
     }
 }
 
-fn lease_resources(task: &TaskRecord) -> Vec<String> {
-    if task.paths.is_empty() {
-        vec![format!("task:{}", task.task_id)]
+/// Normalize a planner-supplied path for lease keys and overlap checks. Both
+/// consumers must agree on the shape or the disjointness pre-filter and the
+/// lease table can disagree (e.g. `./src/x` vs `src/x`).
+fn normalize_lease_path(path: &str) -> &str {
+    path.trim_start_matches("./").trim_matches('/')
+}
+
+/// Remove a worker lane after its attempt is resolved so lanes, snapshot
+/// pairs, and `minha/*` worktree branches cannot accumulate without bound.
+/// Best effort: cleanup failures are logged by the caller context, never
+/// fatal.
+fn cleanup_worker_lane(
+    run_id: RunId,
+    task: &TaskRecord,
+    lane: WorkerLane,
+    use_git_worktrees: bool,
+    root: &Path,
+) {
+    match lane {
+        WorkerLane::Git { baseline, path } => {
+            if use_git_worktrees {
+                let id = safe_component(&task.task_id);
+                let branch = format!("minha/{}/{id}-g{}", short_id(run_id), task.generation);
+                let repo = GitRepo::new(root);
+                let _ = repo.remove_worktree(&path, true);
+                let _ = repo.delete_branch(&branch);
+            }
+            let _ = std::fs::remove_dir_all(&baseline);
+        }
+        WorkerLane::Snapshot { baseline, path } => {
+            let _ = std::fs::remove_dir_all(&baseline);
+            let _ = std::fs::remove_dir_all(&path);
+        }
+    }
+}
+
+fn lease_resources_for(task_id: &str, paths: &[String]) -> Vec<String> {
+    if paths.is_empty() {
+        vec![format!("task:{task_id}")]
     } else {
-        task.paths
+        paths
             .iter()
-            .map(|path| format!("path:{}", path.trim_start_matches("./").trim_end_matches('/')))
+            .map(|path| format!("path:{}", normalize_lease_path(path)))
             .collect()
+    }
+}
+
+fn lease_resources(task: &TaskRecord) -> Vec<String> {
+    lease_resources_for(&task.task_id, &task.paths)
+}
+
+fn default_acceptance_check(goal: &str) -> String {
+    format!(
+        "Run the smallest relevant verification for `{}` and report the exact command or inspected evidence.",
+        bound(goal, 160)
+    )
+}
+
+fn microtask_contract_for_branch(task: &BranchTask) -> MicrotaskContractV1 {
+    let acceptance_check = if !task.check.trim().is_empty() {
+        task.check.trim().to_owned()
+    } else {
+        default_acceptance_check(&task.objective)
+    };
+    MicrotaskContractV1 {
+        schema_version: MICROTASK_CONTRACT_SCHEMA_VERSION,
+        task_id: task.id.clone(),
+        goal: task.objective.clone(),
+        lease_resources: lease_resources_for(&task.id, &task.paths),
+        acceptance_check,
+    }
+}
+
+fn microtask_contract_for_task(task: &TaskRecord) -> MicrotaskContractV1 {
+    MicrotaskContractV1 {
+        schema_version: MICROTASK_CONTRACT_SCHEMA_VERSION,
+        task_id: task.task_id.clone(),
+        goal: task.objective.clone(),
+        lease_resources: lease_resources(task),
+        acceptance_check: default_acceptance_check(&task.objective),
     }
 }
 
@@ -4757,8 +6350,8 @@ fn disjoint_ready_tasks(tasks: Vec<TaskRecord>, limit: usize) -> Vec<TaskRecord>
 fn tasks_overlap(left: &TaskRecord, right: &TaskRecord) -> bool {
     left.paths.iter().any(|left| {
         right.paths.iter().any(|right| {
-            let left = left.trim_matches('/');
-            let right = right.trim_matches('/');
+            let left = normalize_lease_path(left);
+            let right = normalize_lease_path(right);
             left == right
                 || left
                     .strip_prefix(right)
@@ -4779,6 +6372,8 @@ fn single_task_plan(goal: &str) -> BranchPlan {
             objective: goal.into(),
             paths: Vec::new(),
             dependencies: Vec::new(),
+            check: "Run the smallest relevant verification for this task and report its exact evidence."
+                .into(),
         }],
     }
 }
@@ -5049,75 +6644,183 @@ fn first_available<'a>(available: &HashSet<String>, candidates: &[&'a str]) -> R
         })
 }
 
-fn routed_lead_model<'a>(
-    goal: &str,
-    available: &HashSet<String>,
-    config: &'a Config,
-) -> Result<&'a str, HarnessError> {
-    if complexity_score(goal) >= 5 && available.contains("deepseek/deepseek-v4-pro") {
-        return Ok("deepseek/deepseek-v4-pro");
-    }
-    let preferred = if complexity_score(goal) >= 5 {
-        &config.models.complex_lead
-    } else {
-        &config.models.lead
-    };
-    first_available(
-        available,
-        &[
-            preferred,
-            &config.models.lead,
-            &config.models.complex_lead,
-            &config.models.planner,
-            &config.models.worker_deep,
-            &config.models.worker_fast,
-            "deepseek/deepseek-v4-pro",
-            "deepseek/deepseek-v4-flash",
-        ],
-    )
+/// A chosen leader plus, when the preferred leader could not be used, the reason
+/// the route was degraded. The reason is surfaced to the user rather than the
+/// substitution happening silently.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct LeadRoute<'a> {
+    pub model: &'a str,
+    pub degraded: Option<String>,
 }
 
-fn routed_worker_model<'a>(task: &TaskRecord, available: &HashSet<String>, config: &'a Config) -> &'a str {
+/// Models the user has explicitly placed in a leadership slot, in the order they
+/// should be considered for `complex` and routine work respectively.
+fn leadership_slots(config: &Config, complex: bool) -> Vec<&str> {
+    let mut slots = if complex {
+        vec![
+            config.models.complex_lead.as_str(),
+            config.models.lead.as_str(),
+            config.models.planner.as_str(),
+        ]
+    } else {
+        vec![
+            config.models.lead.as_str(),
+            config.models.complex_lead.as_str(),
+            config.models.planner.as_str(),
+        ]
+    };
+    let mut seen = HashSet::new();
+    slots.retain(|model| seen.insert(*model));
+    slots
+}
+
+/// Every available model that can be addressed unambiguously, in a stable order.
+///
+/// ChatGPT catalog slugs retain their legacy bare spelling and every provider
+/// also has a qualified spelling; external providers are qualified-only.  The
+/// latter prevents an otherwise ambiguous bare vendor slug from being routed
+/// through the ChatGPT account. Sorting gives a deterministic tie-break
+/// between equally eligible candidates instead of depending on hash order.
+fn deterministic_candidates(available: &HashSet<String>) -> Vec<&str> {
+    let mut candidates = available
+        .iter()
+        .map(String::as_str)
+        .filter(|model| model.contains('/'))
+        .collect::<Vec<_>>();
+    candidates.sort_unstable();
+    candidates
+}
+
+/// Select the session leader.
+///
+/// No vendor is preferred: the configured leadership slots are tried in order,
+/// and when none of them is available the choice falls to whatever is left, by a
+/// deterministic tie-break. A leader that is not the preferred one always
+/// carries an explanation of the degraded route.
+fn routed_lead_model<'a>(
+    goal: &str,
+    available: &'a HashSet<String>,
+    config: &'a Config,
+) -> Result<LeadRoute<'a>, HarnessError> {
+    let complex = complexity_score(goal) >= 5;
+    let slots = leadership_slots(config, complex);
+    let preferred = slots.first().copied().unwrap_or(config.models.lead.as_str());
+    if available.contains(preferred) {
+        return Ok(LeadRoute {
+            model: preferred,
+            degraded: None,
+        });
+    }
+    // Degrade only to another explicitly leadership-capable model first.
+    if let Some(model) = slots
+        .iter()
+        .skip(1)
+        .copied()
+        .find(|model| available.contains(*model))
+    {
+        return Ok(LeadRoute {
+            model,
+            degraded: Some(format!(
+                "preferred leader `{preferred}` is unavailable; leading with `{model}`, which is also configured as leadership-capable"
+            )),
+        });
+    }
+    // No configured leader is reachable. Rather than stop, take the first
+    // remaining candidate deterministically and say plainly that no
+    // leadership-capable model was available.
+    let model = deterministic_candidates(available)
+        .first()
+        .copied()
+        .ok_or_else(|| HarnessError::ModelUnavailable(preferred.to_owned()))?;
+    Ok(LeadRoute {
+        model,
+        degraded: Some(format!(
+            "no configured leadership-capable model is available (preferred `{preferred}`); leading with `{model}` as a degraded route"
+        )),
+    })
+}
+
+/// Ordered worker candidates. Difficulty decides the configured slot order;
+/// an unavailable slot is an explicit exclusion, never a hidden vendor bias.
+fn worker_model_candidates<'a>(task: &TaskRecord, config: &'a Config) -> Vec<&'a str> {
     let score = complexity_score(&format!(
         "{}\n{}\n{}",
         task.objective,
         task.paths.join(" "),
         task.dependencies.join(" ")
     ));
-    if (task.attempt > 1 || task.last_error.is_some()) && available.contains("deepseek/deepseek-v4-pro") {
-        return "deepseek/deepseek-v4-pro";
-    }
-    if score < 7 && available.contains("deepseek/deepseek-v4-flash") {
-        return "deepseek/deepseek-v4-flash";
-    }
-    let candidates = if score >= 7 {
-        [
+    let escalate = task.attempt > 1 || task.last_error.is_some();
+    let mut candidates = if escalate || score >= 7 {
+        vec![
             config.models.worker_deep.as_str(),
             config.models.worker_medium.as_str(),
             config.models.worker_fast.as_str(),
         ]
     } else if score >= 4 {
-        [
+        vec![
             config.models.worker_medium.as_str(),
             config.models.worker_fast.as_str(),
             config.models.worker_deep.as_str(),
         ]
     } else {
-        [
+        vec![
             config.models.worker_fast.as_str(),
             config.models.worker_medium.as_str(),
             config.models.worker_deep.as_str(),
         ]
     };
+    let mut seen = HashSet::new();
+    candidates.retain(|model| seen.insert(*model));
     candidates
+}
+
+/// Role-compatible worker pool for equal-weight WDRR. Only live, qualified
+/// catalog models enter it; configured slots are retained when observed, but
+/// never receive ordering preference. Every observed candidate then receives
+/// the same capability and policy filters before fair admission.
+fn fair_worker_models(task: &TaskRecord, available: &HashSet<String>, config: &Config) -> Vec<String> {
+    let observed = deterministic_candidates(available)
         .into_iter()
-        .find(|model| available.contains(*model))
-        .or_else(|| {
-            ["deepseek/deepseek-v4-pro", "deepseek/deepseek-v4-flash"]
-                .into_iter()
-                .find(|model| available.contains(*model))
-        })
-        .unwrap_or(config.models.worker_fast.as_str())
+        .map(canonical_routing_model)
+        .collect::<HashSet<_>>();
+    let mut models = worker_model_candidates(task, config)
+        .into_iter()
+        .map(canonical_routing_model)
+        .filter(|model| observed.contains(model))
+        .collect::<Vec<_>>();
+    models.extend(observed);
+    models.sort();
+    models.dedup();
+    models
+}
+
+fn fair_audit_models(available: &HashSet<String>, config: &Config) -> Vec<String> {
+    let observed = deterministic_candidates(available)
+        .into_iter()
+        .map(canonical_routing_model)
+        .collect::<HashSet<_>>();
+    let mut models = [
+        config.models.worker_fast.as_str(),
+        config.models.worker_medium.as_str(),
+        config.models.worker_deep.as_str(),
+    ]
+    .into_iter()
+    .map(canonical_routing_model)
+    .filter(|model| observed.contains(model))
+    .collect::<Vec<_>>();
+    models.extend(observed);
+    models.sort();
+    models.dedup();
+    models
+}
+
+/// DeepSeek Pro is intentionally outside automatic worker routing.  It may be
+/// presented in a provider catalog, but the receipt must show that a policy
+/// exclusion — not an availability accident — kept it out of the pool.
+fn worker_model_policy_exclusion(model: &str) -> Option<&'static str> {
+    let reference = ModelRef::parse_or_legacy_chatgpt(model);
+    (reference.provider == ProviderId::DeepSeek && reference.slug == "deepseek-v4-pro")
+        .then_some("DeepSeek Pro is excluded from automatic worker routing by policy")
 }
 
 fn complexity_score(text: &str) -> u8 {
@@ -5154,22 +6857,58 @@ fn should_delegate(goal: &str, profile: crate::config::ExecutionProfile) -> bool
     .any(|marker| lower.contains(marker));
     match profile {
         crate::config::ExecutionProfile::Economy => false,
-        crate::config::ExecutionProfile::Balanced => explicit_parallelism || score >= 5,
-        crate::config::ExecutionProfile::Turbo => explicit_parallelism || score >= 2,
+        // The normal profile remains a single focused lane unless the user
+        // asks for parallel work. Turbo is an explicit opt-in to inspect a
+        // complex request for independent speedup, but the planner still has
+        // to prove disjoint work before more than one task is dispatched.
+        crate::config::ExecutionProfile::Balanced => explicit_parallelism,
+        crate::config::ExecutionProfile::Turbo => explicit_parallelism || score >= 5,
     }
 }
 
-fn model_label(model: &str) -> &'static str {
-    if model.contains("spark") {
+/// The agent identity that owns a role.
+///
+/// This keys off the role, not the model slug. Keying off the slug was wrong:
+/// real slugs are vendor strings like `deepseek/deepseek-v4-flash`, which match
+/// no identity, so every such agent was labelled `Codex` and introduced itself
+/// with the wrong identity in its own system prompt. There is no catch-all
+/// family here — a role that names no identity is led by Mina, which is what an
+/// unnamed lead role has always meant.
+fn identity_label(role: &str) -> &'static str {
+    if role.contains("Spark") {
         "Spark"
-    } else if model.contains("terra") {
+    } else if role.contains("Terra") {
         "Terra"
-    } else if model.contains("sol") {
+    } else if role.contains("Sol") {
         "Sol"
-    } else if model.contains("luna") {
-        "Luna"
     } else {
-        "Codex"
+        "Mina"
+    }
+}
+
+/// Identity to use when naming a role that is being created for a model, before
+/// any role string exists.
+///
+/// A model outside the known identity families is named by what it actually is
+/// — its provider or its own slug — rather than being folded into an unrelated
+/// family, so an agent never introduces itself as a model it is not.
+fn model_identity(model: &str) -> String {
+    let reference = ModelRef::parse_or_legacy_chatgpt(model);
+    let slug = reference.slug.to_ascii_lowercase();
+    for (marker, identity) in [
+        ("spark", "Spark"),
+        ("terra", "Terra"),
+        ("sol", "Sol"),
+        ("luna", "Mina"),
+    ] {
+        if slug.contains(marker) {
+            return identity.to_owned();
+        }
+    }
+    match reference.provider {
+        ProviderId::DeepSeek => "DeepSeek".to_owned(),
+        ProviderId::XiaomiMiMo => "MiMo".to_owned(),
+        ProviderId::ChatGptCodex => reference.slug,
     }
 }
 
@@ -5447,17 +7186,7 @@ fn prompt_cache_key(system: &str) -> String {
 }
 
 fn role_can_ask_user(role: &str) -> bool {
-    let role = role.to_ascii_lowercase();
-    [
-        "lead",
-        "planner",
-        "integrator",
-        "synthesizer",
-        "intent router",
-        "worker",
-    ]
-    .iter()
-    .any(|marker| role.contains(marker))
+    RolePolicy::for_role(role).can_ask_user
 }
 
 fn permission_for_call(config: &Config, name: &str, arguments: &Value) -> crate::config::PermissionLevel {
@@ -5547,6 +7276,10 @@ fn safe_component(input: &str) -> String {
     }
 }
 
+fn dispatch_receipt_id(run_id: RunId, task_id: &str, generation: u64, agent_id: EventAgentId) -> String {
+    format!("dispatch:{run_id}:{task_id}:{generation}:{agent_id}")
+}
+
 fn short_id(run_id: RunId) -> String {
     run_id.to_string().chars().take(8).collect()
 }
@@ -5570,6 +7303,21 @@ fn selected_agent_bodies<'a>(goal: &str, agents: &'a [AgentDefinition]) -> Vec<&
         .iter()
         .filter(|agent| lower.contains(&format!("${}", agent.name.to_ascii_lowercase())))
         .collect()
+}
+
+/// Classify free-text answers into action verbs (`minha answer cancel`).
+/// Only answers not bound to a question id count, so a free-text "cancel"
+/// never gets bound to a question; values like "$action=cancel" are handled
+/// by the `$action` branch instead.
+fn free_action_from_answers(answers: &[(String, String)]) -> Option<&'static str> {
+    let action = |verb: &'static str| {
+        answers
+            .iter()
+            .filter(|(id, _)| !id.starts_with('$'))
+            .find(|(_, value)| value.trim().eq_ignore_ascii_case(verb))
+            .map(|_| verb)
+    };
+    action("cancel").or_else(|| action("confirm"))
 }
 
 fn merge_refreshed_auth(old: AuthRecord, mut refreshed: AuthRecord) -> AuthRecord {
@@ -5611,7 +7359,7 @@ mod tests {
         process::Command,
         sync::{
             Arc,
-            atomic::{AtomicBool, Ordering as AtomicOrdering},
+            atomic::{AtomicBool, AtomicUsize, Ordering as AtomicOrdering},
         },
         thread,
         time::Duration,
@@ -5627,6 +7375,12 @@ mod tests {
 
     impl HiveFixtureServer {
         fn start() -> io::Result<Self> {
+            Self::start_with_reserve(None)
+        }
+
+        /// Serve `x-codex-primary-used-percent: <percent>` on worker-labeled
+        /// responses so the account-usage reserve path can be exercised.
+        fn start_with_reserve(reserve_percent: Option<f64>) -> io::Result<Self> {
             let listener = TcpListener::bind(("127.0.0.1", 0))?;
             let address = listener.local_addr()?;
             let stop = Arc::new(AtomicBool::new(false));
@@ -5641,7 +7395,12 @@ mod tests {
                     }
                     let request = read_fixture_request(&mut stream)?;
                     thread_requests.lock().push(request.clone());
-                    write_fixture_response(&mut stream, &fixture_response(&request))?;
+                    let lower = request.to_ascii_lowercase();
+                    // Equal-weight routing may choose any qualified model for
+                    // a worker. Keep the reserve fixture tied to the worker
+                    // role rather than one historical model identity.
+                    let reserve = reserve_percent.filter(|_| lower.contains("_worker_"));
+                    write_fixture_response(&mut stream, &fixture_response(&request), reserve)?;
                 }
                 Ok(())
             });
@@ -5713,15 +7472,22 @@ mod tests {
         Ok(String::from_utf8_lossy(&bytes).into_owned())
     }
 
-    fn write_fixture_response(stream: &mut TcpStream, response: &str) -> io::Result<()> {
+    fn write_fixture_response(
+        stream: &mut TcpStream,
+        response: &str,
+        reserve_percent: Option<f64>,
+    ) -> io::Result<()> {
         let content_type = if response.starts_with('{') {
             "application/json"
         } else {
             "text/event-stream"
         };
+        let reserve = reserve_percent
+            .map(|percent| format!("x-codex-primary-used-percent: {percent}\r\n"))
+            .unwrap_or_default();
         write!(
             stream,
-            "HTTP/1.1 200 OK\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response}",
+            "HTTP/1.1 200 OK\r\nContent-Type: {content_type}\r\n{reserve}Content-Length: {}\r\nConnection: close\r\n\r\n{response}",
             response.len()
         )?;
         stream.flush()
@@ -5740,19 +7506,19 @@ mod tests {
         }
         let lower = request.to_ascii_lowercase();
         let has_tool_output = request.contains("function_call_output");
-        if lower.contains("x-openai-subagent: branch_planner_lead") {
+        if lower.contains("x-openai-subagent: mina,_branch_planning") {
             return fixture_text(
                 r#"<minha-plan>{"summary":"two independent fixes","consult":null,"tasks":[{"id":"slug","objective":"Implement slugify and run its test","paths":["src/slug.rs"],"dependencies":[]},{"id":"stats","objective":"Implement word_counts and run its test","paths":["src/stats.rs"],"dependencies":[]}]}</minha-plan>"#,
             );
         }
-        if lower.contains("x-openai-subagent: spark_worker_slug") {
+        if lower.contains("_worker_slug") {
             return if has_tool_output {
                 fixture_text("slug task complete")
             } else {
                 fixture_tool("slug-patch", "apply_patch", &json!({"patch": slug_patch()}))
             };
         }
-        if lower.contains("x-openai-subagent: spark_worker_stats") {
+        if lower.contains("_worker_stats") {
             return if has_tool_output {
                 fixture_text("stats task complete")
             } else {
@@ -5764,7 +7530,7 @@ mod tests {
                 "<minha-judge>{\"schema_version\":1,\"verdict\":\"verified\",\"summary\":\"Both independent implementations are present.\",\"evidence\":[\"fixture checks passed\"],\"findings\":[]}</minha-judge>",
             );
         }
-        if lower.contains("x-openai-subagent: integrator_lead") {
+        if lower.contains("x-openai-subagent: mina,_integrating") {
             return fixture_text("Integrated the two disjoint worker patches; tests are ready to run.");
         }
         fixture_text("fixture completed")
@@ -5859,7 +7625,8 @@ mod tests {
             account_clients: Arc::new(Mutex::new(vec![client.into()])),
             hot_cache: Arc::new(Mutex::new(HotCache::with_limits(16, HOT_CACHE_MAX_BYTES))),
             model_context_limits: Arc::new(Mutex::new(HashMap::new())),
-            deepseek_balance_percent: Arc::new(Mutex::new(None)),
+            provider_balance_percent: Arc::new(Mutex::new(HashMap::new())),
+            refresh_locks: Arc::new(Mutex::new(HashMap::new())),
         };
 
         let outcome = harness
@@ -5881,6 +7648,24 @@ mod tests {
             tasks.iter().all(|task| task.state == PlanTaskState::Completed),
             "tasks: {tasks:?}; outcome: {outcome:?}"
         );
+        let contracts = harness
+            .store
+            .task_contracts(outcome.run_id)
+            .expect("durable task contracts");
+        assert_eq!(contracts.len(), 2);
+        assert!(contracts.iter().all(|contract| {
+            !contract.lease_resources.is_empty() && !contract.acceptance_check.trim().is_empty()
+        }));
+        let receipts = harness
+            .store
+            .dispatch_receipts(outcome.run_id)
+            .expect("durable dispatch receipts");
+        assert_eq!(receipts.len(), 2);
+        assert!(receipts.iter().all(|receipt| {
+            receipt.candidates.iter().any(|candidate| candidate.eligible)
+                && !receipt.parallelism_reason.trim().is_empty()
+                && !receipt.acceptance_check.trim().is_empty()
+        }));
 
         let status = Command::new("cargo")
             .arg("test")
@@ -5889,10 +7674,919 @@ mod tests {
             .expect("fixture cargo test should start");
         assert!(status.success());
         let labels = server.request_labels();
-        assert!(labels.iter().any(|label| label == "spark_worker_slug"));
-        assert!(labels.iter().any(|label| label == "spark_worker_stats"));
-        assert!(labels.iter().any(|label| label == "integrator_lead"));
+        assert!(labels.iter().any(|label| label.ends_with("_worker_slug")));
+        assert!(labels.iter().any(|label| label.ends_with("_worker_stats")));
+        assert!(labels.iter().any(|label| label == "mina,_integrating"));
         assert!(labels.iter().any(|label| label == "spark_completion_judge"));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn implementation_hive_pauses_for_integration_approval_when_configured() {
+        let temp = fixture_repo();
+        let root = temp.path();
+        let server = HiveFixtureServer::start().expect("local provider fixture");
+        let store = Store::open(root.join(".minha/test.sqlite3")).expect("fixture store");
+        let workspace = store.ensure_workspace(root).expect("fixture workspace");
+        let mut config = Config::default();
+        config.books.enabled = false;
+        config.cache.enabled = false;
+        config.scheduler.integration_approval = true;
+        let client = ChatGptClient::new(&server.base_url, "fixture-token", "fixture-account");
+        let harness = Harness {
+            root: root.canonicalize().expect("canonical fixture root"),
+            workspace_id: workspace.id,
+            config,
+            store,
+            controls: Arc::new(Mutex::new(HashMap::new())),
+            account_clients: Arc::new(Mutex::new(vec![client.into()])),
+            hot_cache: Arc::new(Mutex::new(HotCache::with_limits(16, HOT_CACHE_MAX_BYTES))),
+            model_context_limits: Arc::new(Mutex::new(HashMap::new())),
+            provider_balance_percent: Arc::new(Mutex::new(HashMap::new())),
+            refresh_locks: Arc::new(Mutex::new(HashMap::new())),
+        };
+
+        let outcome = harness
+            .run(
+                RunKind::Implement,
+                "Implement slugify and word_counts as two independent tasks, then verify both.",
+            )
+            .await
+            .expect("fixture implementation run");
+
+        assert_eq!(outcome.state, ExitState::ApprovalRequired, "outcome: {outcome:?}");
+        let question = outcome
+            .question
+            .as_ref()
+            .expect("integration approval gate must ask a question")
+            .question
+            .clone();
+        assert!(
+            question.contains("src/slug.rs"),
+            "approval request missing the slug task's path: {question}"
+        );
+        assert!(
+            question.contains("src/stats.rs"),
+            "approval request missing the stats task's path: {question}"
+        );
+        assert_eq!(outcome.worktrees.len(), 2, "outcome: {outcome:?}");
+
+        // The integrator (and therefore the judge downstream of it) must
+        // never have been invoked while paused for approval.
+        let labels = server.request_labels();
+        assert!(labels.iter().any(|label| label.ends_with("_worker_slug")));
+        assert!(labels.iter().any(|label| label.ends_with("_worker_stats")));
+        assert!(!labels.iter().any(|label| label == "mina,_integrating"));
+        assert!(!labels.iter().any(|label| label == "spark_completion_judge"));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn implementation_hive_declining_integration_skips_integrator_and_preserves_recovery_patches() {
+        let temp = fixture_repo();
+        let root = temp.path();
+        let server = HiveFixtureServer::start().expect("local provider fixture");
+        let store = Store::open(root.join(".minha/test.sqlite3")).expect("fixture store");
+        let workspace = store.ensure_workspace(root).expect("fixture workspace");
+        let mut config = Config::default();
+        config.books.enabled = false;
+        config.cache.enabled = false;
+        config.scheduler.integration_approval = true;
+        let client = ChatGptClient::new(&server.base_url, "fixture-token", "fixture-account");
+        let harness = Harness {
+            root: root.canonicalize().expect("canonical fixture root"),
+            workspace_id: workspace.id,
+            config,
+            store,
+            controls: Arc::new(Mutex::new(HashMap::new())),
+            account_clients: Arc::new(Mutex::new(vec![client.into()])),
+            hot_cache: Arc::new(Mutex::new(HotCache::with_limits(16, HOT_CACHE_MAX_BYTES))),
+            model_context_limits: Arc::new(Mutex::new(HashMap::new())),
+            provider_balance_percent: Arc::new(Mutex::new(HashMap::new())),
+            refresh_locks: Arc::new(Mutex::new(HashMap::new())),
+        };
+
+        let paused = harness
+            .run(
+                RunKind::Implement,
+                "Implement slugify and word_counts as two independent tasks, then verify both.",
+            )
+            .await
+            .expect("fixture implementation run");
+        assert_eq!(paused.state, ExitState::ApprovalRequired, "outcome: {paused:?}");
+        // Both branch tasks got a lane during dispatch. Worker lanes are
+        // cleaned up as soon as each task's patch is captured (win or
+        // lose), so by the time this gate is reached the lane directories
+        // themselves are already gone; the historical count/paths remain
+        // useful as a record of what ran.
+        assert_eq!(paused.worktrees.len(), 2, "outcome: {paused:?}");
+
+        let declined = harness
+            .resume_with_answer(paused.run_id, "decline")
+            .await
+            .expect("declining integration approval");
+
+        assert_eq!(declined.state, ExitState::Inconclusive, "outcome: {declined:?}");
+        assert_eq!(declined.worktrees, paused.worktrees, "outcome: {declined:?}");
+
+        // Declining must leave the branch work unintegrated: each task's
+        // patch was already applied directly to the primary checkout as an
+        // uncommitted change, and its recovery patch file is preserved on
+        // disk so the change can be reviewed or reverted independent of
+        // Mina ever running the integrator.
+        let recovery_dir = root.join(".minha/recovery").join(paused.run_id.to_string());
+        let patch_files = std::fs::read_dir(&recovery_dir)
+            .expect("recovery directory should exist")
+            .filter_map(Result::ok)
+            .filter(|entry| {
+                entry
+                    .path()
+                    .extension()
+                    .is_some_and(|extension| extension == "patch")
+            })
+            .count();
+        assert!(
+            patch_files >= 2,
+            "expected a recovery patch per branch task, found {patch_files} in {recovery_dir:?}"
+        );
+        assert!(
+            declined.text.contains("Recovery patches:") || declined.text.contains("recovery patches"),
+            "decline report should point at the recovery patches: {}",
+            declined.text
+        );
+        let status = Command::new("git")
+            .args(["status", "--porcelain"])
+            .current_dir(root)
+            .output()
+            .expect("git status should run");
+        assert!(
+            !String::from_utf8_lossy(&status.stdout).trim().is_empty(),
+            "primary checkout should still hold the uncommitted worker changes after decline"
+        );
+
+        // Integration and judging must never have run.
+        let labels = server.request_labels();
+        assert!(!labels.iter().any(|label| label == "mina,_integrating"));
+        assert!(!labels.iter().any(|label| label == "spark_completion_judge"));
+    }
+
+    /// Minimal git repository with the two-task fixture source tree. The
+    /// returned temp dir stays alive for the duration of the test.
+    fn fixture_repo() -> tempfile::TempDir {
+        let temp = tempfile::tempdir().expect("temporary fixture repository");
+        let root = temp.path();
+        std::fs::create_dir_all(root.join("src")).expect("fixture source directory");
+        std::fs::write(
+            root.join("Cargo.toml"),
+            "[package]\nname = \"hive-fixture\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
+        )
+        .expect("fixture manifest");
+        std::fs::write(root.join(".gitignore"), ".minha/\ntarget/\n").expect("fixture ignore file");
+        std::fs::write(
+            root.join("AGENTS.md"),
+            "Keep slug and stats work independent. Add no dependencies. Run cargo test.\n",
+        )
+        .expect("fixture instructions");
+        std::fs::write(root.join("src/lib.rs"), "pub mod slug;\npub mod stats;\n").expect("fixture library");
+        std::fs::write(
+            root.join("src/slug.rs"),
+            "/// Convert a title to a compact ASCII slug.\npub fn slugify(_input: &str) -> String {\n    String::new()\n}\n\n#[cfg(test)]\nmod tests {\n    use super::slugify;\n    #[test]\n    fn behavior() {\n        assert_eq!(slugify(\"  Fast, small & SAFE  \"), \"fast-small-safe\");\n        assert_eq!(slugify(\"already--slugged\"), \"already-slugged\");\n    }\n}\n",
+        )
+        .expect("fixture slug source");
+        std::fs::write(
+            root.join("src/stats.rs"),
+            "use std::collections::BTreeMap;\n\n/// Count normalized non-empty words in deterministic key order.\npub fn word_counts(_input: &str) -> BTreeMap<String, usize> {\n    BTreeMap::new()\n}\n\n#[cfg(test)]\nmod tests {\n    use super::word_counts;\n    #[test]\n    fn behavior() {\n        let counts = word_counts(\"Rust, rust! Fast; safe.\");\n        assert_eq!(counts.get(\"rust\"), Some(&2));\n        assert_eq!(counts.get(\"fast\"), Some(&1));\n        assert_eq!(counts.get(\"safe\"), Some(&1));\n        assert_eq!(counts.len(), 3);\n    }\n}\n",
+        )
+        .expect("fixture stats source");
+        fixture_git(root, &["init", "--quiet"]);
+        fixture_git(root, &["config", "user.name", "Minha Test"]);
+        fixture_git(root, &["config", "user.email", "minha-test@invalid.example"]);
+        fixture_git(root, &["config", "core.autocrlf", "false"]);
+        fixture_git(root, &["add", "."]);
+        fixture_git(root, &["commit", "--quiet", "-m", "fixture baseline"]);
+        temp
+    }
+
+    fn fixture_harness(root: &Path, clients: Vec<RuntimeProviderClient>) -> Harness {
+        let store = Store::open(root.join(".minha/test.sqlite3")).expect("fixture store");
+        let workspace = store.ensure_workspace(root).expect("fixture workspace");
+        let mut config = Config::default();
+        config.books.enabled = false;
+        config.cache.enabled = false;
+        Harness {
+            root: root.canonicalize().expect("canonical fixture root"),
+            workspace_id: workspace.id,
+            config,
+            store,
+            controls: Arc::new(Mutex::new(HashMap::new())),
+            account_clients: Arc::new(Mutex::new(clients)),
+            hot_cache: Arc::new(Mutex::new(HotCache::with_limits(16, HOT_CACHE_MAX_BYTES))),
+            model_context_limits: Arc::new(Mutex::new(HashMap::new())),
+            provider_balance_percent: Arc::new(Mutex::new(HashMap::new())),
+            refresh_locks: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    fn fixture_task(
+        run_id: RunId,
+        task_id: &str,
+        state: PlanTaskState,
+        attempt: u32,
+        generation: u64,
+    ) -> TaskRecord {
+        let now = chrono::Utc::now();
+        TaskRecord {
+            run_id,
+            task_id: task_id.into(),
+            objective: format!("implement {task_id}"),
+            paths: Vec::new(),
+            dependencies: Vec::new(),
+            state,
+            assigned_agent_id: None,
+            attempt,
+            max_attempts: 2,
+            generation,
+            last_error: None,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn reserve_pause_resets_attempt_and_survives_resume() {
+        let temp = fixture_repo();
+        let root = temp.path().to_path_buf();
+        let reserve_server = HiveFixtureServer::start_with_reserve(Some(95.0)).expect("reserve fixture");
+        let harness = fixture_harness(
+            &root,
+            vec![ChatGptClient::new(&reserve_server.base_url, "fixture-token", "fixture-account").into()],
+        );
+
+        let outcome = harness
+            .run(
+                RunKind::Implement,
+                "Implement slugify and word_counts as two independent tasks, then verify both.",
+            )
+            .await
+            .expect("fixture implementation run");
+        assert_eq!(outcome.state, ExitState::UsagePaused, "outcome: {outcome:?}");
+        let paused = harness.store.tasks(outcome.run_id).expect("fixture tasks");
+        assert_eq!(paused.len(), 2);
+        for task in &paused {
+            assert_eq!(
+                task.state,
+                PlanTaskState::Pending,
+                "a reserve pause must not fail the task: {task:?}"
+            );
+            assert_eq!(
+                task.attempt, 0,
+                "a reserve pause must not consume retry budget: {task:?}"
+            );
+            assert_eq!(task.generation, 1, "task: {task:?}");
+        }
+
+        let healthy_server = HiveFixtureServer::start().expect("healthy fixture");
+        *harness.account_clients.lock() =
+            vec![ChatGptClient::new(&healthy_server.base_url, "fixture-token", "fixture-account").into()];
+        let resumed = harness.resume_paused(outcome.run_id).await.expect("resumed run");
+        assert_eq!(resumed.state, ExitState::Succeeded, "resumed: {resumed:?}");
+        let tasks = harness.store.tasks(outcome.run_id).expect("fixture tasks");
+        assert!(
+            tasks.iter().all(|task| task.state == PlanTaskState::Completed),
+            "tasks: {tasks:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn per_slot_client_selection_survives_agent_dispatch() {
+        let temp = fixture_repo();
+        let root = temp.path().to_path_buf();
+        let first = HiveFixtureServer::start().expect("first fixture");
+        let second = HiveFixtureServer::start().expect("second fixture");
+        let harness = fixture_harness(
+            &root,
+            vec![
+                ChatGptClient::new(&first.base_url, "fixture-token", "fixture-account-1").into(),
+                ChatGptClient::new(&second.base_url, "fixture-token", "fixture-account-2").into(),
+            ],
+        );
+
+        let outcome = harness
+            .run(
+                RunKind::Implement,
+                "Implement slugify and word_counts as two independent tasks, then verify both.",
+            )
+            .await
+            .expect("fixture implementation run");
+        assert_eq!(outcome.state, ExitState::Succeeded, "outcome: {outcome:?}");
+        let labels = second.request_labels();
+        assert!(
+            labels.iter().any(|label| label.starts_with("spark_worker_")),
+            "the second account must receive its per-slot worker; second server saw: {labels:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn resume_with_answer_resumes_every_blocked_task() {
+        let temp = tempfile::tempdir().expect("temporary fixture directory");
+        let harness = fixture_harness(
+            temp.path(),
+            vec![ChatGptClient::new("http://127.0.0.1:1", "fixture-token", "fixture-account").into()],
+        );
+        let run = harness
+            .store
+            .create_run("goal", Mode::Batch)
+            .expect("fixture run");
+        harness
+            .store
+            .update_run_state(run.id, ExitState::NeedsInput, None, Some("what next?"), None)
+            .expect("fixture state");
+        harness
+            .store
+            .replace_tasks(
+                run.id,
+                &[
+                    fixture_task(run.id, "t1", PlanTaskState::Blocked, 1, 1),
+                    fixture_task(run.id, "t2", PlanTaskState::Blocked, 1, 1),
+                ],
+            )
+            .expect("fixture tasks");
+
+        harness
+            .resume_with_answer(run.id, "keep going")
+            .await
+            .expect_err("dispatch must fail with an unreachable provider after resuming tasks");
+        let tasks = harness.store.tasks(run.id).expect("fixture tasks");
+        assert_eq!(tasks.len(), 2);
+        for task in &tasks {
+            assert_eq!(
+                task.state,
+                PlanTaskState::Pending,
+                "every blocked task must be resumed, not just the first: {task:?}"
+            );
+            assert_eq!(task.generation, 2, "task: {task:?}");
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn free_text_cancel_aborts_collecting_without_binding_to_a_question() {
+        let temp = tempfile::tempdir().expect("temporary fixture directory");
+        let harness = fixture_harness(
+            temp.path(),
+            vec![ChatGptClient::new("http://127.0.0.1:1", "fixture-token", "fixture-account").into()],
+        );
+        let run = harness
+            .store
+            .create_run("goal", Mode::Batch)
+            .expect("fixture run");
+        let mut clarification = crate::clarify::analyze(&run.goal, "auto");
+        clarification.pending_batch = Some(crate::clarify::make_fallback_batch(&clarification));
+        harness
+            .store
+            .save_issue_clarification(run.id, &clarification)
+            .expect("fixture clarification");
+        harness
+            .store
+            .update_run_state(run.id, ExitState::NeedsInput, None, Some("what next?"), None)
+            .expect("fixture state");
+
+        let outcome = harness
+            .resume_with_clarification_answers(run.id, &[("".into(), "cancel".into())])
+            .await
+            .expect("free-text cancel must not require a provider round");
+        assert_eq!(outcome.state, ExitState::Cancelled);
+        assert_eq!(
+            harness
+                .store
+                .run(run.id)
+                .expect("fixture run")
+                .expect("fixture run")
+                .state,
+            ExitState::Cancelled
+        );
+        let saved = harness
+            .store
+            .issue_clarification(run.id)
+            .expect("fixture clarification")
+            .expect("clarification must persist");
+        assert_eq!(saved.status, ClarificationStatus::Cancelled);
+        assert!(
+            saved.meter.dimensions.iter().all(|dimension| {
+                !matches!(
+                    dimension.status,
+                    crate::protocol::DimensionStatus::Confirmed
+                        | crate::protocol::DimensionStatus::Delegated
+                        | crate::protocol::DimensionStatus::NotApplicable
+                )
+            }),
+            "the free-text cancel must never move the meter: {saved:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn continue_session_recovers_running_tasks() {
+        let temp = tempfile::tempdir().expect("temporary fixture directory");
+        let harness = fixture_harness(
+            temp.path(),
+            vec![ChatGptClient::new("http://127.0.0.1:1", "fixture-token", "fixture-account").into()],
+        );
+        let run = harness
+            .store
+            .create_run("goal", Mode::Batch)
+            .expect("fixture run");
+        harness
+            .store
+            .update_run_state(run.id, ExitState::Running, None, None, None)
+            .expect("fixture state");
+        harness
+            .store
+            .replace_tasks(
+                run.id,
+                &[fixture_task(run.id, "t1", PlanTaskState::Running, 1, 0)],
+            )
+            .expect("fixture tasks");
+
+        harness
+            .continue_session(run.id, "keep going")
+            .await
+            .expect_err("dispatch must fail with an unreachable provider after recovery");
+        let task = harness
+            .store
+            .tasks(run.id)
+            .expect("fixture tasks")
+            .into_iter()
+            .find(|task| task.task_id == "t1")
+            .expect("fixture task");
+        assert_eq!(task.state, PlanTaskState::Pending, "task: {task:?}");
+        assert_eq!(task.generation, 1, "task: {task:?}");
+        assert_eq!(
+            task.last_error.as_deref(),
+            Some("recovered after an interrupted process")
+        );
+    }
+
+    #[test]
+    fn try_reserve_budget_preserves_the_recovery_band() {
+        let temp = tempfile::tempdir().expect("temporary fixture directory");
+        let mut harness = fixture_harness(temp.path(), Vec::new());
+        harness.config.budgets.default = crate::config::ExecutionProfile::Economy;
+        let run_id = RunId::new();
+        assert!(harness.try_reserve_budget(run_id, 10_000).expect("reservation"));
+        assert!(harness.try_reserve_budget(run_id, 13_000).expect("reservation"));
+        assert!(
+            harness
+                .try_reserve_budget(run_id, 750)
+                .expect("reservation at the 95% boundary")
+        );
+        assert!(
+            !harness.try_reserve_budget(run_id, 1).expect("reservation"),
+            "the final five percent must stay available for recovery"
+        );
+        let fresh_run = RunId::new();
+        assert!(
+            harness
+                .try_reserve_budget(fresh_run, 23_750)
+                .expect("reservation")
+        );
+        assert!(!harness.try_reserve_budget(fresh_run, 1).expect("reservation"));
+    }
+
+    #[test]
+    fn static_or_cached_catalogs_do_not_clear_provider_remediation_state() {
+        let temp = tempfile::tempdir().expect("temporary fixture directory");
+        let harness = fixture_harness(temp.path(), Vec::new());
+        harness
+            .store
+            .record_provider_remediation_needed(
+                &harness.workspace_id,
+                ProviderId::DeepSeek.key(),
+                ProviderHealthStatusV1::AuthenticationRequired,
+                "fixture authentication failure",
+            )
+            .expect("provider remediation state");
+        let static_state = harness
+            .record_provider_catalog_observation(ProviderId::DeepSeek, CatalogProvenance::StaticFallback)
+            .expect("static catalog observation");
+        assert_eq!(
+            static_state.status,
+            ProviderHealthStatusV1::AuthenticationRequired
+        );
+        let cached_state = harness
+            .record_provider_catalog_observation(ProviderId::DeepSeek, CatalogProvenance::Cached)
+            .expect("cached catalog observation");
+        assert_eq!(
+            cached_state.status,
+            ProviderHealthStatusV1::AuthenticationRequired
+        );
+        let live_state = harness
+            .record_provider_catalog_observation(ProviderId::DeepSeek, CatalogProvenance::Live)
+            .expect("live catalog observation");
+        assert_eq!(live_state.status, ProviderHealthStatusV1::Healthy);
+    }
+
+    #[test]
+    fn local_agent_usage_keys_are_stable_without_provider_response_ids() {
+        let run_id = RunId::new();
+        let agent_id = EventAgentId::new();
+        let first = usage_entry_key(
+            run_id,
+            Some(agent_id),
+            2,
+            UsageKindV1::ModelTurn,
+            ProviderId::DeepSeek,
+            None,
+        );
+        assert_eq!(
+            first,
+            usage_entry_key(
+                run_id,
+                Some(agent_id),
+                2,
+                UsageKindV1::ModelTurn,
+                ProviderId::DeepSeek,
+                None,
+            )
+        );
+        assert_ne!(
+            first,
+            usage_entry_key(
+                run_id,
+                Some(agent_id),
+                3,
+                UsageKindV1::ModelTurn,
+                ProviderId::DeepSeek,
+                None,
+            )
+        );
+        assert_ne!(
+            usage_entry_key(
+                run_id,
+                None,
+                0,
+                UsageKindV1::Compaction,
+                ProviderId::DeepSeek,
+                None,
+            ),
+            usage_entry_key(
+                run_id,
+                None,
+                0,
+                UsageKindV1::Compaction,
+                ProviderId::DeepSeek,
+                None,
+            ),
+            "separate legitimate compaction attempts have no stable turn identity"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn denied_budget_admission_does_not_create_a_ghost_agent() {
+        let temp = tempfile::tempdir().expect("temporary fixture directory");
+        let mut harness = fixture_harness(temp.path(), Vec::new());
+        harness.config.budgets.default = crate::config::ExecutionProfile::Economy;
+        let run = harness
+            .store
+            .create_run("budget boundary", Mode::Batch)
+            .expect("run");
+        assert!(
+            harness
+                .try_reserve_budget(run.id, 23_750)
+                .expect("reserve recovery boundary")
+        );
+        let client = RuntimeProviderClient::ChatGpt(ChatGptClient::new(
+            "http://127.0.0.1:9",
+            "fixture-token",
+            "fixture-account",
+        ));
+        let result = harness
+            .run_agent_as(
+                run.id,
+                &client,
+                "gpt-5.6-luna",
+                "test system",
+                "test prompt",
+                ToolExecutor::new(temp.path(), false).expect("executor"),
+                "Mina, direct task",
+                EventAgentId::new(),
+            )
+            .await
+            .expect("budget pause result");
+        assert!(result.paused);
+        assert_eq!(result.termination, Some(TerminationReason::BudgetTarget));
+        assert!(harness.store.agents(run.id).expect("agent records").is_empty());
+        assert!(
+            !harness
+                .store
+                .events(run.id)
+                .expect("events")
+                .iter()
+                .any(|event| matches!(event.event, RuntimeEvent::AgentStarted { .. }))
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn sanitized_95_percent_continuation_cannot_reset_budget_or_duplicate_the_lead() {
+        let temp = tempfile::tempdir().expect("temporary fixture directory");
+        let mut harness = fixture_harness(temp.path(), Vec::new());
+        harness.config.budgets.default = crate::config::ExecutionProfile::Economy;
+        let run = harness
+            .store
+            .create_run("durable budget boundary", Mode::Batch)
+            .expect("run");
+        assert!(
+            harness
+                .try_reserve_budget(run.id, 23_750)
+                .expect("reserve exactly the protected boundary")
+        );
+        assert!(harness.session_budget_exhausted(run.id).expect("budget pressure"));
+
+        // This mirrors a sanitized continuation: one-shot controls clear, but
+        // the in-memory reservation must remain at least as large as the
+        // durable session use. A continuation must not buy a fresh lead turn.
+        harness.reset_resume_control(run.id).expect("resume reset");
+        assert!(
+            harness
+                .session_budget_exhausted(run.id)
+                .expect("budget remains paused")
+        );
+        assert!(
+            !harness
+                .try_reserve_budget(run.id, 1)
+                .expect("no room beyond the protected boundary")
+        );
+
+        let client = RuntimeProviderClient::ChatGpt(ChatGptClient::new(
+            "http://127.0.0.1:9",
+            "fixture-token",
+            "fixture-account",
+        ));
+        for _ in 0..2 {
+            let result = harness
+                .run_agent_as(
+                    run.id,
+                    &client,
+                    "gpt-5.6-luna",
+                    "test system",
+                    "test prompt",
+                    ToolExecutor::new(temp.path(), false).expect("executor"),
+                    "Mina, session lead",
+                    EventAgentId::new(),
+                )
+                .await
+                .expect("budget pause result");
+            assert!(result.paused);
+            assert_eq!(result.termination, Some(TerminationReason::BudgetTarget));
+        }
+        assert!(harness.store.agents(run.id).expect("agent records").is_empty());
+        assert!(
+            !harness
+                .store
+                .events(run.id)
+                .expect("events")
+                .iter()
+                .any(|event| matches!(event.event, RuntimeEvent::AgentStarted { .. }))
+        );
+    }
+
+    #[test]
+    fn stale_worker_lanes_are_removed_before_recopy() {
+        let temp = tempfile::tempdir().expect("temporary fixture directory");
+        let root = temp.path();
+        std::fs::write(root.join("file.txt"), "fresh").expect("workspace file");
+        let lane_dir = tempfile::tempdir().expect("lane directory outside the workspace");
+        let lane_base = lane_dir.path().to_path_buf();
+        let run_id = RunId::new();
+        let task = fixture_task(run_id, "t1", PlanTaskState::Pending, 0, 0);
+        let stale_base = lane_base.join("t1-g0-a0-base");
+        let stale_lane = lane_base.join("t1-g0-a0-lane");
+        std::fs::create_dir_all(&stale_base).expect("stale baseline");
+        std::fs::create_dir_all(&stale_lane).expect("stale lane");
+        std::fs::write(stale_base.join("file.txt"), "stale").expect("stale baseline file");
+        std::fs::write(stale_lane.join("file.txt"), "stale").expect("stale lane file");
+
+        let lane = prepare_worker_lane(root, &lane_base, run_id, &task, 0, false)
+            .expect("lane preparation must recover from stale crash leftovers");
+        let (baseline, path) = match lane {
+            WorkerLane::Snapshot { baseline, path } => (baseline, path),
+            WorkerLane::Git { .. } => panic!("snapshot lane expected"),
+        };
+        assert_eq!(
+            std::fs::read_to_string(baseline.join("file.txt")).expect("fresh baseline"),
+            "fresh"
+        );
+        assert_eq!(
+            std::fs::read_to_string(path.join("file.txt")).expect("fresh lane"),
+            "fresh"
+        );
+    }
+
+    #[test]
+    fn worker_lane_cleanup_removes_snapshots_worktrees_and_branches() {
+        let temp = tempfile::tempdir().expect("temporary fixture directory");
+        let root = temp.path();
+        let run_id = RunId::new();
+        let task = fixture_task(run_id, "t1", PlanTaskState::Pending, 1, 0);
+
+        let snapshot_base = root.join("s-base");
+        let snapshot_lane = root.join("s-lane");
+        std::fs::create_dir_all(&snapshot_base).expect("baseline");
+        std::fs::create_dir_all(&snapshot_lane).expect("lane");
+        cleanup_worker_lane(
+            run_id,
+            &task,
+            WorkerLane::Snapshot {
+                baseline: snapshot_base.clone(),
+                path: snapshot_lane.clone(),
+            },
+            false,
+            root,
+        );
+        assert!(!snapshot_base.exists(), "snapshot baseline must be removed");
+        assert!(!snapshot_lane.exists(), "snapshot lane must be removed");
+
+        fixture_git(root, &["init", "--quiet"]);
+        fixture_git(root, &["config", "user.name", "Minha Test"]);
+        fixture_git(root, &["config", "user.email", "minha-test@invalid.example"]);
+        std::fs::write(root.join("file.txt"), "content").expect("file");
+        fixture_git(root, &["add", "."]);
+        fixture_git(root, &["commit", "--quiet", "-m", "baseline"]);
+        let worktree = root.join("wt");
+        let branch = format!("minha/{}/t1-g0", short_id(run_id));
+        GitRepo::new(root)
+            .add_worktree(&worktree, &branch, Some("HEAD"))
+            .expect("worktree add");
+        let baseline = root.join("wt-base");
+        std::fs::create_dir_all(&baseline).expect("baseline");
+        cleanup_worker_lane(
+            run_id,
+            &task,
+            WorkerLane::Git {
+                baseline,
+                path: worktree.clone(),
+            },
+            true,
+            root,
+        );
+        assert!(!worktree.exists(), "worktree directory must be removed");
+        let branches = Command::new("git")
+            .args(["branch", "--list", &branch])
+            .current_dir(root)
+            .output()
+            .expect("branch list");
+        assert!(
+            String::from_utf8_lossy(&branches.stdout).trim().is_empty(),
+            "minha/* branch must be deleted after cleanup"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn profile_refresh_reuses_the_record_the_first_caller_saved() {
+        let locks: Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>> =
+            Arc::new(Mutex::new(HashMap::new()));
+        let store = Arc::new(Mutex::new(HashMap::new()));
+        let refresh_count = Arc::new(AtomicUsize::new(0));
+        let old = AuthRecord {
+            access_token: "old-token".into(),
+            refresh_token: Some("refresh-token".into()),
+            id_token: None,
+            account_id: None,
+            email: None,
+            expires_at_unix: Some(chrono::Utc::now().timestamp() + 30),
+        };
+        let load = |store: Arc<Mutex<HashMap<String, AuthRecord>>>| {
+            move || {
+                let store = Arc::clone(&store);
+                async move { Ok::<_, HarnessError>(store.lock().get("work").cloned()) }
+            }
+        };
+        let refresh = |refresh_count: Arc<AtomicUsize>| {
+            move |refresh: String| {
+                assert_eq!(refresh, "refresh-token");
+                let refresh_count = Arc::clone(&refresh_count);
+                async move {
+                    refresh_count.fetch_add(1, AtomicOrdering::SeqCst);
+                    Ok::<_, HarnessError>(AuthRecord {
+                        access_token: "fresh-token".into(),
+                        refresh_token: Some("fresh-refresh".into()),
+                        id_token: None,
+                        account_id: None,
+                        email: None,
+                        expires_at_unix: Some(chrono::Utc::now().timestamp() + 3600),
+                    })
+                }
+            }
+        };
+
+        let first = Harness::refreshed_or_current_with(
+            &locks,
+            "work",
+            &old,
+            load(Arc::clone(&store)),
+            refresh(Arc::clone(&refresh_count)),
+        )
+        .await
+        .expect("test operation should succeed")
+        .expect("an expiring record must be refreshed");
+        assert_eq!(first.access_token, "fresh-token");
+        store.lock().insert("work".into(), first.clone());
+        assert_eq!(refresh_count.load(AtomicOrdering::SeqCst), 1);
+
+        let second = Harness::refreshed_or_current_with(
+            &locks,
+            "work",
+            &old,
+            load(Arc::clone(&store)),
+            |_| async move { unreachable!("the saved record must be reused, not refreshed") },
+        )
+        .await
+        .expect("test operation should succeed")
+        .expect("a stored record must be returned");
+        assert_eq!(second.access_token, "fresh-token");
+        assert_eq!(
+            refresh_count.load(AtomicOrdering::SeqCst),
+            1,
+            "the second caller must reuse the first caller's saved record"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn profile_refreshes_serialize_even_with_stale_records() {
+        let locks: Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>> =
+            Arc::new(Mutex::new(HashMap::new()));
+        let store = Arc::new(Mutex::new(HashMap::new()));
+        let refresh_count = Arc::new(AtomicUsize::new(0));
+        let active = Arc::new(AtomicUsize::new(0));
+        let old = AuthRecord {
+            access_token: "old-token".into(),
+            refresh_token: Some("refresh-token".into()),
+            id_token: None,
+            account_id: None,
+            email: None,
+            expires_at_unix: Some(chrono::Utc::now().timestamp() + 30),
+        };
+        store.lock().insert("work".into(), old.clone());
+
+        let run = |locks: Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>,
+                   store: Arc<Mutex<HashMap<String, AuthRecord>>>,
+                   refresh_count: Arc<AtomicUsize>,
+                   active: Arc<AtomicUsize>,
+                   old: AuthRecord| {
+            async move {
+                let result = Harness::refreshed_or_current_with(
+                    &locks,
+                    "work",
+                    &old,
+                    move || {
+                        let store = Arc::clone(&store);
+                        async move { Ok::<_, HarnessError>(store.lock().get("work").cloned()) }
+                    },
+                    move |refresh: String| {
+                        let refresh_count = Arc::clone(&refresh_count);
+                        let active = Arc::clone(&active);
+                        async move {
+                            assert_eq!(
+                                active.fetch_add(1, AtomicOrdering::SeqCst),
+                                0,
+                                "refreshes must never overlap"
+                            );
+                            tokio::time::sleep(Duration::from_millis(100)).await;
+                            active.fetch_sub(1, AtomicOrdering::SeqCst);
+                            refresh_count.fetch_add(1, AtomicOrdering::SeqCst);
+                            Ok::<_, HarnessError>(AuthRecord {
+                                access_token: format!("fresh-{refresh}"),
+                                refresh_token: Some("fresh-refresh".into()),
+                                id_token: None,
+                                account_id: None,
+                                email: None,
+                                expires_at_unix: Some(chrono::Utc::now().timestamp() + 3600),
+                            })
+                        }
+                    },
+                )
+                .await
+                .expect("test operation should succeed")
+                .expect("a stale record must be refreshed");
+                result.access_token
+            }
+        };
+
+        let (first, second) = tokio::join!(
+            run(
+                Arc::clone(&locks),
+                Arc::clone(&store),
+                Arc::clone(&refresh_count),
+                Arc::clone(&active),
+                old.clone(),
+            ),
+            run(
+                Arc::clone(&locks),
+                Arc::clone(&store),
+                Arc::clone(&refresh_count),
+                Arc::clone(&active),
+                old.clone(),
+            ),
+        );
+        assert_eq!(refresh_count.load(AtomicOrdering::SeqCst), 2);
+        assert!(first.starts_with("fresh-"));
+        assert!(second.starts_with("fresh-"));
     }
 
     #[test]
@@ -5941,6 +8635,28 @@ mod tests {
     }
 
     #[test]
+    fn balanced_parallelism_requires_an_explicit_speedup_request() {
+        use crate::config::ExecutionProfile;
+
+        assert!(!should_delegate(
+            "redesign a cross-cutting database and protocol migration",
+            ExecutionProfile::Balanced
+        ));
+        assert!(should_delegate(
+            "implement these independent tasks in parallel",
+            ExecutionProfile::Balanced
+        ));
+        assert!(!should_delegate(
+            "implement these independent tasks in parallel",
+            ExecutionProfile::Economy
+        ));
+        assert!(should_delegate(
+            "redesign the architecture for a concurrent distributed database migration with authentication security and a production release",
+            ExecutionProfile::Turbo
+        ));
+    }
+
+    #[test]
     fn components_are_branch_safe() {
         assert_eq!(safe_component("api/parser #1"), "api-parser--1");
         assert_eq!(safe_component("///"), "task");
@@ -5957,12 +8673,14 @@ mod tests {
                     objective: "inspect".into(),
                     paths: vec!["src/parser.rs".into()],
                     dependencies: Vec::new(),
+                    check: "Read the parser and report the relevant invariant.".into(),
                 },
                 BranchTask {
                     id: "change".into(),
                     objective: "change".into(),
                     paths: vec!["tests/parser.rs".into()],
                     dependencies: vec!["inspect".into()],
+                    check: "Run the parser test after the change.".into(),
                 },
             ],
         };
@@ -6051,22 +8769,63 @@ mod tests {
     }
 
     #[test]
+    fn lease_normalization_matches_between_planning_and_leases() {
+        let now = chrono::Utc::now();
+        let task = |paths: Vec<String>| TaskRecord {
+            run_id: RunId::new(),
+            task_id: "parser".into(),
+            objective: "inspect the parser".into(),
+            paths,
+            dependencies: Vec::new(),
+            state: PlanTaskState::Pending,
+            assigned_agent_id: None,
+            attempt: 0,
+            max_attempts: 2,
+            generation: 0,
+            last_error: None,
+            created_at: now,
+            updated_at: now,
+        };
+        let with_prefix = task(vec!["./src/parser.rs".into()]);
+        let bare = task(vec!["src/parser.rs".into()]);
+        assert!(
+            tasks_overlap(&with_prefix, &bare),
+            "prefixed and bare paths must overlap"
+        );
+        assert_eq!(
+            lease_resources(&with_prefix),
+            lease_resources(&bare),
+            "lease keys must agree between spellings"
+        );
+        assert!(tasks_overlap(
+            &task(vec!["src/parser.rs".into()]),
+            &task(vec!["src/".into()])
+        ));
+        assert!(!tasks_overlap(
+            &task(vec!["src/parser.rs".into()]),
+            &task(vec!["tests/parser.rs".into()])
+        ));
+    }
+
+    #[test]
     fn deterministic_complexity_routes_only_within_available_models() {
         let config = Config::default();
         let available = HashSet::from([config.models.lead.clone(), config.models.complex_lead.clone()]);
+        let simple =
+            routed_lead_model("fix one parser typo", &available, &config).expect("simple lead route");
+        assert_eq!(simple.model, config.models.lead);
         assert_eq!(
-            routed_lead_model("fix one parser typo", &available, &config).expect("simple lead route"),
-            config.models.lead
+            simple.degraded, None,
+            "the preferred leader was available, so the route is not degraded"
         );
-        assert_eq!(
-            routed_lead_model(
-                "Redesign the distributed database schema, authentication security, concurrent protocol migration, and production release architecture",
-                &available,
-                &config,
-            )
-            .expect("complex lead route"),
-            config.models.complex_lead
-        );
+        let complex = routed_lead_model(
+            "Redesign the distributed database schema, authentication security, concurrent protocol migration, and production release architecture",
+            &available,
+            &config,
+        )
+        .expect("complex lead route");
+        assert_eq!(complex.model, config.models.complex_lead);
+        assert_eq!(complex.degraded, None);
     }
 
     #[test]
@@ -6076,9 +8835,17 @@ mod tests {
             "deepseek/deepseek-v4-flash".to_owned(),
             "deepseek/deepseek-v4-pro".to_owned(),
         ]);
-        assert_eq!(
-            routed_lead_model("explain this parser", &available, &config).expect("DeepSeek lead"),
-            "deepseek/deepseek-v4-pro"
+        // No configured leadership slot is reachable, so leading is degraded to
+        // the deterministic first candidate and the reason is reported rather
+        // than the substitution happening silently.
+        let lead = routed_lead_model("explain this parser", &available, &config)
+            .expect("a DeepSeek-only account must still be able to lead");
+        assert_eq!(lead.model, "deepseek/deepseek-v4-flash");
+        assert!(
+            lead.degraded
+                .as_deref()
+                .is_some_and(|reason| reason.contains("no configured leadership-capable model")),
+            "a degraded leader route must explain itself: {lead:?}"
         );
         let now = chrono::Utc::now();
         let mut task = TaskRecord {
@@ -6096,15 +8863,20 @@ mod tests {
             created_at: now,
             updated_at: now,
         };
+        let pool = fair_worker_models(&task, &available, &config);
         assert_eq!(
-            routed_worker_model(&task, &available, &config),
-            "deepseek/deepseek-v4-flash"
+            pool,
+            vec![
+                "deepseek/deepseek-v4-flash".to_owned(),
+                "deepseek/deepseek-v4-pro".to_owned(),
+            ]
         );
         task.attempt = 2;
         task.last_error = Some("first attempt failed".into());
         assert_eq!(
-            routed_worker_model(&task, &available, &config),
-            "deepseek/deepseek-v4-pro"
+            fair_worker_models(&task, &available, &config),
+            pool,
+            "difficulty may change worker prompts, but it cannot create vendor preference in WDRR"
         );
         assert_eq!(
             reasoning_for_turn("deepseek/deepseek-v4-flash", "intent classifier", 0, "medium"),
@@ -6114,6 +8886,134 @@ mod tests {
             reasoning_for_turn("deepseek/deepseek-v4-pro", "integrator", 1, "medium"),
             "max"
         );
+    }
+
+    #[test]
+    fn automatic_routing_honors_pins_cooldowns_and_worker_policy() {
+        let temp = tempfile::tempdir().expect("routing workspace");
+        let mut harness = fixture_harness(temp.path(), Vec::new());
+        let run = harness
+            .store
+            .create_run("automatic routing", Mode::Batch)
+            .expect("run");
+        let now = chrono::Utc::now();
+        let task = TaskRecord {
+            run_id: run.id,
+            task_id: "worker-policy".into(),
+            objective: "inspect a bounded parser change".into(),
+            paths: vec!["src/parser.rs".into()],
+            dependencies: Vec::new(),
+            state: PlanTaskState::Pending,
+            assigned_agent_id: None,
+            attempt: 0,
+            max_attempts: 2,
+            generation: 0,
+            last_error: None,
+            created_at: now,
+            updated_at: now,
+        };
+        let available = HashSet::from([
+            "chatgpt/gpt-5.3-codex-spark".to_owned(),
+            "deepseek/deepseek-v4-flash".to_owned(),
+            "deepseek/deepseek-v4-pro".to_owned(),
+        ]);
+        let first_agent = EventAgentId::new();
+        let first = harness
+            .select_automatic_route(
+                "worker",
+                run.id,
+                first_agent,
+                "dispatch:routing:worker:one",
+                fair_worker_models(&task, &available, &harness.config),
+                100,
+            )
+            .expect("unknown provider telemetry remains routable");
+        assert_eq!(first.model, "chatgpt/gpt-5.3-codex-spark");
+        assert!(
+            first
+                .candidates
+                .iter()
+                .any(|candidate| candidate.model == "chatgpt/gpt-5.3-codex-spark"
+                    && candidate.eligible
+                    && candidate.health == ProviderHealthStatusV1::Unknown)
+        );
+        let pro = first
+            .candidates
+            .iter()
+            .find(|candidate| candidate.model == "deepseek/deepseek-v4-pro")
+            .expect("Pro must be visible in the routing receipt");
+        assert!(!pro.eligible);
+        assert!(pro.reason.contains("excluded"));
+
+        harness
+            .config
+            .routing
+            .pins
+            .insert("worker".into(), "deepseek/deepseek-v4-flash".into());
+        let audit = harness
+            .select_automatic_route(
+                "audit",
+                run.id,
+                EventAgentId::new(),
+                "dispatch:routing:audit:pin",
+                fair_audit_models(&available, &harness.config),
+                100,
+            )
+            .expect("worker pin applies to audit lenses");
+        assert_eq!(audit.model, "deepseek/deepseek-v4-flash");
+        assert!(audit.user_pin);
+
+        harness.config.routing.pins.clear();
+        harness
+            .store
+            .record_provider_transient_failure(
+                &harness.workspace_id,
+                ProviderId::DeepSeek.key(),
+                None,
+                "fixture cooldown",
+            )
+            .expect("provider cooldown");
+        let cooled = harness
+            .select_automatic_route(
+                "worker",
+                run.id,
+                EventAgentId::new(),
+                "dispatch:routing:worker:cooldown",
+                fair_worker_models(&task, &available, &harness.config),
+                100,
+            )
+            .expect("other healthy-or-unknown provider remains eligible");
+        assert_eq!(cooled.model, "chatgpt/gpt-5.3-codex-spark");
+        assert!(cooled.candidates.iter().any(|candidate| {
+            candidate.model == "deepseek/deepseek-v4-flash"
+                && !candidate.eligible
+                && candidate.reason.contains("cooldown")
+        }));
+
+        harness
+            .config
+            .routing
+            .pins
+            .insert("worker".into(), "deepseek/deepseek-v4-flash".into());
+        harness.config.routing.providers.insert(
+            ProviderId::DeepSeek,
+            crate::config::RoutingProviderOverride {
+                reserve: None,
+                cooldown: Some(false),
+            },
+        );
+        let bypassed = harness
+            .select_automatic_route(
+                "worker",
+                run.id,
+                EventAgentId::new(),
+                "dispatch:routing:worker:bypass",
+                fair_worker_models(&task, &available, &harness.config),
+                100,
+            )
+            .expect("explicit user cooldown override");
+        assert_eq!(bypassed.model, "deepseek/deepseek-v4-flash");
+        assert_eq!(bypassed.cooldown_override, Some(false));
     }
 
     #[test]
@@ -6130,7 +9030,7 @@ mod tests {
     }
 
     #[test]
-    fn one_use_approval_is_bound_to_the_exact_exec_argv() {
+    fn one_use_approval_is_bound_to_the_exact_operation() {
         let temp = tempfile::tempdir().expect("approval workspace");
         let store = Store::in_memory().expect("approval store");
         let workspace = store
@@ -6145,7 +9045,7 @@ mod tests {
             controls: Arc::new(Mutex::new(HashMap::from([(
                 run_id,
                 RunControl {
-                    approved_exec_once: Some(vec![
+                    approved_operation_once: Some(vec![
                         "git".into(),
                         "push".into(),
                         "origin".into(),
@@ -6157,18 +9057,37 @@ mod tests {
             account_clients: Arc::new(Mutex::new(Vec::new())),
             hot_cache: Arc::new(Mutex::new(HotCache::with_limits(8, HOT_CACHE_MAX_BYTES))),
             model_context_limits: Arc::new(Mutex::new(HashMap::new())),
-            deepseek_balance_percent: Arc::new(Mutex::new(None)),
+            provider_balance_percent: Arc::new(Mutex::new(HashMap::new())),
+            refresh_locks: Arc::new(Mutex::new(HashMap::new())),
         };
-        assert!(!harness.take_exec_approval(run_id, &json!({"argv":["gh","release","create","v1.0.0"]})));
-        assert!(!harness.take_exec_approval(run_id, &json!({"argv":["git","push","origin","main"]})));
+        assert!(!harness.take_operation_approval(
+            run_id,
+            Some(vec![
+                "gh".into(),
+                "release".into(),
+                "create".into(),
+                "v1.0.0".into()
+            ])
+        ));
+        assert!(!harness.take_operation_approval(
+            run_id,
+            Some(vec!["git".into(), "push".into(), "origin".into(), "main".into()])
+        ));
         harness
             .controls
             .lock()
             .entry(run_id)
             .or_default()
-            .approved_exec_once = Some(vec!["git".into(), "push".into(), "origin".into(), "main".into()]);
-        assert!(harness.take_exec_approval(run_id, &json!({"argv":["git","push","origin","main"]})));
-        assert!(!harness.take_exec_approval(run_id, &json!({"argv":["git","push","origin","main"]})));
+            .approved_operation_once =
+            Some(vec!["git".into(), "push".into(), "origin".into(), "main".into()]);
+        assert!(harness.take_operation_approval(
+            run_id,
+            Some(vec!["git".into(), "push".into(), "origin".into(), "main".into()])
+        ));
+        assert!(!harness.take_operation_approval(
+            run_id,
+            Some(vec!["git".into(), "push".into(), "origin".into(), "main".into()])
+        ));
     }
 
     #[test]
@@ -6212,7 +9131,8 @@ mod tests {
             account_clients: Arc::new(Mutex::new(Vec::new())),
             hot_cache: Arc::new(Mutex::new(HotCache::with_limits(128, HOT_CACHE_MAX_BYTES))),
             model_context_limits: Arc::new(Mutex::new(HashMap::new())),
-            deepseek_balance_percent: Arc::new(Mutex::new(None)),
+            provider_balance_percent: Arc::new(Mutex::new(HashMap::new())),
+            refresh_locks: Arc::new(Mutex::new(HashMap::new())),
         };
         let prompt = harness
             .system_prompt("fix the parser", "Spark worker parser", false)
@@ -6224,7 +9144,7 @@ mod tests {
         );
 
         let clarification_prompt = harness
-            .system_prompt("it doesn't work", "issue clarifier Luna lead", true)
+            .system_prompt("it doesn't work", "Mina, issue clarifier", true)
             .expect("clarification prompt");
         assert!(
             estimate_tokens(&clarification_prompt) < 2_000,
